@@ -1,0 +1,65 @@
+<!-- templates/health_record/upload_patient_document.html -->
+{% extends "base_admin.html" %}
+
+{% load static %}
+
+{% block extra_head %}
+  {#  plugin tom select #}
+  <link rel="stylesheet" href="{% static 'plugins/tom-select/styles.css' %}">
+  <meta name="description" content="Upload Patient Document">
+{% endblock %}
+
+{% block content %}
+
+<div class="container" style="max-width:720px">
+  <div class="text-center mb-4">
+    <h2 class="fw-bold">Upload PDF kết quả/phiếu khám</h2>
+  </div>
+  <form method="post" enctype="multipart/form-data"
+        class="bg-light p-4 rounded shadow-sm needs-validation"
+        data-ajax-url="{% url 'health_record:ajax_patients_by_company' %}">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <div class="row g-3">
+      <div class="col-12">
+        {{ form.company.label_tag }}{{ form.company }}
+        {{ form.company.errors }}
+      </div>
+
+      <div class="col-12">
+        {{ form.patient.label_tag }}{{ form.patient }}
+        <div class="form-text"></div>
+        {{ form.patient.errors }}
+      </div>
+
+      <div class="col-md-6">
+        {{ form.doc_type.label_tag }}{{ form.doc_type }}
+        {{ form.doc_type.errors }}
+      </div>
+
+      <div class="col-md-6">
+        {{ form.visit_date.label_tag }}{{ form.visit_date }}
+        {{ form.visit_date.errors }}
+      </div>
+
+      <div class="col-md-6">
+        {{ form.file.label_tag }}{{ form.file }}
+        {{ form.file.errors }}
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-center mt-3">
+      <button type="submit" class="btn btn-primary">💾 Tải lên</button>
+    </div>
+  </form>
+</div>
+
+<script src="{% static 'health_record/js/patient_list_by_company_UploadForm.js' %}"></script>
+
+{% endblock %}
+
+{% block extra_scripts %}
+{#  plugin tom select #}
+  <script src="{% static 'plugins/tom-select/js.complete.min.js' %}"></script>
+{% endblock %}

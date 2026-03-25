@@ -1,0 +1,155 @@
+{% extends "base_admin.html" %}
+
+{% load static %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'booking/css/styles.css' %}">
+  <meta name="description" content="Đăng ký lịch khám">
+{% endblock %}
+
+
+{% block content %}
+{% load custom_filters %}
+<div class="schedule-container">
+    <div class="header">
+        <p class="company-name"><strong>{{ company_name }}</strong></p>
+        Từ {{ contract_start|date:"d/m/Y" }} đến {{ contract_end|date:"d/m/Y" }}
+    </div>
+    {% if patient %}
+        <div class="patient-greeting">
+            <p>Xin chào {{ patient.ho_ten }}</p>
+            {% if has_registered and current_schedule %}
+                <div class="registered-info">
+                    Bạn đã đăng ký lịch khám ngày {{ current_schedule.date|date:"d/m/Y" }}, ca {{ current_schedule.get_shift_display }}.
+                </div>
+            {% else %}
+                <div class="calendar-guide">
+                    
+                    <span>
+                        <b><span class="guide-icon" aria-hidden="true" style="font-size:1.3em;">🖱️</span>Bấm vào ô ngày trên lịch</b> để đăng ký lịch khám<br>
+                        <span class="slot-badge slot-green"></span> Còn chỗ 
+                        <span class="slot-badge slot-red"></span> Hết chỗ
+                    </span>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <!-- Bảng lịch -->
+    {% for month in months_data %}
+    <h3 style="text-align:center; margin:1.2em 0 0.4em 0;">
+      Tháng {{ month.month }}/{{ month.year }}
+    </h3>
+    <div class="calendar-wrapper">
+        <table class="calendar">
+            <thead>
+                <tr>
+                    <th>Thứ 2</th>
+                    <th>Thứ 3</th>
+                    <th>Thứ 4</th>
+                    <th>Thứ 5</th>
+                    <th>Thứ 6</th>
+                    <th>Thứ 7</th>
+                    <th style="color:gray;">Chủ nhật</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for week in month.weeks %}
+                    <tr>
+                        {% for day in week %}
+                            {% if day.month == month.month %}
+                                {% with day_str=day|stringformat:"s" %}
+                                    {% with day_data=month.schedule_data|get_item:day_str %}
+                                    {% with day_weekday=day.weekday %}
+                                        {% with disabled_all=day_data.disabled_all %}
+                                        <!-- {{ day }} | disabled_all: {{ day_data.disabled_all }} | day_data: {{ day_data }} -->
+                                            <td 
+                                                class="{% if day_weekday == 6 %}disabled sunday
+                                                        {% elif disabled_all %}disabled
+                                                        {% else %}clickable{% endif %}" 
+                                                data-date="{{ day|date:'Y-m-d' }}"
+                                            >
+                                                <div class="date-lable">{{ day.day }}</div>
+                                                
+                                                {% if day_weekday != 6 %}
+                                                    <div class="slots">
+                                                         Sáng: 
+                                                        <span class="slot-am {% if day_data.MORNING.disabled %}slot-full{% else %}slot-available{% endif %}">
+                                                           {{ day_data.MORNING.remaining }}
+                                                        </span><br>
+                                                        Chiều:                       
+                                                        <span class="slot-pm {% if day_data.AFTERNOON.disabled %}slot-full{% else %}slot-available{% endif %}">
+                                                            {{ day_data.AFTERNOON.remaining }}
+                                                        </span>
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                        {% endwith %}
+                                    {% endwith %}
+                                    {% endwith %}
+                                {% endwith %}
+                            {% else %}
+                                <td></td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal đăng ký ca khám -->
+<div id="slotModal" class="modal-overlay" style="display: none;">
+  <div class="modal-dialog modal-dialog--popup modal-fade-in">
+    <div class="modal-header">
+      <div id="modal-date-label">Đăng ký khám</div>
+      <button type="button" class="modal-close-btn" onclick="closeModal()" aria-label="Đóng">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'booking:submit_registration' %}">
+        {% csrf_token %}
+        <input type="hidden" name="date" id="selected-date" required>
+        <input type="hidden" name="contract_id" value="{{ contract_id }}">
+        <div class="slot-options">
+          <label for="check-am" id="label-am">
+            <input type="radio" id="check-am" name="slot" value="am" required>
+            Buổi sáng
+          </label>
+          <label for="check-pm" id="label-pm">
+            <input type="radio" id="check-pm" name="slot" value="pm" required>
+            Buổi chiều
+          </label>
+        </div>
+        <div class="modal-buttons">
+          <button type="submit" class="btn-confirm">Gửi</button>
+          <!-- <button type="button" class="btn-cancel" onclick="closeModal()">Hủy</button> -->
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- JS ẩn radio khi hết slot -->
+<div id="slot-status-data" style="display:none">
+    {{ slot_status_json|default:'{}'|safe }}
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // JS ẩn radio khi hết slot
+    const slotStatusScript = document.getElementById("slot-status-data");
+    const SLOT_STATUS = slotStatusScript ? JSON.parse(slotStatusScript.textContent) : {};
+</script>
+<!-- reload page when show -->
+<script>
+  window.addEventListener("pageshow", function(event) {
+    if (event.persisted || window.performance?.navigation?.type === 2) {
+      location.reload();  // reload lại để lấy CSRF token mới
+    }
+  });
+</script>
+<script src="{% static 'booking/js/modal.js' %}"></script>
+{% endblock %}

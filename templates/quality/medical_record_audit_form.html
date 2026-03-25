@@ -1,0 +1,294 @@
+{% extends "base_admin.html" %}
+
+{% load static %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'quality/css/styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="quality-page outpatient-audit-form">
+
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+    <div>
+      <h3 class="mb-1">Bảng kiểm tra hồ sơ bệnh án</h3>
+    </div>
+    <div class="text-md-end">
+      <a href="{% url 'quality:medical_record_audit_list' %}" class="btn btn-outline-secondary btn-sm">
+        Danh sách hồ sơ của tôi
+      </a>
+    </div>
+  </div>
+
+  <form id="auditForm" method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <!-- THÔNG TIN CHUNG -->
+    <div class="card mb-3">
+      <div class="card-header">Thông tin chung</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">{{ form.patient_name.label }}</label>
+            {{ form.patient_name }}
+            {{ form.patient_name.errors }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.visit_date.label }}</label>
+            {{ form.visit_date }}
+            {{ form.visit_date.errors }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.patient_code.label }}</label>
+            {{ form.patient_code }}
+            {{ form.patient_code.errors }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.clinic_room.label }}</label>
+            {{ form.clinic_room }}
+            {{ form.clinic_room.errors }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.doctor_name.label }}</label>
+            {{ form.doctor_name }}
+            {{ form.doctor_name.errors }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- I. THỦ TỤC HÀNH CHÍNH -->
+    <div class="card mb-3">
+      <div class="card-header">I. Thủ tục hành chính</div>
+      <div class="card-body">
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q1_name_uppercase.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q1_name_uppercase }}</div>
+            {{ form.q1_name_uppercase.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q2_no_erasure.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q2_no_erasure }}</div>
+            {{ form.q2_no_erasure.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q3_documents_sorted.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q3_documents_sorted }}</div>
+            {{ form.q3_documents_sorted.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q4_page_numbered.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q4_page_numbered }}</div>
+            {{ form.q4_page_numbered.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q5_signatures.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q5_signatures }}</div>
+            {{ form.q5_signatures.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q6_icd_code.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q6_icd_code }}</div>
+            {{ form.q6_icd_code.errors }}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- II. CHẤT LƯỢNG CHẨN ĐOÁN -->
+    <div class="card mb-3">
+      <div class="card-header">II. Chất lượng chẩn đoán</div>
+      <div class="card-body">
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q7_history_exam_full.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q7_history_exam_full }}</div>
+            {{ form.q7_history_exam_full.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q8_tests_ordered.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q8_tests_ordered }}</div>
+            {{ form.q8_tests_ordered.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q9_results_reviewed.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q9_results_reviewed }}</div>
+            {{ form.q9_results_reviewed.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q10_diagnosis_change_noted.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q10_diagnosis_change_noted }}</div>
+            {{ form.q10_diagnosis_change_noted.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q11_discharge_summary.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q11_discharge_summary }}</div>
+            {{ form.q11_discharge_summary.errors }}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- III. CHẤT LƯỢNG ĐIỀU TRỊ - CHĂM SÓC -->
+    <div class="card mb-3">
+      <div class="card-header">III. Chất lượng điều trị - chăm sóc</div>
+      <div class="card-body">
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q12_progress_notes.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q12_progress_notes }}</div>
+            {{ form.q12_progress_notes.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q13_orders_appropriate.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q13_orders_appropriate }}</div>
+            {{ form.q13_orders_appropriate.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q14_complex_case_noted.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q14_complex_case_noted }}</div>
+            {{ form.q14_complex_case_noted.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q15_vital_signs_chart.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q15_vital_signs_chart }}</div>
+            {{ form.q15_vital_signs_chart.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q16_infusion_record.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q16_infusion_record }}</div>
+            {{ form.q16_infusion_record.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q17_blood_transfusion_record.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q17_blood_transfusion_record }}</div>
+            {{ form.q17_blood_transfusion_record.errors }}
+          </div>
+        </div>
+
+        <div class="audit-question-row row align-items-center">
+          <div class="col-md-8">
+            <label class="form-label">{{ form.q18_skin_test_record.label }}</label>
+          </div>
+          <div class="col-md-4">
+            <div class="audit-radio-group">{{ form.q18_skin_test_record }}</div>
+            {{ form.q18_skin_test_record.errors }}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- NHẬN XÉT CHUNG -->
+    <div class="card mb-3 overall-comment-card">
+      <div class="card-header">
+        <div class="row align-items-center">
+          <div class="col-md-4 col-12 mb-2 mb-md-0">
+            <label class="form-label">{{ form.overall_comment.label }}</label>
+          </div>
+          <div class="col-md-8 col-12">
+            {{ form.overall_comment }}
+            {{ form.overall_comment.errors }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nút submit -->
+    <div class="d-flex justify-content-between align-items-center mb-5">
+      <a href="{% url 'quality:medical_record_audit_list' %}" class="btn btn-outline-secondary">
+        Quay lại danh sách
+      </a>
+      <button type="submit" class="btn btn-primary">
+        Lưu bảng kiểm tra
+      </button>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% load user_tags %}
+<div id="sidebar-overlay" class="sidebar-overlay" aria-hidden="true"></div>
+<div class="sidebar" id="sidebar">
+  <button class="toggle-btn" style="color: white;" onclick="toggleSidebar()">☰</button>
+  <ul class="menu">
+    {% if request.user|in_group:"Sales Team" or request.user|in_group:"Managers" %}
+      <li><a href="{% url 'clinic:list_company' %}">Danh sách Công ty</a></li>
+      <li><a href="{% url 'contract:create_contract' %}">Tạo lịch KSK</a></li>
+      <li><a href="{% url 'contract:contract_list' %}">Danh sách KSK</a></li>
+      <li><a href="{% url 'booking:schedule_table' %}">Lịch KSK chi tiết</a></li>
+    {% endif %}
+
+    {% if request.user|in_group:"Doctor" or request.user|in_group:"Managers" %}
+      <li><a href="{% url 'clinic:dental_exam_form' %}">Khám răng</a></li>
+      <li><a href="{% url 'clinic:sum_assistant' %}">Sum Assistant</a></li>
+    {% endif %}
+
+    {% if request.user|in_group:"Managers" %}
+      <li><a href="{% url 'health_record:upload_patient_document' %}">Upload phiếu kết quả</a></li>
+    {% endif %}
+
+    {% if request.user|in_group:"Doctor" %}
+    <li><a href="{% url 'sum_report:create_summary_report' %}">SUM report</a></li>
+    {% endif %}
+
+    {% if request.user|in_group:"Managers" %}
+      <li><a href="{% url 'quality:medical_record_audit_list' %}">Kiểm HSBA</a></li>
+    {% endif %}
+
+    {% if request.user|in_group:"Managers" %}
+      <li><a href="{% url 'quality:incident_report_list' %}">Báo cáo sự cố</a></li>
+    {% endif %}
+
+    {% if request.user.is_authenticated and request.user.is_superuser %}
+      <li><a href="{% url 'api_his:api_playground' %}">Test HIS appoiments API</a></li>
+    {% endif %}
+
+  </ul>
+    <div class="user-actions">
+      <div class="user-info">
+        <i class="fa fa-user-circle"></i>
+        <span>{{ user.get_full_name|default:user.username }}</span>
+      </div>
+      <a href="{% url 'authentication:staff_logout' %}" class="logout-link">
+        <i class="fa fa-sign-out-alt"></i>
+        <span>Đăng xuất</span>
+      </a>
+    </div>
+</div>

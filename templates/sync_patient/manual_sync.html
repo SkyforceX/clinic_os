@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'sync_patient/css/styles.css' %}">
+  <meta name="description" content="Đồng bộ dữ liệu">
+{% endblock %}
+
+{% block content %}
+    
+    <h2>Đồng bộ dữ liệu bệnh nhân từ API</h2>
+    <form id="sync-form" class="form-sync">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="from_date">Từ ngày (ddmmyyyy):</label>
+            <input type="text" id="from_date" name="from_date" placeholder="01082025" value="{{ from_date }}">
+        </div>
+        <div class="form-group">
+            <label for="to_date">Đến ngày (ddmmyyyy):</label>
+            <input type="text" id="to_date" name="to_date" placeholder="05082025" value="{{ to_date }}">
+        </div>
+        <button type="submit">Đồng bộ ngay</button>
+        <div class="last-sync" id="last-sync">
+            Cập nhật lần cuối: 
+            {% if last_synced %}
+                <b>{{ last_synced|date:"H:i:s d/m/Y" }}</b>
+            {% else %}
+                <i>Chưa từng đồng bộ</i>
+            {% endif %}
+        </div>
+        <div style="margin-top: 12px; text-align: center;">
+        <a href="{% url 'sync_patient:patient_list' %}" style="color:#2563eb; font-weight:bold; text-decoration:underline">
+            Xem danh sách bệnh nhân & lịch sử khám
+        </a>
+</div>
+    </form>
+    
+
+    {% if result %}
+      <div class="result">{{ result }}</div>
+    {% endif %}
+
+<!-- toast thông báo -->
+{% include "includes/toast_popup.html" %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+window.API_SYNC_PATIENT_URL = "{% url 'sync_patient:sync_patient_ajax' %}";
+</script>
+<script src="{% static 'sync_patient/js/manual_sync.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,280 @@
+[
+  {
+    "id": "group1",
+    "name": "Nội",
+    "items": [
+      {
+        "name": "Chỉ số chiều cao cân nặng trên mức bình thường ",
+        "hidden": "chỉ số BMI tăng cao sẽ ảnh hưởng xấu đến sức khỏe và gây ra nhiều bệnh lý nguy hiểm, bao gồm: bệnh tim mạch như cao huyết áp, hẹp động mạch vành, bệnh tiểu đường; bệnh thoái hóa khớp, vô sinh; rối loạn lipid máu...; nguy cơ gây ra một số loại ung thư như ung thư tử cung, buồng trứng, vú, đại tràng và túi mật…  Vì vậy cần thực hiện chế độ ăn giảm cân"
+      },
+      {
+        "name": "Thiếu máu hồng cầu nhỏ, nhược sắc",
+        "hidden": "Cần làm các xét nghiệm chuyên biệt và soi dạ dày, soi đại tràng tìm nguyên nhân thiếu máu để điều trị thích hợp. Chế độ ăn thực phẩm giàu sắt như thịt bò, rau củ có màu xanh đậm, ngũ cốc, trái cây ,Tăng cường acid folic Vitamin B12, Vitamin C."
+      },
+      {
+        "name": "Giảm thị lực ",
+        "hidden": "khám với chuyên khoa mắt và đo kính thích hợp"
+      },
+      {
+        "name": "Giảm sức nhai",
+        "hidden": "Khám và điều trị với BS Nha khoa"
+      },
+      {
+        "name": "Ngưng hút thuốc lá ",
+        "hidden": "Nên ngưng hút thuốc lá để phòng tránh nguy cơ bệnh hô hấp và tim mạch"
+      },
+      {
+        "name": "Theo dõi lao phổi ",
+        "hidden": "cần khám ở trạm chống lao khu vực để được xét nghiệm xác định và điều trị sớm theo chuyên khoa"
+      },
+      {
+        "name": "Loãng xương",
+        "hidden": "Tăng vận động , bổ sung thực phẩm giàu can-xi"
+      },
+      {
+        "name": "Xơ vữa động mạch cảnh",
+        "hidden": "Điều trị phòng ngừa đột quỵ. Tập thể dục, tránh hoạt động căng thẳng áp lực"
+      }
+    ]
+  },
+  {
+    "id": "group2",
+    "name": "Nội",
+    "items": [
+      {
+        "name": "Tăng huyết áp",
+        "hidden": "Chế độ ăn giảm muối , giảm đường , chất béo, phủ tạng động vật, hải sản. Tăng rau xanh chất xơ. Ngưng rượu bia. thuốc lá.  Tập thể dục thường xuyên. Tránh sự căng thẳng. điều trị thuốc theo hướng dẫn của bác sĩ"
+      },
+      {
+        "name": "Bệnh mạch vành",
+        "hidden": "Chế độ ăn giảm muối , giảm đường , chất béo, phủ tạng động vật, hải sản. Tăng rau xanh chất xơ. Ngưng rượu bia. thuốc lá.  Tập thể dục nhẹ thường xuyên. Hạn chế sự gắng sức, tránh căng thẳng , táo bón."
+      },
+      {
+        "name": "Tăng đường huyết",
+        "hidden": "cần xét nghiệm Đường huyết lúc đói lần 2  và HbA1c. Cử ăn ngọt, giảm chất bột chất béo. Tăng rau xanh chất xơ."
+      },
+      {
+        "name": "Đái tháo đường type 2",
+        "hidden": "Cử ăn ngọt, giảm chất bột chất béo. Tăng rau xanh chất xơ. Ngưng rượu bia. Tập thể dục . Không đi chân đất. Cần theo dõi định kỳ : Đường huyết- HbA1c, chức năng thận"
+      },
+      {
+        "name": "Tăng axit uric máu",
+        "hidden": "cần hạn chế dùng những thực phẩm giàu đạm như hải sản, các loại thịt đỏ, nội tạng động vật và hạn chế dùng rượu bia, thuốc lá. Chế độ ăn uống nên bổ sung nhiều rau xanh, hoa quả tươi, giúp ích rất nhiều cho quá trình đào thải acid uric ra khỏi cơ thể."
+      },
+      {
+        "name": "Tăng men gan",
+        "hidden": "Cần gặp bác sĩ để xác định nguyên nhân gây tăng men gan. Giảm chất béo, phủ tạng động vật, hải sản. Tăng rau xanh chất xơ. Ngưng rượu bia."
+      },
+      {
+        "name": "Rối loạn chuyển hóa mỡ",
+        "hidden": "là nguyên nhân gây ra bệnh tim mạch và nguy cơ đột quỵ , gan nhiễm mỡ. Chế độ ăn giảm chất béo, phủ tạng động vật, hải sản. Tăng rau xanh chất xơ. Ngưng rượu bia. Tập thể dục . Theo dõi  xét nghiêm máu định kỳ và điều trị theo chỉ định của bác sĩ nhằm phòng ngừa đột quỵ và gan nhiễm mỡ"
+      },
+      {
+        "name": "Gan nhiễm mỡ",
+        "hidden": "Nên thực hiện chế độ ăn giảm chất bột , mỡ chất béo, phủ tạng động vật, tăng rau xanh chất xơ. Ngưng rươu bia. Tập thể dục . Cần dược tư vấn với Bs chuyên khoa gan mật và điều trị ngừa nguy cơ xơ gan và ung thư gan"
+      },
+      {
+        "name": "Nang gan",
+        "hidden": "Nang gan đơn thuần không triệu chứng không cần điều trị nên siêu âm kiểm tra mỗi 6-12 tháng. Đa nang gan cần xét nghiệm Ký sinh trùng và tư vấn với Bác sĩ chuyên khoa gan mật"
+      },
+      {
+        "name": "Nhiễm siêu vi viêm gan B",
+        "hidden": "Bạn đang có nhiễm virus viêm gan B , bạn cần được làm xét nghiệm HBV DNA định lượng và HBsAg định lượng và gặp Bs chuyên khoa gan mật mỗi 6 tháng -1 năm để được tư vấn và theo dõi điều trị. Cần chú ý tránh lây nhiễm cho người thân của bạn. Biện pháp tốt nhất là thân nhân nên xét nghiệm tầm soát siêu vi B và đi chích ngừa nếu chưa bị nhiễm"
+      },
+      {
+        "name": "Có kháng thể của Siêu vi viêm gan C",
+        "hidden": "Xét nghiệm cho biết từng nhiễm Siêu vi viêm gan C . Để xác định hiện tại có đang diễn tiến bệnh cần xét nghiệm HCV RNA định lượng"
+      }
+    ]
+  },
+  {
+    "id": "group3",
+    "name": "Ngoại",
+    "items": [
+      {
+        "name": "Sỏi túi mật",
+        "hidden": "Sỏi túi mật không gây đau chưa có chỉ định phẫu thuật lấy sỏi . Nếu đau nhiều vùng dưới sườn phải nên khám bác sĩ .Chế độ ăn giàu chất xơ, trái cây, rau xanh, các loại đậu, ngũ cốc nguyên hạt (gạo lứt, yến mạch…) dầu ô li , nước ép táo. Giảm mặn , chất béo, phủ tạng động vật, hải sản."
+      },
+      {
+        "name": "Polyp túi mật",
+        "hidden": "Hầu hết các polyp đều lành tính và không gây ra triệu chứng. Tuy nhiên, một số trường hợp polyp có thể phát triển thành ung thư, đặc biệt là những polyp có kích thước lớn hơn 1 cm hoặc có hình dạng bất thường. Vì vậy cần theo dõi định kỳ với siêu âm mỗi năm. Khi polyp >1cm cần xem xét phẫu thuật cắt túi mật nội soi"
+      },
+      {
+        "name": "U mạch máu gan",
+        "hidden": "Là u lành tính trong gan chưa cần điều trị, nên siêu âm kiểm tra mỗi 6-12 tháng"
+      },
+      {
+        "name": "Sỏi thận",
+        "hidden": "Sỏi nhỏ chưa cần điều trị. Nếu có đau lưng và vùng mạn sườn dưới hoặc tiểu gắt buốt, tiểu máu cần khám bác sĩ. Uống đủ nước , chế độ ăn giảm lượng muối, hạn chế thịt đỏ; tránh các loại nước ngọt, nước giải khát"
+      },
+      {
+        "name": "Nang thận",
+        "hidden": "Nang đơn hoặc nhỏ không cần điều trị. Nếu nang có kích thước lớn hơn 6cm gây chèn ép chủ mô thận và gây ra nhiều biến chứng nguy hiểm. Cần được điều trị bằng phương pháp phẫu thuật loại bỏ nang. Cần kiểm tra siêu âm bụng định kỳ mỗi năm > khi xuất hiện tiểu máu vi thể ,đau vùng lưng ,sốt ,tăng huyết áp cần khám bác sĩ"
+      },
+      {
+        "name": "U xơ tiền liệt tuyến",
+        "hidden": "Là tăng sinh lành tính tuyến tiền liệt , tuy nhiên nếu có triệu chứng rối loạn tiểu tiện, ảnh hưởng tới sinh hoạt  cần khám Bác sĩ đều được điều trị và siêu âm định kỳ mỗi 6 tháng – 1 năm tầm soát diễn tiến ung thư"
+      },
+      {
+        "name": "Polyp đại tràng",
+        "hidden": "Nên được cắt lấy qua nội soi vì nguy cơ diễn tiến ung thư đại tràng. Tùy theo kết quả giải phẫu bệnh Bác sĩ sẽ tư vấn soi đại tràng kiểm tra sau 1-2 năm "
+      },
+      {
+        "name": "Trĩ nội",
+        "hidden": "Tăng rau xanh chất xơ. Tránh ngồi lâu"
+      },
+      {
+        "name": "Bướu giáp đa nhân",
+        "hidden": "Đa số là u lành tính tuy nhiên bạn cần xét nghiêm chức năng tuyến giáp ( T3, T4, TSH), siêu âm tuyến giáp kiềm tra mỗi 6 tháng và làm xét nghiệm FNA nếu kích thước trên 10mm để tầm soát ung thư tuyến giáp"
+      },
+      {
+        "name": "Nang tuyến giáp",
+        "hidden": "Tuy tỷ lệ lành tính ở nang giáp cao, nhưng cần theo dõi qua siêu âm kiềm tra mỗi 6 tháng"
+      },
+      {
+        "name": "Nang tuyến vú",
+        "hidden": "là thay đổi lành tính, theo dõi định kỳ với  bác sĩ phụ khoa. Kiểm tra siêu âm mỗi 6 tháng"
+      },
+      {
+        "name": "Thay đổi sợi bọc tuyến vú",
+        "hidden": "là thay đổi lành tính, theo dõi định kỳ và kiểm tra siêu âm  mỗi 6 tháng với bác sĩ phụ khoa. Người bệnh nên giảm stress; giảm cân nếu BMI tăng; hạn chế trà, café, chocolate, thuốc lá; Nên bổ sung vitamin A - E - C, calci, magnesium; ngũ cốc; rau củ"
+      },
+      {
+        "name": "Bướu sợi tuyến tuyến vú",
+        "hidden": "Báo cho BS điều trị của bạn các nguy cơ ung thư vú hiện có: tiền sử ung thư vú cá nhân và trong gia đình, tiền sử sinh thiết có tăng sản không điển hình, tiền sử phẫu thuật tuyến vú. Tái khám phụ khoa định kì mỗi 3-6  tháng hoặc theo chỉ định của BS."
+      }
+    ]
+  },
+  {
+    "id": "group4",
+    "name": "SPK",
+    "items": [
+      {
+        "name": "Nhân xơ tử cung",
+        "hidden": "Người bệnh nên tái khám và theo dõi định kì đúng theo lịch hẹn của BS điều trị, không sử dụng các bài thuốc gia truyền dân gian.Tái khám định kì mỗi 6 tháng, hoặc khám ngay khi có các dấu hiệu: đau bụng nhiều vùng bụng dưới, bụng to nhanh, bí tiểu, táo bón, rong huyết, rong kinh"
+      },
+      {
+        "name": "Nang buồng trứng",
+        "hidden": "cần được tư vấn  và theo dõi định kỳ với bác sĩ phụ khoa. Kiểm tra siêu âm mỗi 6 tháng. Khám ngay khi có các dấu hiệu: đau bụng nhiều vùng hạ vị, bụng to nhanh sau 1-3 tháng, táo bón, tiểu lắt nhắt, buồn nôn"
+      },
+      {
+        "name": "Viêm cổ tử cung",
+        "hidden": "Luôn giữ vệ sinh vùng kín sạch sẽ, nhất là trong thời gian diễn ra chu kì kinh, trước và sau khi quan hệ tình dục. Không lạm dụng dung dịch vệ sinh phụ nữ. Không thụt rửa sâu trong âm đạo.Quan hệ tình dục an toàn, không quan hệ bừa bãi.Khám phụ khoa định kì mỗi 6 tháng để tầm soát phát hiện và điều trị sớm ngăn ngừa biến chứng."
+      },
+      {
+        "name": "Viêm lộ tuyến",
+        "hidden": "Lộ tuyến đơn thuần không cần điều trị. Khi có tình trạng viêm ảnh hưởng chất lượng cuộc sống, người bệnh  nên gặp BS tư vấn, thăm khám và điều trị."
+      },
+      {
+        "name": "Kết quả phết tế bào cổ tử cung bất thường",
+        "hidden": "cần được tư vấn  với Bác sĩ phu khoa"
+      },
+      {
+        "name": "Nhiễm HPV",
+        "hidden": "Cơ thể thường có khả năng tự loại bỏ virus nhờ vào hệ miễn dịch tốt. Đối với các tuýp nguy cơ cao như HPV tuýp 16 và 18, BS có thể can thiệp điều trị những thay đổi bất thường ở tế bào cổ tử cung nếu có hoặc các mụn cóc liên quan virus. Giữ gìn vệ sinh cá nhân và bộ phận sinh dục đặc biệt sau khi quan hệ tình dục. Tái khám phụ khoa định kì mỗi 6 tháng hoặc đúng theo lịch hẹn của BS."
+      }
+    ]
+  },
+  {
+    "id": "group5",
+    "name": "Tai mũi họng",
+    "items": [
+      {
+        "name": "Viêm ống tai ngoài do nấm",
+        "hidden": "là tình trạng nhiễm trùng của ống tai ngoài gây ra bởi tác nhân vi nấm. Không để nước dơ bẩn vào tai, không tự ý ngoái tay, không đi lấy ráy ở ngoài tránh lây nhiễm nên hãy đến khám gặp Bs Tai Mũi Họng để hút rửa vệ sinh làm thuốc tai và điều trị."
+      },
+      {
+        "name": "Viêm tai giữa",
+        "hidden": "Đến gặp Bs Tai Mũi Họng để được điều trị thích hợp"
+      },
+      {
+        "name": "Viêm mũi xoang dị ứng",
+        "hidden": "hạn chế ăn đồ sống, đồ lạnh, thức ăn có mùi nặng. Vệ sinh không gian, đồ đạc trong nhà ở và nơi làm việc sạch sẽ, hạn chế bám bụi bẩn. Nên đeo khẩu trang khi ra ngoài xên xịt rửa mũi hàng ngày"
+      },
+      {
+        "name": "Viêm mũi xoang",
+        "hidden": "Nên tránh tiếp xúc với các tác nhân gây dị ứng như lông động vật, phấn hoa, hóa chất. đi ra khỏi nhà cần đeo khẩu trang. Tránh xa khói thuốc lá, không hút thuốc lá. Cần được Bs Tai Mũi Họng điều trị và hướng dẫn dùng thuốc xịt/rửa mũi."
+      },
+      {
+        "name": "Viêm Amidan",
+        "hidden": "Vệ sinh răng miệng sạch sẽ, đánh răng hai lần sáng và tối. Hạn chế ăn đồ ăn cay nóng, rượu bia, thuốc lá,… tránh tình trạng tổn thương vùng họng"
+      },
+      {
+        "name": "Viêm Họng",
+        "hidden": "Súc họng bằng dung dịch nước muối 0,9%, Nano bạc hoặc các dung dịch chứa Povidone Iod, Clorhexidin để sát khuẩn vòm họng tại chỗ 3 lần/tuần. Không được uống nước lạnh, hạn chế các loại đồ uống có gas. Tránh ăn các thức ăn cay nóng, hoặc dùng quá nhiều dầu mỡ."
+      }
+    ]
+  },
+  {
+    "id": "group6",
+    "name": "Da liễu",
+    "items": [
+      {
+        "name": "Viêm da cơ địa / Mày đay",
+        "hidden": "Tránh cào gãi, chà xát vùng da tổn thương, dưỡng ẩm da hàng ngày, hạn chế tiếp xúc xà phòng, chất tẩy rửa, tránh thức ăn dễ gây dị ứng (tôm, cua, trứng, sữa ...)."
+      },
+      {
+        "name": "Viêm da tiết bã",
+        "hidden": "Hạn chế stress, thức khuya, rượu bia, đồ ăn cay nóng và dầu mỡ, tránh cào gãi, chà xát vùng da tổn thương, dưỡng ẩm nhẹ nhàng tránh bít tắc lỗ chân lông."
+      },
+      {
+        "name": "Mụn trứng cá",
+        "hidden": "Hạn chế thức khuya, vệ sinh tay thường xuyên, kiêng ăn ngọt, dầu mỡ, nóng, vệ sinh ra giường, gối nằm thường xuyên."
+      },
+      {
+        "name": "Nấm da",
+        "hidden": "Giữ da khô ráo, sạch sẽ, không cào rái, chà xát da, không dùng chung đồ cá nhân. Giặt và phơi khô quần áo, ra giường, khăn tắm dưới nắng mỗi ngày, tái khám đầy đủ, dùng thuốc theo hướng dẫn."
+      },
+      {
+        "name": "Nấm móng",
+        "hidden": "Giữ móng sạch, khô, cắt ngắn thường xuyên, tránh cắt sát hoặc cắt da móng, không dùng chung đồ cá nhân, mang giày dép thoáng, tái khám đầy đủ, dùng thuốc theo hướng dẫn."
+      }
+    ]
+  },
+  {
+    "id": "group7",
+    "name": "Răng hàm mặt",
+    "items": [
+      {
+        "name": "Viêm nướu mạn",
+        "hidden": "Lấy cao răng định kỳ 06 tháng – 01 năm. Đánh răng đúng chuẩn y khoa (ADA). Kết hợp bổ túc các phương pháp dùng chỉ nha khoa lấy sạch thức ăn, mảng bám vùng kẽ răng. Tái khám định kỳ ít nhất 02 lần/năm."
+      },
+      {
+        "name": "Viêm nha chu mạn (tình trạng nặng hơn viêm nướu, nướu sưng viêm, có áp xe, răng lung lay, vôi răng nhiều)",
+        "hidden": "Lấy cao răng. Điều trị chuyên sâu viêm nha chu (xử lý mặt gốc răng). Nếu có nhiễm túi nha chu gây tụt nướu thì phẫu thuật lật vạt."
+      },
+      {
+        "name": "Sâu răng (sâu men, sâu ngà)",
+        "hidden": "Nếu răng lung lay nhiều có thể nẹp cố định răng. Tái khám định kỳ sau khi lấy cao răng: 01 tháng – 03 tháng – 06 tháng. Sâu men thì trám 01 lần hẹn. Sâu ngà chưa sát tủy trám 01 lần hẹn, hoặc sát tủy thì theo dõi và trám. Sâu tủy thì điều trị tủy."
+      },
+      {
+        "name": "Răng sâu còn chân răng / Răng lung lay",
+        "hidden": "Nhổ chân răng. Nhổ răng viêm viền lung lay."
+      },
+      {
+        "name": "Mòn cổ răng",
+        "hidden": "Trám cổ răng. Hạn chế ăn thức ăn cứng, dai. Hạn chế chải răng theo phương pháp ngang. Không chà mạnh bàn chải khi đánh răng."
+      },
+      {
+        "name": "Mòn răng (mặt nhai, mặt trong..)",
+        "hidden": "Hạn chế chải răng sai cách ăn các chất chua có acid, thực phẩm chua, nước ngọt. Khám nha sĩ theo chỉ định và trám phục hồi mặt nhai."
+      },
+      {
+        "name": "Răng 18,28,38,48 mọc lệch, kẹt",
+        "hidden": "Phẫu thuật nhổ răng khôn mọc lệch (cần chụp x quang răng toàn cảnh và xét nghiệm đông máu). Đối với các răng khôn hàm dưới mọc nghiêng dễ gây va chạm kẽ giữa răng 7 và 8, nguy cơ gây sâu răng."
+      },
+      {
+        "name": "Mất răng (ngoại trừ răng khôn, răng mất do chỉnh nha)",
+        "hidden": "Phục hình răng mất (tùy khách hàng lựa chọn có thể phục hình tháo lắp, phục hình cố định sứ, cấy ghép implant). Nếu không phục hình, lâu dài thì khớp cắn có thể bị ảnh hưởng do các răng kế cận trồi, gây khó khăn trong ăn nhai. Mất răng gây giảm sức nhai, chất lượng cuộc sống giảm."
+      },
+      {
+        "name": "Răng đã trám có sâu, vỡ lớn",
+        "hidden": "Nếu đau nhiều thì trám => Điều trị tủy, tái tạo cùi, phục hình sứ. Nếu đã điều trị tủy, tái tạo cùi giả, phục hình sứ thì theo dõi."
+      },
+      {
+        "name": "Răng khôn chưa mọc, ngầm",
+        "hidden": "Theo dõi, nếu có dấu hiệu sưng đau nướu vùng răng đó thì đến phòng khám kiểm tra."
+      }
+    ]
+  }
+]

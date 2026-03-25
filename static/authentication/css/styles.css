@@ -1,0 +1,208 @@
+.login-container {
+    max-width: 400px;
+    margin: 30px auto 80px auto;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.login-container h3 {
+    text-align: center;
+    margin-bottom: 1.15px;
+    color: #2c3e50;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+}
+
+.form-group input:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #3498db;
+    color: white;
+    font-size: 1rem;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-login:hover {
+    background-color: #2980b9;
+}
+
+.error {
+    color: red;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+@media (max-width: 480px) {
+    .login-container {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+}
+
+.forgot-password-link {
+    text-align: right;
+    margin-top: 0.7rem;
+    margin-bottom: 0.1rem;
+}
+
+.forgot-password-link a {
+    color: #3498db;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.18s;
+    font-size: 1em;
+    border-radius: 5px;
+    padding: 3px 8px;
+    opacity: 0.93;
+    background: none;
+}
+
+.forgot-password-link a:hover,
+.forgot-password-link a:focus {
+    color: #fff;
+    background: #3498db;
+    box-shadow: 0 2px 6px 0 rgba(52,152,219,0.07);
+    outline: none;
+}
+@media (max-width: 480px) {
+    .forgot-password-link {
+        font-size: 0.98em;
+    }
+}
+
+/* ------------------------------ */
+.back-to-login-link {
+    text-align: center;
+    margin-top: 1.2em;
+}
+.back-to-login-link a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1em;
+    opacity: 0.95;
+    transition: color 0.18s;
+}
+.back-to-login-link a:hover {
+    color: #1977c7;
+    text-decoration: underline;
+}
+/* ------------------------------------ */
+.form-error {
+    color: #d32f2f;
+    background: #fff3f3;
+    border-radius: 7px;
+    margin-top: 7px;
+    margin-bottom: 2px;
+    padding: 5px 12px;
+    font-size: 1em;
+    border: 1px solid #ffd7d7;
+    display: inline-block;
+    animation: shakeErr .22s cubic-bezier(.48,2.5,.61,.9);
+}
+@keyframes shakeErr {
+    0% { transform: translateX(-2px);}
+    40% { transform: translateX(2px);}
+    70% { transform: translateX(-1px);}
+    100% { transform: translateX(0);}
+}
+.form-nonfield {
+    display: block;
+    text-align: center;
+    font-size: 1.09em;
+    margin: 1em auto;
+    font-weight: 500;
+}
+.home-actions-row {
+    display: flex;
+    gap: 48px;
+    flex-direction: row;
+    justify-content: center;
+  }
+  .home-action-card {
+    width: 280px;
+    height: 220px;
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(50,100,200,.10);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    font-weight: 600;
+    text-align: center;
+    transition: transform .12s;
+    cursor: pointer;
+  }
+  .home-action-register {
+    background: #f4ffe6;
+    color: #21a06f;
+  }
+  .home-action-profile {
+    background: #e3f0ff;
+    color: #2156a0;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 10px 18px;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    transition: all 0.3s ease;
+}
+
+/* Hiệu ứng hover cho đẹp hơn */
+.home-action-profile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+  @media (max-width: 600px) {
+    .home-actions-row {
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+    }
+    .home-action-card {
+      width: 90vw;
+      max-width: 320px;
+      height: 140px;
+      font-size: 1.12rem;
+    }
+    .home-action-card span {
+      font-size: 2.2rem !important;
+      margin-bottom: 10px !important;
+    }
+  }

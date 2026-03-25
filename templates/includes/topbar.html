@@ -1,0 +1,41 @@
+{% load static %}
+<div class="topbar topbar-desktop">
+    <div class="topbar-left">
+      <img src="{% static 'img/logo_vmd_1x1.jpg' %}" alt="Vietmediclinic.com" class="topbar-logo">
+    </div>
+  <div class="topbar-center">
+    <div class="title_page">
+    {% if title_page %}
+        {{ title_page }}
+    {% endif %}
+    </div>
+  </div>
+    <div class="topbar-right">
+      <div class="topbar-account" id="topbar-account">
+        {% if patient %}
+        <span class="patient-name">{{ patient.ho_ten|default:"" }}</span>
+        {% endif %}
+        <button class="account-btn" id="account-menu-btn" type="button" aria-label="Tài khoản">
+            <svg width="32" height="32" fill="none" viewBox="0 0 32 32">
+                <circle cx="16" cy="16" r="16" fill="#e9eaf3"/>
+                <circle cx="16" cy="13" r="6" fill="#64748b"/>
+                <ellipse cx="16" cy="24" rx="8" ry="5" fill="#64748b"/>
+            </svg>
+        </button>
+        <div class="account-menu" id="account-menu">
+          <a href="{% url 'authentication:patient_dashboard' %}">
+            Trang chủ
+          </a>
+          {% if patient.ma_bn %}
+{#          <a href="{% url 'health_record:patient_report' %}">#}
+{#              Hồ sơ sức khỏe#}
+{#          </a>#}
+          <a href="{% url 'account:patient_profile' %}">
+              Tài khoản
+          </a>
+          {% endif %}
+          <a href="{% url 'authentication:patient_logout' %}">Đăng xuất</a>
+        </div>
+      </div>
+  </div>
+</div>

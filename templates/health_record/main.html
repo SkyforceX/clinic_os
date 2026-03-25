@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'health_record/css/styles.css' %}">
+  <meta name="description" content="Hồ sơ sức khỏe điện tử">
+{% endblock %}
+
+
+{% block content %}
+
+<div class="ehr-page-title">Hồ sơ sức khỏe</div>
+
+{#{% if error %}#}
+{#  <p style="color:red;">{{ error }}</p>#}
+{#{% endif %}#}
+
+<div class="ehr-flex-container">
+  <div class="ehr-left">
+    <div id="ehr-list">
+      <!-- Danh sách phiếu/dịch vụ sẽ render ở đây -->
+    </div>
+  </div>
+  <div class="ehr-right">
+    <div id="ehr-detail" class="ehr-detail-box">
+      <!-- Chi tiết dịch vụ sẽ hiển thị ở đây sau khi click -->
+      <div class="ehr-empty">Chọn một phiếu để xem chi tiết</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal xem PDF -->
+<div id="pdf-modal" style="display:none; position:fixed; z-index:1000; top:0; left:0; width:100vw; height:100vh; background:rgba(44,54,82,.42); align-items:center; justify-content:center;">
+  <div class="pdf-modal-content">
+    <button id="pdf-modal-close" >X</button>
+    <iframe id="pdf-frame" src=""></iframe>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  window.PATIENT_CODE = "{{ patient.ma_bn }}"
+  window.API_PATIENT_RECORD_URL = "{% url 'health_record:api_patient_report' %}";
+</script>
+<script src="{% static 'health_record/js/ehr.js' %}"></script> <!-- API get full data health record -->
+{% endblock %}

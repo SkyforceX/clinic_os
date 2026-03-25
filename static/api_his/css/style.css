@@ -1,0 +1,256 @@
+/* ===========================================================
+   API Playground — Clean, modern, responsive UI
+   File: static/css/api_playground.css
+   =========================================================== */
+
+/* ---------- CSS Variables (light theme) ---------- */
+:root{
+  --bg: #0b1020;
+  --panel: #11162a;
+  --panel-2:#0e1426;
+  --text: #e6ecff;
+  --muted:#9fb0d8;
+  --primary:#6ea8fe;
+  --primary-2:#8ec5ff;
+  --accent:#34d399;
+  --danger:#ef4444;
+  --border: rgba(255,255,255,.08);
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-xs: 8px;
+  --gap: 14px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* Auto support dark preference (kept same palette) */
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#0b1020; --panel:#11162a; --panel-2:#0e1426;
+    --text:#e6ecff; --muted:#9fb0d8; --border:rgba(255,255,255,.08);
+  }
+}
+
+/* ---------- Base ---------- */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; font-family:var(--sans); color:var(--text);
+  background: radial-gradient(1200px 800px at 20% -10%, #1a2250 0%, transparent 60%) , var(--bg);
+  line-height:1.55;
+}
+
+/* Subtle grid glow background */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none;
+  background:
+    linear-gradient(to bottom, rgba(255,255,255,.05), transparent 30%),
+    radial-gradient(800px 500px at 100% 0, rgba(110,168,254,.18), transparent 60%);
+  mix-blend-mode:screen; opacity:.6;
+}
+
+/* ---------- Layout ---------- */
+.container{
+  width:min(1100px, 92vw); margin:32px auto 80px; position:relative;
+}
+.header{
+  display:flex; align-items:center; gap:14px; margin-bottom:18px;
+}
+.badge{
+  padding:6px 10px; font-size:12px; color:#0c1224; background:var(--primary-2);
+  border-radius:999px; font-weight:700; letter-spacing:.2px;
+  box-shadow:0 6px 18px rgba(110,168,254,.35);
+}
+.h1{
+  font-size: clamp(22px, 2.6vw, 30px); font-weight:800; margin:0;
+  letter-spacing:.2px; text-shadow:0 10px 30px rgba(0,0,0,.35);
+}
+.subtitle{ color:var(--muted); margin-top:6px; }
+
+/* ---------- Panel ---------- */
+.panel{
+  background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+  border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow);
+  padding:18px;
+}
+.panel + .panel{ margin-top:16px; }
+
+/* ---------- Inputs ---------- */
+.label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block}
+.input, .select, .textarea{
+  width:100%; padding:12px 12px; border-radius:var(--radius-sm);
+  background: #0b1123; color:var(--text);
+  border:1px solid var(--border); outline:none;
+  transition: border-color .2s, box-shadow .2s, transform .08s;
+}
+.input::placeholder{color:#6e7dab}
+.input:focus, .select:focus, .textarea:focus{
+  border-color: rgba(110,168,254,.7);
+  box-shadow: 0 0 0 4px rgba(110,168,254,.15);
+}
+/* Đồng nhất kích thước các input nhỏ */
+.input{
+  height: 44px;
+  line-height: 44px;
+  padding: 0 12px;
+  font-size: 15px;
+}
+
+.textarea{min-height:120px; resize:vertical}
+
+/* Small helper text */
+.help{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  height:42px; padding:0 14px; border-radius:12px; font-weight:700;
+  border:1px solid var(--border); cursor:pointer; user-select:none;
+  background: linear-gradient(180deg, #1a2650 0%, #142043 100%);
+  color:var(--text); transition: transform .08s ease, box-shadow .2s ease, background .2s;
+}
+.btn:hover{ transform: translateY(-1px); box-shadow:0 12px 26px rgba(0,0,0,.35) }
+.btn:active{ transform: translateY(0) scale(.98) }
+.btn-primary{
+  background: linear-gradient(180deg, var(--primary) 0%, #538df0 100%);
+  color:#0c1224; border-color: transparent;
+}
+.btn-outline{
+  background:transparent; border-color:rgba(255,255,255,.22);
+}
+.btn-danger{
+  background: linear-gradient(180deg, #ff6961 0%, #ef4444 100%);
+  color:#1b0d0d; border-color:transparent;
+}
+.btn-toggle-token {
+    height: 24px !important;
+    width: 24px !important;
+}
+/* Button row */
+.actions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+/* ---------- Result block ---------- */
+.result{
+  background:#070b1a; border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px; font-family:var(--mono); color:#d7e2ff; overflow:auto; max-height:55vh;
+}
+.result .key{color:#86a8ff}
+.result .num{color:#34d399}
+.result .str{color:#f9a8d4}
+.result .bool{color:#fbbf24}
+
+/* ---------- Curl block ---------- */
+.curl{
+  background:#0a0f20; border:1px dashed rgba(110,168,254,.4);
+  border-radius:var(--radius); padding:12px; font-family:var(--mono);
+  color:#cfe2ff; overflow:auto;
+}
+
+/* ---------- Pills / tips ---------- */
+.pills{display:flex; gap:8px; flex-wrap:wrap}
+.pill{
+  font-size:12px; padding:6px 10px; border-radius:999px;
+  background:#0b132b; border:1px solid var(--border); color:var(--muted);
+}
+
+/* ---------- Header toolbar ---------- */
+.toolbar{
+  display:flex; gap:10px; align-items:center; justify-content:space-between; margin-bottom:12px;
+}
+.endpoint{
+  display:flex; align-items:center; gap:10px; width:100%;
+  background:#0b1123; border:1px solid var(--border); border-radius:12px; padding:10px 12px;
+}
+.method{
+  font-weight:800; color:#0c1224; background:var(--accent);
+  border-radius:10px; padding:6px 10px;
+}
+.endpoint input{
+  border:0; background:transparent; color:var(--text); width:100%;
+  outline:none; font-family:var(--mono)
+}
+
+/* ---------- Token field with eye button ---------- */
+.token-wrap{ position:relative }
+.token-wrap .toggle-eye{
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  width:34px; height:34px; display:grid; place-items:center;
+  border-radius:10px; background:#0b1123; border:1px solid var(--border);
+  cursor:pointer; color:var(--muted);
+}
+.token-wrap .toggle-eye:hover{ color:var(--primary-2); }
+
+/* ---------- Table-like chips for params ---------- */
+.param-chip{
+  display:flex; align-items:center; gap:8px; padding:8px 10px;
+  border:1px solid var(--border); background:#0b1123; color:var(--text);
+  border-radius:10px; font-family:var(--mono);
+}
+
+/* ---------- Animations ---------- */
+.fade-in{ animation:fade .4s ease both }
+@keyframes fade{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+
+/* ---------- Utility ---------- */
+.mgt-8{margin-top:8px} .mgt-12{margin-top:12px} .mgt-16{margin-top:16px}
+.mgb-0{margin-bottom:0} .mgb-8{margin-bottom:8px} .mgb-12{margin-bottom:12px}
+.center{display:flex;align-items:center;justify-content:center}
+.separator{height:1px;background:var(--border);margin:14px 0}
+.small{font-size:12px;color:var(--muted)}
+.right{margin-left:auto}
+
+/* ---------- Toast (inline) ---------- */
+.toast{
+  position:fixed; right:20px; bottom:20px; background:#0b1123;
+  border:1px solid var(--border); border-radius:12px; padding:12px 14px;
+  color:var(--text); box-shadow:var(--shadow); display:none;
+}
+.toast.show{display:block; animation:fade .25s ease both}
+
+/* ---------- Focus ring for a11y ---------- */
+:focus-visible{
+  outline:2px solid rgba(110,168,254,.75);
+  outline-offset:2px; border-radius:10px;
+}
+/* ===============================
+   HIS API TEST – PAGE BACKGROUND
+   =============================== */
+
+/* Nền riêng cho trang, KHÔNG ảnh hưởng admin */
+.his-api-page {
+  min-height: calc(100vh - 60px);
+  padding: 24px 16px 40px;
+
+  /* Nền tối nhạt hơn input */
+  background: linear-gradient(
+    180deg,
+    #2a3038 0%,   /* slate dark */
+    #242a31 100%
+  );
+}
+
+/* Canvas chính (form + button) */
+.his-api-page > h2,
+.his-api-page .row {
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Làm tiêu đề dễ đọc hơn trên nền sáng */
+.his-api-page h2 {
+  color: white;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+/* Input dark giữ nguyên, chỉ refine */
+.his-api-page .form-control.bg-dark {
+  background-color: #1e2329 !important;
+  border-color: #343a40;
+}
+
+.his-api-page .form-control.bg-dark:focus {
+  border-color: #4dabf7;
+  box-shadow: 0 0 0 2px rgba(77,171,247,.15);
+}

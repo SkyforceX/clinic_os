@@ -1,0 +1,18 @@
+{% load static %}
+<div class="topbar topbar-admin">
+    <div class="topbar-left">
+        {% if request.user.is_authenticated and request.user.is_staff %}
+            <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+        {% endif %}
+    </div>
+    <div class="topbar-center">
+        {% if request.user.is_authenticated and request.user.is_staff %}
+            <img src="{% static 'img/logo_vmd_1x1.jpg' %}" alt="Vietmediclinic.com" class="topbar-logo">
+        {% endif %}
+    </div>
+    <div class="topbar-right">
+        {% if request.session.patient_id %}
+            <a href="{% url 'authentication:staff_logout' %}" class="topbar-exit-btn">Thoát</a>
+        {% endif %}
+    </div>
+</div>

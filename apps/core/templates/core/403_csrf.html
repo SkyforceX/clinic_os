@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Lỗi bảo mật CSRF</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f8fafc; color: #222; text-align: center; padding: 60px; }
+        .card { display: inline-block; background: white; border-radius: 12px; padding: 32px 48px; box-shadow: 0 6px 24px #0001; }
+        .big { font-size: 48px; color: #c62828; margin-bottom: 16px; }
+        .btn { display: inline-block; margin-top: 24px; background: #1976d2; color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 18px; transition: 0.2s; }
+        .btn:hover { background: #1565c0; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="big">😥 403 - Lỗi xác thực bảo mật</div>
+        <h2>Lỗi CSRF Token không hợp lệ hoặc đã hết hạn!</h2>
+        <p>
+            Lý do phổ biến:<br>
+            – Bạn vừa xóa lịch sử, cookie hoặc mở tab mới.<br>
+            – Phiên đăng nhập đã hết hạn.<br>
+            – Có lỗi khi gửi biểu mẫu.
+        </p>
+        <a class="btn" href="{% url 'authentication:patient_login' %}">Đăng nhập lại</a>
+        <div style="margin-top:20px;color:#888;font-size:15px">
+            Nếu sự cố lặp lại, vui lòng liên hệ quản trị hệ thống.
+        </div>
+    </div>
+</body>
+</html>

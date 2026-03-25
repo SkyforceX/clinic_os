@@ -1,0 +1,150 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Vietmedi healthcare center{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Đăng ký lịch khám doanh nghiệp">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <link rel="stylesheet" href="{% static 'css/global.css' %}">
+  <link rel="stylesheet" href="{% static 'authentication/css/login_v2.css' %}">
+  <link rel="stylesheet" href="{% static 'css/flatpickr.min.css' %}">
+</head>
+
+<body class="gradient-bg">
+
+  <div class="center-logo-wrap">
+    <img src="{% static 'img/logo_horizontal_transparent.png' %}" alt="Logo Vietmedi" class="center-logo">
+  </div>
+
+  <div class="auth-shell auth-shell-wide">
+    <div class="auth-split">
+      <!-- Left: Booking login form -->
+      <div class="login-container auth-panel auth-panel-login">
+        <div class="login-card-head">
+          <div class="login-badge">
+            <i class="fa-solid fa-calendar-check"></i>
+          </div>
+          <h1 class="login-title">Đăng ký lịch khám doanh nghiệp</h1>
+          <p class="login-subtitle">Vui lòng nhập mã khách hàng và ngày sinh để tiếp tục.</p>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="form-error form-nonfield">
+            {{ form.non_field_errors.0 }}
+          </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if form.patient_code %}
+            <div class="form-group">
+              <label for="id_patient_code">Mã khách hàng</label>
+              {{ form.patient_code }}
+              {% if form.patient_code.errors %}
+                <div class="form-error">{{ form.patient_code.errors.0 }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          <div class="form-group">
+            <label for="id_password">Ngày tháng năm sinh (ddmmyyyy)</label>
+
+            <div class="ap-password-wrap">
+              {{ form.password }}
+              <button
+                type="button"
+                class="ap-toggle-pass"
+                id="apTogglePass"
+                aria-label="Hiện/ẩn ngày sinh"
+                aria-pressed="false"
+                title="Hiện/ẩn"
+              >
+                <i class="fa-solid fa-eye" id="apTogglePassIcon" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            {% if form.password.errors %}
+              <div class="form-error">{{ form.password.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <button type="submit" class="btn-login">
+            <i class="fa-solid fa-calendar-plus"></i>
+            <span>Tiếp tục đăng ký lịch khám</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Right: EMR login entry -->
+      <div class="health-card auth-panel auth-panel-health">
+        <div class="health-card-inner">
+          <div class="health-badge">
+            <i class="fa-solid fa-notes-medical"></i>
+          </div>
+          <h2 class="health-title">Hồ sơ sức khỏe</h2>
+          <p class="health-subtitle">
+            Chuyển đến trang đăng nhập bệnh án điện tử để xem hồ sơ sức khỏe và thông tin liên quan.
+          </p>
+
+          <form action="https://badt.vietmediclinic.com:9098/" method="get" class="health-form">
+            <button type="submit" class="btn-health-profile">
+              <i class="fa-solid fa-right-to-bracket"></i>
+              <span>Đến đăng nhập bệnh án điện tử</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% include "includes/footer.html" %}
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'js/flatpickr.js' %}"></script>
+  <script src="{% static 'js/global.js' %}"></script>
+  <script src="{% static 'authentication/js/scripts.js' %}"></script>
+
+  <script>
+    window.addEventListener("pageshow", function (event) {
+      if (event.persisted || window.performance?.navigation?.type === 2) {
+        location.reload();
+      }
+    });
+  </script>
+
+  <script>
+    (function () {
+      const input = document.getElementById("id_password");
+      const btn = document.getElementById("apTogglePass");
+      const icon = document.getElementById("apTogglePassIcon");
+
+      if (!input || !btn || !icon) return;
+
+      function setIcon(isShown) {
+        icon.classList.toggle("fa-eye", !isShown);
+        icon.classList.toggle("fa-eye-slash", isShown);
+        btn.setAttribute("aria-pressed", String(isShown));
+        btn.title = isShown ? "Ẩn" : "Hiện";
+      }
+
+      btn.addEventListener("click", function () {
+        const isPassword = input.type === "password";
+        input.type = isPassword ? "text" : "password";
+        setIcon(!isPassword);
+
+        try { input.focus({ preventScroll: true }); } catch(e) { input.focus(); }
+        const len = input.value?.length ?? 0;
+        try { input.setSelectionRange(len, len); } catch(e) {}
+      });
+
+      setIcon(false);
+    })();
+  </script>
+</body>
+</html>

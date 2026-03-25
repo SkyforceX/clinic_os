@@ -1,0 +1,50 @@
+
+{% load templatetags %}
+<div class="sidebar" id="sidebar">
+  <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+
+  <ul class="menu">
+    <!-- <li><a href="/clinic/dashboard">Trang chủ</a></li> -->
+    {% if user|has_group:"Doctor" %}
+      <li><a href="{% url 'sum_assistant' %}">Tạo Kết luận mẫu</a></li>
+      <li><a href="{% url 'func_room_dashboard' %}">Hàng khám</a></li>
+      <li><a href="{% url 'dental_exam_form' %}">Khám RHM</a></li>
+      <li><a href="{% url 'pathology_detail' %}">Kết quả GPB</a></li>
+    {% endif %}
+
+    {% if user|has_group:"Operations Team" %}
+      <li><a href="{% url 'receptionist_dashboard' %}">Phân luồng khám</a></li>
+      <li><a href="{% url 'func_room_dashboard' %}">Hàng khám</a></li>
+    {% endif %}
+
+    {% if user|has_group:"General Planning Department" %}
+      <li><a href="{% url 'pathology' %}">Giải phẫu bệnh</a></li>
+      
+    {% endif %}
+    <li><a href="{% url 'create_summary_report' %}">Bảng tổng kết</a></li>
+
+    <li><a href="{% url 'room_list' %}">Danh sách phòng</a></li>
+    <!-- {% if user|has_group:"superadmin" %} -->
+    
+    <!-- {% endif %} -->
+    <li><a href="{% url 'moh_report' %}">Báo cáo Sở y tế</a></li>
+    <li><a href="{% url 'criteria_list' %}">23 tiêu chí</a></li>
+  </ul>
+
+  <div class="user-actions">
+    <div class="user-info">
+      <i class="fa fa-user-circle"></i>
+      <span>{{ user.get_full_name|default:user.username }}</span>
+    </div>
+    <a href="{% url 'clinic_logout' %}" class="logout-link">
+      <i class="fa fa-sign-out-alt"></i>
+      <span>Đăng xuất</span>
+    </a>
+  </div>
+</div>
+
+<!-- Topbar (hiện trên mobile & tablet) -->
+<div class="topbar" id="topbar">
+  <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+  <span class="topbar-title"></span>
+</div>

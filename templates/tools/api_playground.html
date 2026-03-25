@@ -1,0 +1,118 @@
+{% extends "base_admin.html" %}
+
+{% load static %}
+{% block title %}Test HIS appoiments API{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'api_his/css/style.css' %}">
+  <meta name="description" content="Test HIS appoiments API">
+{% endblock %}
+
+{% block content %}
+  <div class="his-api-page">
+  <h2>Test HIS Appointments API</h2>
+  <!-- Hàng 1: Endpoint + nút -->
+<div class="row g-3 align-items-end mb-2">
+  <div class="col-12">
+    <label class="form-label text-light">Endpoint</label>
+    <div class="input-group">
+      <span class="input-group-text bg-dark text-light border-secondary">GET</span>
+      <input id="endpoint" type="text" class="form-control bg-dark text-light border-secondary"
+             value="/api/v1/his/appointments/">
+    </div>
+  </div>
+</div>
+
+<!-- Hàng 2: Token / date / company_id -->
+<div class="row g-3 align-items-end">
+  <!-- Token -->
+  <div class="col-lg-6 col-md-12">
+    <label class="form-label text-light">Token</label>
+    <div class="position-relative">
+      <input id="token" type="text" class="form-control bg-dark text-light pe-5 border-secondary"
+             placeholder="Authorization: Token &lt;key&gt;">
+      <button type="button"
+              class="btn btn-toggle-token btn-outline-secondary position-absolute end-0 top-50 translate-middle-y me-1 py-0 px-2"
+              title="Hiện/ẩn token">👁</button>
+    </div>
+    <!-- <small class="text-secondary d-block mt-1">Để trống nếu test bằng session login.</small> -->
+  </div>
+
+  <!-- company_id -->
+  <div class="col-lg-3 col-md-6 col-12">
+    <label class="form-label text-light">company_id</label>
+    <input id="company_id" type="number" min="1" class="form-control bg-dark text-light border-secondary" placeholder="12">
+  </div>
+
+</div>
+
+<!-- Hàng 3: date_from / date_to / updated_since -->
+<div class="row g-3 align-items-end mt-1">
+  <!-- date_from -->
+  <div class="col-lg-3 col-md-6 col-12">
+    <label class="form-label text-light">date_from</label>
+    <input id="date_from" type="date" class="form-control bg-dark text-light border-secondary date-picker" placeholder="Từ ngày (dd/mm/yyyy)">
+  </div>
+
+  <!-- date_to -->
+  <div class="col-lg-3 col-md-6 col-12">
+    <label class="form-label text-light">date_to</label>
+    <input id="date_to" type="date" class="form-control bg-dark text-light border-secondary date-picker" placeholder="Đến ngày (dd/mm/yyyy)">
+  </div>
+
+  <!-- date -->
+  <div class="col-lg-3 col-md-6 col-12">
+    <label class="form-label text-light">date <small class="text-secondary">(YYYY-MM-DD)</small></label>
+    <input id="date" type="date" class="form-control bg-dark text-light border-secondary date-picker" placeholder="Lọc 1 ngày (dd/mm/yyyy)">
+  </div>
+
+  <!-- updated_since (optional incremental) -->
+{#  <div class="col-lg-6 col-md-12">#}
+{#    <label class="form-label text-light">updated_since#}
+{#      <small class="text-secondary">(ISO-8601, ví dụ 2025-11-01T00:00:00Z)</small>#}
+{#    </label>#}
+{#    <input id="updated_since" type="text" class="form-control bg-dark text-light border-secondary"#}
+{#           placeholder="2025-11-01T00:00:00Z">#}
+{#    <!-- Nếu muốn có picker: dùng datetime-local + convert sang ISO trong JS -->#}
+{#  </div>#}
+</div>
+
+<div class="row g-3 align-items-end mt-1">
+  <div class="col-md-3 col-6">
+    <label class="form-label text-light">page</label>
+    <input id="page" type="number" min="1" class="form-control bg-dark text-light border-secondary" placeholder="Default: page 1">
+  </div>
+  <div class="col-md-3 col-6">
+    <label class="form-label text-light">page_size</label>
+    <input id="page_size" type="number" min="1" class="form-control bg-dark text-light border-secondary" placeholder="Default: 50 items/page">
+  </div>
+</div>
+
+<!-- Hàng 4: btn submit / clear -->
+<div class="row g-3 align-items-end mt-1">
+  <div class="col-md-6 col-12 d-flex gap-2 justify-content-md-end">
+    <button id="btnSend" class="btn btn-primary">Gửi yêu cầu</button>
+    <button id="btnClear" class="btn btn-outline-secondary">Xoá</button>
+  </div>
+</div>
+
+
+<div class="panel fade-in">
+  <div class="toolbar">
+    <div class="pills">
+      <span class="pill">JSON</span>
+      <span class="pill">Pretty</span>
+      <span class="pill">Read-only</span>
+    </div>
+  </div>
+  <pre id="result" class="result">(chưa có dữ liệu)</pre>
+  <div class="separator"></div>
+  <h4 class="mgb-8">Curl tương đương</h4>
+  <pre id="curl" class="curl"></pre>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{% static 'api_his/js/test_his_appointments_api.js' %}"></script>
+{% endblock %}
