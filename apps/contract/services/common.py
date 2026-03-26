@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from django.forms import ValidationError
 
-from apps.booking.models import HealthContract
+from apps.contract.models import Contract
 
 
 def parse_date(value, required=True, field_label="ngày"):
@@ -43,7 +43,7 @@ def parse_int(value, default=0):
 
 def get_next_contract_number():
     year = datetime.now().year
-    contracts = HealthContract.objects.filter(contract_number__endswith=f"/VMD-KD/{year}")
+    contracts = Contract.objects.filter(contract_number__endswith=f"/VMD-KD/{year}")
     numbers = set()
 
     for contract in contracts:

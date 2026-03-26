@@ -2,14 +2,15 @@ from dataclasses import dataclass, field
 
 from django.db import IntegrityError, transaction
 
-from apps.booking.models import BloodCollectionInfo, HealthContract
-from apps.organizations.models import Company
 from apps.contract.domain.exceptions import (
     ContractPermissionDenied,
     ContractValidationError,
 )
+from apps.contract.models import BloodCollectionSchedule, Contract
+from apps.contract.models.contract import ContractStatus
 from apps.contract.policies import ContractPolicy
 from apps.contract.services.common import get_next_contract_number, parse_date, parse_int
+from apps.organizations.models import Company
 from apps.organizations.selectors.company_selectors import get_company_for_actor
 
 
@@ -131,7 +132,7 @@ def execute(cmd: CreateContractCommand):
         legacy_company.save(update_fields=["address", "phone", "tax_code"])
 
     try:
-        contract = HealthContract.objects.create(
+        contract = Contract.objects.create(
             company=legacy_company,
             contract_number=get_next_contract_number(),
             contact_person=payload["contact_person"],
@@ -144,15 +145,16 @@ def execute(cmd: CreateContractCommand):
             deposit_payment_text=payload["deposit_payment_text"],
             settlement_time_text=payload["settlement_time_text"],
             note=payload["note"],
+            status=ContractStatus.SUBMITTED,
             created_by=cmd.actor if getattr(cmd.actor, "is_authenticated", False) else None,
         )
     except IntegrityError as exc:
         raise ContractValidationError(f"Lỗi trùng số hợp đồng: {exc}")
 
     if blood_rows:
-        BloodCollectionInfo.objects.bulk_create(
+        BloodCollectionSchedule.objects.bulk_create(
             [
-                BloodCollectionInfo(
+                BloodCollectionSchedule(
                     contract=contract,
                     collection_date=row.collection_date,
                     location=row.location,

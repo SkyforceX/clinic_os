@@ -1,12 +1,15 @@
 from django import forms
 
-from apps.booking.models import CheckupCategory, GroupCheckup
+from apps.catalogs.models import CheckupCategory, GroupCheckup
 
 
 class GroupCheckupForm(forms.ModelForm):
     class Meta:
         model = GroupCheckup
         fields = ["name"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+        }
 
     def clean_name(self):
         name = (self.cleaned_data["name"] or "").strip()

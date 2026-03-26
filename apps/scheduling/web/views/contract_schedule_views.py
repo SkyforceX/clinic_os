@@ -27,4 +27,4 @@ def redistribute_slots(request, contract_id):
     except Exception as exc:
         messages.error(request, f"Lỗi khi phân bổ lại slot: {exc}")
 
-    return redirect("booking:schedule_table")
+    return redirect("scheduling:schedule_table")

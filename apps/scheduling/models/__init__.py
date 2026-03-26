@@ -1,23 +1,15 @@
 """
-Transitional model facade for scheduling domain.
+Public model API của app scheduling.
 
-Ở bước refactor này:
-- ScheduleSlot vẫn dùng bảng/model legacy của apps.booking.AppointmentSchedule
-- Appointment vẫn dùng apps.booking.Appointment
-- BloodCollectionPlan vẫn dùng apps.booking.BloodCollectionInfo
-- TimeShift vẫn dùng enum cũ của booking
+Scheduling chỉ quản lý slot lịch khám.
+Booking/Appointment nằm ở apps.booking.
 """
 
-from apps.booking.models import (
-    Appointment,
-    AppointmentSchedule as ScheduleSlot,
-    BloodCollectionInfo as BloodCollectionPlan,
-    TimeShift,
-)
+from .schedule import ScheduleSlot, SlotStatus, SlotType, TimeShift
 
 __all__ = [
-    "Appointment",
     "ScheduleSlot",
-    "BloodCollectionPlan",
+    "SlotStatus",
+    "SlotType",
     "TimeShift",
 ]

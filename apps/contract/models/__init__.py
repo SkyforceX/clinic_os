@@ -1,29 +1,25 @@
-"""
-Transitional model facade for contract domain.
-
-Refactor hiện tại:
-- Contract vẫn đang dùng bảng/model legacy của apps.booking
-- Quotation vẫn đang dùng bảng/model legacy của apps.booking
-- CorporateContractProfile đã được đưa về app mới apps.contract
-"""
-
-from apps.booking.models import (
-    BloodCollectionInfo as BloodCollectionPlan,
-    ContractServiceDetail as ContractServiceLine,
-    HealthContract as Contract,
-    QuotationDraft,
-    QuotationDraftDetail as QuotationLine,
+from apps.contract.models.contract import (
+    ACTIVE_STATUSES,
+    CLOSED_STATUSES,
+    Contract,
+    ContractStatus,
 )
-
-from apps.contract.domain.enums import ContractStatus
+from apps.contract.models.blood_collection import BloodCollectionSchedule
 from apps.contract.models.corporate import CorporateContractProfile
+from apps.contract.models.lines import ContractServiceLine
+from apps.contract.models.quotation import QuotationDraft, QuotationLine
 
 __all__ = [
+    # Core
     "Contract",
+    "ContractStatus",
+    "ACTIVE_STATUSES",
+    "CLOSED_STATUSES",
+    # Chi tiết hợp đồng
+    "BloodCollectionSchedule",
+    "CorporateContractProfile",
     "ContractServiceLine",
-    "BloodCollectionPlan",
+    # Báo giá
     "QuotationDraft",
     "QuotationLine",
-    "CorporateContractProfile",
-    "ContractStatus",
 ]

@@ -1,0 +1,344 @@
+{
+  "catalog": [
+    {
+      "id": 1, "stt": 1,
+      "group": "KHÁM TỔNG QUÁT", "group_en": "GENERAL EXAMINATION", "subgroup": null,
+      "name": "Kiểm tra các thông số cơ thể / Đo sinh hiệu",
+      "description": "Đo chiều cao, cân nặng, nhiệt độ, mạch, huyết áp và tính chỉ số khối cơ thể BMI...",
+      "price_type": "free", "list_price": 0,
+      "price_male": 0, "price_female_single": 0, "price_female_family": 0,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": "Miễn phí"
+    },
+    {
+      "id": 2, "stt": 2,
+      "group": "KHÁM TỔNG QUÁT", "group_en": "GENERAL EXAMINATION", "subgroup": null,
+      "name": "Khám chuyên khoa Nội TQ",
+      "description": "Bác sỹ khám, tư vấn, kết luận, phân loại sức khỏe, cho toa thuốc điều trị (nếu cần): a) Tuần hoàn  b) Hô hấp  c) Tiêu hóa  d) Thận - Tiết niệu  e) Nội tiết  f) Cơ - xương - khớp  g) Thần kinh",
+      "price_type": "standard", "list_price": 250000,
+      "price_male": 120000, "price_female_single": 120000, "price_female_family": 120000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 3, "stt": 3,
+      "group": "KHÁM TỔNG QUÁT", "group_en": "GENERAL EXAMINATION", "subgroup": null,
+      "name": "Kiểm tra thị lực mắt",
+      "description": "a) Đo thị lực  b) Đo sắc giác",
+      "price_type": "free", "list_price": 0,
+      "price_male": 0, "price_female_single": 0, "price_female_family": 0,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": "Miễn phí"
+    },
+    {
+      "id": 4, "stt": 4,
+      "group": "KHÁM TỔNG QUÁT", "group_en": "GENERAL EXAMINATION", "subgroup": null,
+      "name": "Khám CK Răng Hàm Mặt",
+      "description": "Bác sỹ khám và tư vấn về cấu trúc răng miệng, các bệnh lý khoang miệng.",
+      "price_type": "free", "list_price": 0,
+      "price_male": 0, "price_female_single": 0, "price_female_family": 0,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": "Miễn phí"
+    },
+    {
+      "id": 5, "stt": 5,
+      "group": "KHÁM TỔNG QUÁT", "group_en": "GENERAL EXAMINATION", "subgroup": null,
+      "name": "Khám CK Da Liễu",
+      "description": "BS Da liễu khám, kiểm tra và tư vấn các bệnh về da liễu.",
+      "price_type": "free", "list_price": 0,
+      "price_male": 0, "price_female_single": 0, "price_female_family": 0,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": "Miễn phí"
+    },
+    {
+      "id": 6, "stt": 6,
+      "group": "KHÁM TỔNG QUÁT", "group_en": "GENERAL EXAMINATION", "subgroup": null,
+      "name": "Khám CK Tai Mũi Họng",
+      "description": "BS Tai-Mũi-Họng khám và tư vấn hướng điều trị bệnh lý.",
+      "price_type": "free", "list_price": 0,
+      "price_male": 0, "price_female_single": 0, "price_female_family": 0,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": "Miễn phí"
+    },
+    {
+      "id": 7, "stt": 7,
+      "group": "KHÁM TỔNG QUÁT", "group_en": "GENERAL EXAMINATION", "subgroup": null,
+      "name": "Soi da mặt chuyên sâu, bằng máy công nghệ cao cấp AI",
+      "description": "Bác sỹ Da liễu tư vấn và điều trị sắc tố da. Đo độ ẩm, độ dày, độ đàn hồi, sắc tố da và mức độ lão hóa.",
+      "price_type": "gift", "list_price": 350000,
+      "price_male": 0, "price_female_single": 0, "price_female_family": 0,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": "TẶNG Miễn phí"
+    },
+    {
+      "id": 8, "stt": 8,
+      "group": "KHÁM TỔNG QUÁT", "group_en": "GENERAL EXAMINATION", "subgroup": null,
+      "name": "Nội soi Tai Mũi Họng - Tầm soát chuyên sâu",
+      "description": "Thủ thuật Nội soi với hình ảnh sắc nét, chẩn đoán ung thư sớm ở vùng Tai Mũi Họng: Vòm họng, thanh quản, dây thanh âm,... dựa trên những biến đổi nhỏ nhất của niêm mạc và cấu trúc mô mạch máu trên bề mặt.",
+      "price_type": "gift", "list_price": 400000,
+      "price_male": 0, "price_female_single": 0, "price_female_family": 0,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": "TẶNG Miễn phí"
+    },
+    {
+      "id": 9, "stt": 9,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": null,
+      "name": "Tổng phân tích tế bào máu ngoại vi",
+      "description": "Tầm soát tình trạng thiếu máu, nhiễm trùng, ung thư máu giai đoạn sớm.",
+      "price_type": "standard", "list_price": 168000,
+      "price_male": 84000, "price_female_single": 84000, "price_female_family": 84000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 10, "stt": 10,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": null,
+      "name": "Định lượng Glucose",
+      "description": "Chuẩn đoán bệnh đái tháo đường, theo dõi điều trị đái tháo đường, hạ đường huyết.",
+      "price_type": "standard", "list_price": 70000,
+      "price_male": 35000, "price_female_single": 35000, "price_female_family": 35000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 11, "stt": 11,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "KIỂM TRA BỘ MỠ",
+      "name": "Định lượng Cholesterol toàn phần",
+      "description": "",
+      "price_type": "standard", "list_price": 84000,
+      "price_male": 42000, "price_female_single": 42000, "price_female_family": 42000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 12, "stt": 12,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "KIỂM TRA BỘ MỠ",
+      "name": "Định lượng Triglycerid",
+      "description": "",
+      "price_type": "standard", "list_price": 84000,
+      "price_male": 42000, "price_female_single": 42000, "price_female_family": 42000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 13, "stt": 13,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "KIỂM TRA BỘ MỠ",
+      "name": "Định lượng HDL-C",
+      "description": "",
+      "price_type": "standard", "list_price": 84000,
+      "price_male": 42000, "price_female_single": 42000, "price_female_family": 42000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 14, "stt": 14,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "KIỂM TRA BỘ MỠ",
+      "name": "Định lượng LDL-C",
+      "description": "",
+      "price_type": "standard", "list_price": 84000,
+      "price_male": 42000, "price_female_single": 42000, "price_female_family": 42000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 15, "stt": 15,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "CHỨC NĂNG THẬN",
+      "name": "Định lượng Creatinin",
+      "description": "",
+      "price_type": "standard", "list_price": 70000,
+      "price_male": 35000, "price_female_single": 35000, "price_female_family": 35000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 16, "stt": 16,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "CHỨC NĂNG THẬN",
+      "name": "Độ lọc cầu thận (eGfR)",
+      "description": "",
+      "price_type": "gift", "list_price": 50000,
+      "price_male": 0, "price_female_single": 0, "price_female_family": 0,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": "TẶNG"
+    },
+    {
+      "id": 17, "stt": 18,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "CHỨC NĂNG GAN",
+      "name": "Đo hoạt độ AST (GOT)",
+      "description": "",
+      "price_type": "standard", "list_price": 84000,
+      "price_male": 42000, "price_female_single": 42000, "price_female_family": 42000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 18, "stt": 19,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "CHỨC NĂNG GAN",
+      "name": "Đo hoạt độ ALT (GPT)",
+      "description": "",
+      "price_type": "standard", "list_price": 84000,
+      "price_male": 42000, "price_female_single": 42000, "price_female_family": 42000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 19, "stt": 20,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "VIÊM GAN B",
+      "name": "HBsAG hoặc HBsAb (chọn 1 trong 2)",
+      "description": "",
+      "price_type": "standard", "list_price": 231000,
+      "price_male": 115500, "price_female_single": 115500, "price_female_family": 115500,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 20, "stt": 21,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "TẦM SOÁT UNG THƯ",
+      "name": "Tầm soát ung thư buồng trứng - CA 125",
+      "description": "",
+      "price_type": "standard", "list_price": 350000,
+      "price_male": null, "price_female_single": 175000, "price_female_family": 175000,
+      "for_male": false, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 21, "stt": 22,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "TẦM SOÁT UNG THƯ",
+      "name": "Tầm soát ung thư tiền liệt tuyến - PSA",
+      "description": "Sàng lọc và theo dõi điều trị ung thư tuyến tiền liệt cho nam.",
+      "price_type": "standard", "list_price": 280000,
+      "price_male": 140000, "price_female_single": null, "price_female_family": null,
+      "for_male": true, "for_female_single": false, "for_female_family": false,
+      "note": null
+    },
+    {
+      "id": 22, "stt": 23,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "TẦM SOÁT UNG THƯ",
+      "name": "Acid Uric (Tầm soát bệnh Gout)",
+      "description": "",
+      "price_type": "standard", "list_price": 84000,
+      "price_male": 42000, "price_female_single": 42000, "price_female_family": 42000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 23, "stt": 24,
+      "group": "GÓI XÉT NGHIỆM (MÁU)", "group_en": "BLOOD TEST PACKAGE", "subgroup": "XÉT NGHIỆM NƯỚC TIỂU",
+      "name": "Tổng phân tích nước tiểu",
+      "description": "",
+      "price_type": "standard", "list_price": 84000,
+      "price_male": 42000, "price_female_single": 42000, "price_female_family": 42000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 24, "stt": 25,
+      "group": "CHẨN ĐOÁN HÌNH ẢNH", "group_en": "DIAGNOSTIC IMAGING", "subgroup": null,
+      "name": "Điện tâm đồ (ECG)",
+      "description": "",
+      "price_type": "standard", "list_price": 140000,
+      "price_male": 70000, "price_female_single": 70000, "price_female_family": 70000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 25, "stt": 26,
+      "group": "CHẨN ĐOÁN HÌNH ẢNH", "group_en": "DIAGNOSTIC IMAGING", "subgroup": null,
+      "name": "Chụp X-quang Ngực thẳng",
+      "description": "",
+      "price_type": "standard", "list_price": 210000,
+      "price_male": 105000, "price_female_single": 105000, "price_female_family": 105000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 26, "stt": 27,
+      "group": "SIÊU ÂM", "group_en": "ULTRASOUND", "subgroup": null,
+      "name": "Siêu âm bụng TQ",
+      "description": "",
+      "price_type": "standard", "list_price": 350000,
+      "price_male": 175000, "price_female_single": 175000, "price_female_family": 175000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 27, "stt": 28,
+      "group": "SIÊU ÂM", "group_en": "ULTRASOUND", "subgroup": null,
+      "name": "Siêu âm tuyến vú",
+      "description": "",
+      "price_type": "standard", "list_price": 350000,
+      "price_male": null, "price_female_single": 175000, "price_female_family": 175000,
+      "for_male": false, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 28, "stt": 29,
+      "group": "SIÊU ÂM", "group_en": "ULTRASOUND", "subgroup": null,
+      "name": "Siêu âm tuyến giáp",
+      "description": "",
+      "price_type": "standard", "list_price": 350000,
+      "price_male": 175000, "price_female_single": 175000, "price_female_family": 175000,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 29, "stt": 30,
+      "group": "PHỤ KHOA", "group_en": "GYNECOLOGY", "subgroup": null,
+      "name": "Khám phụ khoa & Khám tuyến vú",
+      "description": "",
+      "price_type": "standard", "list_price": 350000,
+      "price_male": null, "price_female_single": 175000, "price_female_family": 175000,
+      "for_male": false, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 30, "stt": 31,
+      "group": "PHỤ KHOA", "group_en": "GYNECOLOGY", "subgroup": null,
+      "name": "Soi tươi huyết trắng",
+      "description": "",
+      "price_type": "standard", "list_price": 168000,
+      "price_male": null, "price_female_single": 84000, "price_female_family": 84000,
+      "for_male": false, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 31, "stt": 32,
+      "group": "PHỤ KHOA", "group_en": "GYNECOLOGY", "subgroup": null,
+      "name": "Phết cổ tử cung (PAP's mear) - Cytobrush",
+      "description": "",
+      "price_type": "standard", "list_price": 210000,
+      "price_male": null, "price_female_single": 105000, "price_female_family": 105000,
+      "for_male": false, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 32, "stt": 33,
+      "group": "PHỤ KHOA", "group_en": "GYNECOLOGY", "subgroup": null,
+      "name": "HPV 16 Genotypes Realtime",
+      "description": "",
+      "price_type": "standard", "list_price": 1400000,
+      "price_male": null, "price_female_single": 700000, "price_female_family": 700000,
+      "for_male": false, "for_female_single": true, "for_female_family": true,
+      "note": null
+    },
+    {
+      "id": 33, "stt": 34,
+      "group": "KẾT LUẬN", "group_en": "CONCLUSION", "subgroup": null,
+      "name": "Tư vấn kết quả khám (Doctor's Consultation)",
+      "description": "Bác sĩ tư vấn trực tiếp từng bệnh nhân.",
+      "price_type": "free", "list_price": 0,
+      "price_male": 0, "price_female_single": 0, "price_female_family": 0,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": "Miễn phí"
+    },
+    {
+      "id": 34, "stt": 35,
+      "group": "KẾT LUẬN", "group_en": "CONCLUSION", "subgroup": null,
+      "name": "Báo cáo thống kê kết luận (Medical Report)",
+      "description": "Báo cáo bằng tiếng anh hoặc tiếng Việt.",
+      "price_type": "free", "list_price": 0,
+      "price_male": 0, "price_female_single": 0, "price_female_family": 0,
+      "for_male": true, "for_female_single": true, "for_female_family": true,
+      "note": "Miễn phí"
+    }
+  ]
+}

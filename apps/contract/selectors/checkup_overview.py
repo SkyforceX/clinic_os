@@ -1,6 +1,6 @@
 from django.utils.html import escape
 
-from apps.booking.models import CheckupCategory
+from apps.catalogs.models import CheckupCategory
 from apps.patients.selectors.patient_selectors import list_patients_by_company_for_actor
 
 

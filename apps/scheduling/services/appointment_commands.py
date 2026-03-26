@@ -3,8 +3,9 @@ from datetime import datetime
 
 from django.db import transaction
 
+from apps.booking.models import Appointment
 from apps.contract.models import Contract
-from apps.scheduling.models import Appointment, ScheduleSlot
+from apps.scheduling.models import ScheduleSlot
 
 
 class SchedulingRegistrationError(Exception):
@@ -50,29 +51,6 @@ def _normalize_shift(value):
     return shift
 
 
-def _registered_field_name(schedule):
-    return "registered_am" if schedule.shift == "AM" else "registered_pm"
-
-
-def _limit_value(schedule):
-    return schedule.limit_am if schedule.shift == "AM" else schedule.limit_pm
-
-
-def _registered_value(schedule):
-    field_name = _registered_field_name(schedule)
-    real_count = schedule.appointments.count()
-    return max(getattr(schedule, field_name) or 0, real_count)
-
-
-def _sync_registered(schedule):
-    field_name = _registered_field_name(schedule)
-    current_value = _registered_value(schedule)
-    if getattr(schedule, field_name) != current_value:
-        setattr(schedule, field_name, current_value)
-        schedule.save(update_fields=[field_name, "updated_at"])
-    return current_value
-
-
 @transaction.atomic
 def register_or_move_patient_appointment(cmd: RegistrationCommand):
     contract = Contract.objects.filter(pk=cmd.contract_id).first()
@@ -90,17 +68,17 @@ def register_or_move_patient_appointment(cmd: RegistrationCommand):
     if not schedule:
         raise SchedulingRegistrationError("Không tìm thấy ca khám đã chọn.")
 
-    registered_now = _sync_registered(schedule)
-    limit_now = _limit_value(schedule)
+    if (schedule.booked_count or 0) >= (schedule.capacity or 0):
+        raise SchedulingRegistrationError("Ca khám đã hết slot. Vui lòng chọn ca khác.")
 
     current_appointment = (
         Appointment.objects.select_for_update()
-        .select_related("schedule")
-        .filter(patient=cmd.patient, schedule__contract=contract)
+        .select_related("schedule_slot")
+        .filter(patient=cmd.patient, schedule_slot__contract=contract)
         .first()
     )
 
-    if current_appointment and current_appointment.schedule_id == schedule.id:
+    if current_appointment and current_appointment.schedule_slot_id == schedule.id:
         return {
             "appointment": current_appointment,
             "schedule": schedule,
@@ -108,22 +86,17 @@ def register_or_move_patient_appointment(cmd: RegistrationCommand):
             "is_same_slot": True,
         }
 
-    if registered_now >= limit_now:
-        raise SchedulingRegistrationError("Ca khám đã hết slot. Vui lòng chọn ca khác.")
-
     if current_appointment:
-        old_schedule = ScheduleSlot.objects.select_for_update().get(pk=current_appointment.schedule_id)
-        old_field = _registered_field_name(old_schedule)
-        old_value = max(0, _registered_value(old_schedule) - 1)
-        setattr(old_schedule, old_field, old_value)
-        old_schedule.save(update_fields=[old_field, "updated_at"])
+        old_schedule = ScheduleSlot.objects.select_for_update().get(pk=current_appointment.schedule_slot_id)
+        if old_schedule.booked_count > 0:
+            old_schedule.booked_count -= 1
+            old_schedule.save(update_fields=["booked_count", "updated_at"])
 
-        new_field = _registered_field_name(schedule)
-        setattr(schedule, new_field, registered_now + 1)
-        schedule.save(update_fields=[new_field, "updated_at"])
+        schedule.booked_count = (schedule.booked_count or 0) + 1
+        schedule.save(update_fields=["booked_count", "updated_at"])
 
-        current_appointment.schedule = schedule
-        current_appointment.save(update_fields=["schedule", "updated_at"])
+        current_appointment.schedule_slot = schedule
+        current_appointment.save(update_fields=["schedule_slot", "updated_at"])
 
         return {
             "appointment": current_appointment,
@@ -134,12 +107,11 @@ def register_or_move_patient_appointment(cmd: RegistrationCommand):
 
     appointment = Appointment.objects.create(
         patient=cmd.patient,
-        schedule=schedule,
+        schedule_slot=schedule,
     )
 
-    field_name = _registered_field_name(schedule)
-    setattr(schedule, field_name, registered_now + 1)
-    schedule.save(update_fields=[field_name, "updated_at"])
+    schedule.booked_count = (schedule.booked_count or 0) + 1
+    schedule.save(update_fields=["booked_count", "updated_at"])
 
     return {
         "appointment": appointment,

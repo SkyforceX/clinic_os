@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.booking.models import CheckupCategory, GroupCheckup
+from apps.catalogs.models import CheckupCategory
 from apps.contract.web.forms import CheckupCategoryForm, GroupCheckupForm
 
 
@@ -36,7 +36,11 @@ def checkupcategory_create(request):
     else:
         form = CheckupCategoryForm()
 
-    return render(request, "contract/staff/checkupcategory_form.html", {"form": form})
+    return render(
+        request,
+        "contract/staff/checkupcategory_form.html",
+        {"form": form},
+    )
 
 
 @login_required(login_url="authentication:staff_login")

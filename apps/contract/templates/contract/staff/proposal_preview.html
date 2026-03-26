@@ -1,0 +1,250 @@
+{% extends "base_admin.html" %}
+{% load humanize %}
+{% load contract_tags %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'contract/css/proposal.css' %}">
+{% endblock %}
+
+{% block title %}Xem trước – {{ quotation.company_name }}{% endblock %}
+
+{% block content %}
+<div class="preview-wrap">
+  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h5 class="mb-0"><i class="fa fa-eye"></i> Xem trước – {{ quotation.company_name }}</h5>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'contract:quotation_list' %}" class="btn btn-sm btn-outline-secondary">← Danh sách</a>
+      <a href="{% url 'contract:edit_proposal' quotation_id=quotation.pk %}" class="btn btn-sm btn-outline-warning">
+        <i class="fa fa-pen"></i> Sửa
+      </a>
+      <a href="{% url 'contract:create_proposal' %}" class="btn btn-sm btn-outline-secondary">Tạo mới</a>
+      <form method="post" action="{% url 'contract:issue_quotation_document' quotation.pk %}" class="d-inline" id="issueQuotationForm">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-success" id="issueQuotationBtn">
+          <i class="fa fa-file-word"></i> Phát hành PDF
+        </button>
+      </form>
+      {% if latest_issued and latest_issued.pdf_file %}
+        <a href="{% url 'contract:download_issued_quotation_pdf' latest_issued.pk %}" target="_blank" class="btn btn-sm btn-danger">
+          <i class="fa fa-file-pdf"></i> PDF v{{ latest_issued.version }}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if latest_issued %}
+  <div class="alert alert-info no-print py-2">
+    <strong>Bản phát hành gần nhất:</strong> v{{ latest_issued.version }} – {{ latest_issued.issued_at|date:"d/m/Y H:i" }}
+  </div>
+  {% endif %}
+
+  <div class="preview-doc" id="printArea">
+    <div class="doc-title">Bảng báo giá khám sức khỏe</div>
+    <div class="doc-subtitle">PROPOSAL – Medical Check-up</div>
+    <p class="text-center text-muted mb-1" style="font-size:.82rem">Tp. HCM, ngày {% now "j" %} tháng {% now "n" %} năm {% now "Y" %}</p>
+    <p class="text-center mb-2" style="font-size:.78rem;color:#888;font-style:italic">
+      (Bảng Báo Giá có hiệu lực trong vòng 30 ngày, kể từ ngày gửi) – <em>(The proposal is valid 30 days from the date of issue)</em>
+    </p>
+    <hr>
+
+    <div class="recipient-block">
+      <strong class="text-decoration-underline">KÍNH GỬI <em>(TO)</em>:</strong><br>
+      <strong>ANH/CHỊ <em>(Mr/Ms.)</em>:</strong> {{ quotation.contact_name }}<br>
+      <strong>CÔNG TY <em>(Company)</em>:</strong> {{ quotation.company_name }}<br>
+      <strong>ĐỊA CHỈ <em>(Address)</em>:</strong> {{ quotation.company_address }}
+    </div>
+
+    <p style="font-size:.83rem;margin-bottom:.5rem">
+      Thay mặt <strong>TRUNG TÂM Y KHOA CHẤT LƯỢNG CAO VIETMEDI</strong> xin gửi lời chào thân ái và lời cảm ơn chân thành
+      đến quý Công ty về việc lựa chọn Phòng khám của chúng tôi cho kế hoạch Khám sức khỏe định kỳ hằng năm của nhân viên {% now "Y" %}.
+    </p>
+    <hr>
+
+    <p class="fw-bold text-center mb-0">DANH MỤC KHÁM SỨC KHỎE ĐỊNH KỲ {% now "Y" %}</p>
+    <p class="text-center mb-1" style="font-size:.8rem;font-style:italic">LIST OF MEDICAL CHECK-UP {% now "Y" %}</p>
+    <p style="font-size:.83rem;margin-bottom:.5rem">
+      Giá ưu đãi áp dụng cho số lượng khám dự kiến từ: <strong>{{ quotation.pax_from|default:"___" }}</strong> người
+      {% if quotation.valid_until %}&nbsp;|&nbsp; Hiệu lực đến: <strong>{{ quotation.valid_until|date:"d/m/Y" }}</strong>{% endif %}
+    </p>
+
+    {# Hiện banner giảm giá nếu có #}
+    {% with gm=quotation.discount_male_pct gfs=quotation.discount_fs_pct gff=quotation.discount_ff_pct %}
+    {% if gm or gfs or gff %}
+    <p style="font-size:.8rem;color:#795548;background:#fffde7;padding:4px 10px;border-radius:4px;display:inline-block;margin-bottom:.5rem">
+      🏷 Áp dụng giảm giá:
+      {% if gm %}👨 Nam –{{ gm|floatformat:"-2" }}%{% endif %}
+      {% if gfs %}👩 Nữ ĐT –{{ gfs|floatformat:"-2" }}%{% endif %}
+      {% if gff %}👩‍👧 Nữ GĐ –{{ gff|floatformat:"-2" }}%{% endif %}
+    </p>
+    {% endif %}
+    {% endwith %}
+
+    <table class="preview-table">
+      <thead>
+        <tr>
+          <th style="width:32px">STT</th>
+          <th class="left">DỊCH VỤ</th>
+          <th style="width:105px">GIÁ ƯU ĐÃI<br><small>(VNĐ)</small></th>
+          <th style="width:72px">NAM</th>
+          <th style="width:80px">NỮ ĐỘC THÂN</th>
+          <th style="width:80px">NỮ GIA ĐÌNH</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for group_name, gdata in grouped.items %}
+        <tr class="group-row"><td colspan="6">{{ group_name }}</td></tr>
+
+        {% for line in gdata.items %}
+        <tr>
+          <td class="text-center text-muted">{{ line.stt }}</td>
+          <td><strong>{{ line.item_name }}</strong>{% if line.description %}<br><small class="text-muted">{{ line.description }}</small>{% endif %}</td>
+          {# Cột GIÁ ƯU ĐÃI: nếu free/gift thì nhãn, ngược lại lấy udai_price (giá catalog đã áp global %) #}
+          <td class="price-cell text-center">
+            {% if line.price_type == "free" %}<span class="free-txt">Miễn phí</span>
+            {% elif line.price_type == "gift" %}<span class="gift-txt">TẶNG</span>
+            {% else %}
+              {% if line.checked_male and line.udai_price_male %}{{ line.udai_price_male|vnd }}
+              {% elif line.checked_female_single and line.udai_price_fs %}{{ line.udai_price_fs|vnd }}
+              {% elif line.checked_female_family and line.udai_price_ff %}{{ line.udai_price_ff|vnd }}
+              {% else %}{{ line.price_male|default:line.price_female_single|default:line.price_female_family|vnd }}
+              {% endif %}
+            {% endif %}
+          </td>
+          {# Cột NAM: tick + chú thích giảm % nếu có #}
+          <td class="text-center">
+            {% if line.checked_male %}
+              {% if line.price_type == "free" or line.price_type == "gift" %}
+                <span class="free-txt">Miễn phí</span>
+              {% else %}
+                <span class="check-mark">✓</span>
+                {% if line.discount_male_pct %}
+                  <br><small class="text-muted" style="font-size:.7rem">(–{{ line.discount_male_pct|floatformat:"-2" }}%)</small>
+                {% endif %}
+              {% endif %}
+            {% else %}<span class="na-txt">–</span>{% endif %}
+          </td>
+          {# Cột NỮ ĐT #}
+          <td class="text-center">
+            {% if line.checked_female_single %}
+              {% if line.price_type == "free" or line.price_type == "gift" %}
+                <span class="free-txt">Miễn phí</span>
+              {% else %}
+                <span class="check-mark">✓</span>
+                {% if line.discount_fs_pct %}
+                  <br><small class="text-muted" style="font-size:.7rem">(–{{ line.discount_fs_pct|floatformat:"-2" }}%)</small>
+                {% endif %}
+              {% endif %}
+            {% else %}<span class="na-txt">–</span>{% endif %}
+          </td>
+          {# Cột NỮ GĐ #}
+          <td class="text-center">
+            {% if line.checked_female_family %}
+              {% if line.price_type == "free" or line.price_type == "gift" %}
+                <span class="free-txt">Miễn phí</span>
+              {% else %}
+                <span class="check-mark">✓</span>
+                {% if line.discount_ff_pct %}
+                  <br><small class="text-muted" style="font-size:.7rem">(–{{ line.discount_ff_pct|floatformat:"-2" }}%)</small>
+                {% endif %}
+              {% endif %}
+            {% else %}<span class="na-txt">–</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+
+        {% for sg_name, sg_lines in gdata.subgroups.items %}
+        <tr class="subgroup-row"><td colspan="6">{{ sg_name }}</td></tr>
+        {% for line in sg_lines %}
+        <tr>
+          <td class="text-center text-muted">{{ line.stt }}</td>
+          <td><strong>{{ line.item_name }}</strong>{% if line.description %}<br><small class="text-muted">{{ line.description }}</small>{% endif %}</td>
+          <td class="price-cell text-center">
+            {% if line.price_type == "free" %}<span class="free-txt">Miễn phí</span>
+            {% elif line.price_type == "gift" %}<span class="gift-txt">TẶNG</span>
+            {% else %}
+              {% if line.checked_male and line.udai_price_male %}{{ line.udai_price_male|vnd }}
+              {% elif line.checked_female_single and line.udai_price_fs %}{{ line.udai_price_fs|vnd }}
+              {% elif line.checked_female_family and line.udai_price_ff %}{{ line.udai_price_ff|vnd }}
+              {% else %}{{ line.price_male|default:line.price_female_single|default:line.price_female_family|vnd }}
+              {% endif %}
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if line.checked_male %}
+              {% if line.price_type == "free" or line.price_type == "gift" %}<span class="free-txt">Miễn phí</span>
+              {% else %}<span class="check-mark">✓</span>{% if line.discount_male_pct %}<br><small class="text-muted" style="font-size:.7rem">(–{{ line.discount_male_pct|floatformat:"-2" }}%)</small>{% endif %}{% endif %}
+            {% else %}<span class="na-txt">–</span>{% endif %}
+          </td>
+          <td class="text-center">
+            {% if line.checked_female_single %}
+              {% if line.price_type == "free" or line.price_type == "gift" %}<span class="free-txt">Miễn phí</span>
+              {% else %}<span class="check-mark">✓</span>{% if line.discount_fs_pct %}<br><small class="text-muted" style="font-size:.7rem">(–{{ line.discount_fs_pct|floatformat:"-2" }}%)</small>{% endif %}{% endif %}
+            {% else %}<span class="na-txt">–</span>{% endif %}
+          </td>
+          <td class="text-center">
+            {% if line.checked_female_family %}
+              {% if line.price_type == "free" or line.price_type == "gift" %}<span class="free-txt">Miễn phí</span>
+              {% else %}<span class="check-mark">✓</span>{% if line.discount_ff_pct %}<br><small class="text-muted" style="font-size:.7rem">(–{{ line.discount_ff_pct|floatformat:"-2" }}%)</small>{% endif %}{% endif %}
+            {% else %}<span class="na-txt">–</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% endfor %}
+      {% endfor %}
+
+      <tr class="total-row">
+        <td colspan="3" class="text-end" style="font-size:.8rem">Giá trị Gói khám (VND/người):</td>
+        <td class="price-cell text-center">{% if total_male %}{{ total_male|vnd }}{% else %}–{% endif %}</td>
+        <td class="price-cell text-center">{% if total_female_single %}{{ total_female_single|vnd }}{% else %}–{% endif %}</td>
+        <td class="price-cell text-center">{% if total_female_family %}{{ total_female_family|vnd }}{% else %}–{% endif %}</td>
+      </tr>
+      {% if quotation.male_count or quotation.female_single_count or quotation.female_family_count %}
+      <tr class="grand-row">
+        <td colspan="3" class="text-end">TỔNG GIÁ TRỊ HỢP ĐỒNG:</td>
+        <td colspan="3" class="price-cell text-center" style="color:#c0392b;font-size:.95rem"><strong>{{ grand_total|vnd }} ₫</strong></td>
+      </tr>
+      {% endif %}
+      </tbody>
+    </table>
+
+    {% if quotation.note %}
+    <div class="alert alert-warning py-2 mt-2" style="font-size:.82rem"><strong>Ghi chú:</strong> {{ quotation.note }}</div>
+    {% endif %}
+  </div>
+
+  <div class="d-flex justify-content-end gap-2 mt-3 mb-5 no-print">
+    <a href="{% url 'contract:quotation_list' %}" class="btn btn-outline-secondary">← Danh sách</a>
+  </div>
+</div>
+
+<!-- progress bar -->
+<div class="issue-progress-overlay" id="issueProgressOverlay" aria-hidden="true">
+  <div class="issue-progress-card">
+    <div class="issue-progress-head">
+      <div class="issue-progress-title">Đang phát hành báo giá</div>
+      <p class="issue-progress-subtitle">Hệ thống đang tạo PDF. Vui lòng chờ trong giây lát.</p>
+    </div>
+    <div class="issue-progress-body">
+      <div class="issue-progress-row">
+        <div class="issue-progress-label">Tiến trình xử lý</div>
+        <div class="issue-progress-percent" id="issueProgressPercent">0%</div>
+      </div>
+      <div class="issue-progress-bar-wrap">
+        <div class="issue-progress-bar" id="issueProgressBar"></div>
+      </div>
+      <div class="issue-progress-status" id="issueProgressStatus">Đang khởi tạo phát hành tài liệu...</div>
+      <ul class="issue-progress-steps" id="issueProgressSteps">
+        <li data-step="1" class="active"><span class="dot"></span><span>Chuẩn bị dữ liệu báo giá</span></li>
+        <li data-step="3"><span class="dot"></span><span>Chuyển đổi sang PDF</span></li>
+        <li data-step="4"><span class="dot"></span><span>Hoàn tất và tải lại trang</span></li>
+      </ul>
+      <div class="issue-progress-note">Trong lúc này nút bấm đã được khóa để tránh tạo trùng tài liệu.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{% static 'contract/js/proposal_progressbar.js' %}"></script>
+{% endblock %}

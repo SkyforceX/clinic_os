@@ -4,8 +4,9 @@ from datetime import date, timedelta
 from django.contrib.auth import get_user_model
 from django.db.models import Prefetch
 
-from apps.contract.models import Contract
-from apps.scheduling.models import Appointment, BloodCollectionPlan, ScheduleSlot
+from apps.booking.models import Appointment
+from apps.contract.models import CLOSED_STATUSES, BloodCollectionSchedule, Contract
+from apps.scheduling.models import ScheduleSlot
 from apps.scheduling.policies import SchedulingPolicy
 
 User = get_user_model()
@@ -21,16 +22,13 @@ def _registered_count(slot):
     else:
         real_count = slot.appointments.count()
 
-    if slot.shift == "AM":
-        return max(slot.registered_am or 0, real_count)
-
-    return max(slot.registered_pm or 0, real_count)
+    return max(slot.booked_count or 0, real_count)
 
 
 def _limit_count(slot):
     if not slot:
         return 0
-    return slot.limit_am if slot.shift == "AM" else slot.limit_pm
+    return slot.capacity or 0
 
 
 def build_contract_schedule_matrix(*, actor, start_of_year=None):
@@ -38,16 +36,17 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
     days = [start_of_year + timedelta(days=i) for i in range(365)]
 
     contract_qs = (
-        Contract.objects.filter(is_finished=False)
+        Contract.objects
+        .exclude(status__in=CLOSED_STATUSES)
         .select_related("company", "created_by")
         .prefetch_related(
             "company__patients",
             Prefetch(
-                "blood_collections",
-                queryset=BloodCollectionPlan.objects.order_by("collection_date", "id"),
+                "blood_collection_schedules",
+                queryset=BloodCollectionSchedule.objects.order_by("collection_date", "id"),
             ),
             Prefetch(
-                "schedules",
+                "schedule_slots",
                 queryset=(
                     ScheduleSlot.objects.order_by("date", "shift", "id").prefetch_related(
                         Prefetch(
@@ -77,9 +76,9 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
     daily_blood_totals = {day: {"people": 0, "staff": 0, "locations": 0} for day in days}
 
     for contract in all_contracts:
-        slot_map = {(slot.date, slot.shift): slot for slot in contract.schedules.all()}
+        slot_map = {(slot.date, slot.shift): slot for slot in contract.schedule_slots.all()}
 
-        for blood in contract.blood_collections.all():
+        for blood in contract.blood_collection_schedules.all():
             if blood.collection_date in daily_blood_totals:
                 daily_blood_totals[blood.collection_date]["people"] += blood.people_count or 0
                 daily_blood_totals[blood.collection_date]["staff"] += blood.staff_count or 0
@@ -110,14 +109,14 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
 
     rows = []
     for contract in visible_contracts:
-        blood_collection_list = list(contract.blood_collections.all())
+        blood_collection_list = list(contract.blood_collection_schedules.all())
         blood_dates = [bc.collection_date.strftime("%Y-%m-%d") for bc in blood_collection_list]
-        slot_map = {(slot.date, slot.shift): slot for slot in contract.schedules.all()}
+        slot_map = {(slot.date, slot.shift): slot for slot in contract.schedule_slots.all()}
 
         all_patients = list(contract.company.patients.all())
         registered_patient_ids = {
             ap.patient_id
-            for schedule in contract.schedules.all()
+            for schedule in contract.schedule_slots.all()
             for ap in schedule.appointments.all()
         }
 

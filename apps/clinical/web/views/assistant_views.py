@@ -17,12 +17,12 @@ def sum_assistant(request):
             {"error_message": "Bạn không có quyền truy cập."},
             status=403,
         )
-    return render(request, "clinic/staff/sum_assistant.html")
+    return render(request, "clinical/staff/sum_assistant.html")
 
 
 @login_required(login_url="authentication:staff_login")
 def load_fixture_data(request):
-    fixture_path = finders.find("clinic/fixtures/sum_assistant_data.json")
+    fixture_path = finders.find("clinical/fixtures/sum_assistant_data.json")
     if not fixture_path:
         raise Http404("Không tìm thấy sum_assistant_data.json")
 

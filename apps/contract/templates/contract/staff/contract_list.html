@@ -1,0 +1,181 @@
+{% extends "base_admin.html" %}
+
+
+{% load static %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'contract/css/styles.css' %}">
+  <meta name="description" content="Danh sách hợp đồng khám sức khỏe">
+{% endblock %}
+
+{% block content %}
+{% load custom_filters %}
+<div class="form-row">
+  <div class="form-group" style="flex: 1; text-align: center; margin-top: 20px;">
+    <h2>📄 Danh sách lịch khám</h2>
+  </div>
+</div>
+
+<div class="d-flex justify-content-end mb-3">
+  <a href="{% url 'contract:create_contract' %}" class="btn btn-success btn-sm">
+    + Thêm lịch khám
+  </a>
+</div>
+
+<div class="form-row">
+  <div class="form-group contract-table-wrapper overflow-x-auto flex-1">
+  <table class="contract-table data-table table table-hover">
+    <thead class="data-table-head">
+      <tr>
+        <th>STT</th>
+        <th class="company-col">Tên công ty</th>
+        <th class="note-col">Ghi chú</th>
+{#        <th class="contract-number-col d-none d-md-table-cell">Mã hợp đồng</th>#}
+        <th class="employee-col d-none d-md-table-cell">Số<br>khách hàng</th>
+        <th class="start-col d-none d-md-table-cell">Ngày lấy máu</th>
+        <th class="start-col d-none d-md-table-cell">Thời gian khám</th>
+        <th class="options-col d-none d-md-table-cell" colspan="2">Tùy chọn</th>
+        <th class="view-ds-col d-none d-md-table-cell">Danh sách</th>
+        <th class="mobile-detail-col d-md-none">Chi tiết</th>
+        <th class="status-col">Trạng thái</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for contract in contracts %}
+      <tr class="text-center align-middle"
+          data-contract-id="{{ contract.id }}"
+          data-company="{{ contract.company.name }}"
+          data-contract-number="{{ contract.contract_number }}"
+          data-year="{{ contract.year }}"
+          data-employee="{{ contract.employee_count }}"
+          data-start="{{ contract.start_date|date:'d/m/Y' }}"
+          data-end="{{ contract.end_date|date:'d/m/Y' }}"
+          data-blood-collection="{% for info in contract.blood_collections_schedules.all %}{{ info.collection_date|date:'d/m/Y' }}{% if not forloop.last %}; {% endif %}{% endfor %}"
+          data-edit-url="{% url 'contract:edit_contract' contract.id %}">
+        <td>{{ forloop.counter }}</td>
+        <td class="company-col text-start">
+          {{ contract.company.name }}
+          {% if contract.created_by %}
+            <div class="text-muted" style="font-size: 12px;">
+              <i class="fa fa-user"></i>
+              {{ contract.created_by.get_full_name|default:contract.created_by.username }}
+            </div>
+          {% endif %}
+          <div class="text-muted" style="font-size: 12px;">
+            <i class="fa fa-calendar"></i>
+            {{ contract.created_at|date:"d/m/Y" }}
+          </div>
+        
+        </td>
+        <td class="contract-note-col d-none d-md-table-cell">{% if contract.note %}{{ contract.note }}{% endif %}</td>
+{#        <td class="contract-number-col d-none d-md-table-cell">{{ contract.contract_number }}</td>#}
+        <td class="employee-col d-none d-md-table-cell">{{ contract.employee_count }}</td>
+        <td class="start-col d-none d-md-table-cell">
+          {% for info in contract.blood_collections_schedules.all %}
+            <div>{{ info.collection_date|date:"d/m/Y" }}</div>
+          {% empty %}
+            <div class="text-muted">Chưa có</div>
+          {% endfor %}
+        </td>
+        <td class="start-col d-none d-md-table-cell">
+          {{ contract.start_date|date:"d/m/Y" }} - <br>
+          {{ contract.end_date|date:"d/m/Y" }}
+        </td>
+        <td class="options-col d-none d-md-table-cell">
+          {% if contract.is_approved %}
+            <button class="btn btn-sm btn-warning btn-disabled opacity-50" disabled>Sửa</button>
+          {% elif contract.created_by_id == request.user.id or request.user|user_in_group:"Managers" or request.user.is_superuser %}
+            <a href="{% url 'contract:edit_contract' contract.id %}" class="btn btn-sm btn-warning">Sửa</a>
+          {% else %}
+            <button class="btn btn-sm btn-warning btn-disabled opacity-50" disabled>Sửa</button>
+          {% endif %}
+        </td>
+
+        <td class="options-col d-none d-md-table-cell">
+            {% if contract.is_approved %}
+              <button type="submit" class="btn btn-sm btn-danger btn-disabled opacity-50">Xoá</button>
+            {% elif contract.created_by_id == request.user.id or request.user|user_in_group:"Managers" or request.user.is_superuser %}
+              <form action="{% url 'contract:delete_contract' contract.id %}" method="post" class="delete-contract-form">
+                {% csrf_token %}
+                <button
+                    type="button"
+                    class="btn btn-sm btn-danger btn-delete-contract"
+                    data-company="{{ contract.company.name }}">
+                    Xoá
+                </button>
+              </form>
+            {% else %}
+              <button type="submit" class="btn btn-sm btn-danger btn-disabled opacity-50">Xoá</button>
+            {% endif %}
+        </td>
+
+        <td class="view-ds-col d-none d-md-table-cell">
+          <button
+            id="js-data-company"
+            class="btn btn-sm btn-info open-upload-modal-desktop"
+            data-contract-id="{{ contract.id }}"
+            data-company-id="{{ contract.company.id }}"
+            data-company-name="{{ contract.company.name }}"
+            data-api-url="{% url 'patients_api:ajax_patient_list_json' contract.company.id contract.id %}">
+            Xem
+          </button>
+        </td>
+        <td class="mobile-detail-col d-md-none">
+          <button class="btn btn-sm btn-secondary open-detail-modal">Chi tiết</button>
+        </td>
+        <td class="status-col">
+          {% if contract.is_finished %}
+            <span class="badge bg-success">✅ Đã kết thúc</span>
+
+          {% elif contract.is_terminated %}
+            <span class="text-danger fw-bold">🚫 Đã hủy</span>
+
+          {% elif contract.is_approved %}
+            <span class="text-success fw-bold">✅ Đã chốt hợp đồng</span>
+
+          {% else %}
+            <div class="d-flex flex-column align-items-center gap-1">
+              <span class="text-muted">Chờ duyệt</span>
+
+              {% if contract.created_by_id == request.user.id %}
+                <form action="{% url 'contract:approve_contract' contract.id %}" method="post" class="m-0 approve-contract-form">
+                  {% csrf_token %}
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-success btn-approve-contract"
+                    data-company="{{ contract.company.name }}">
+                    Chốt HĐ
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="11" class="text-center">Không có dữ liệu.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+  {% include "contract/includes/modal_popup.html" %}
+  {% include "contract/includes/modal_list_patient.html" %}
+  {% include "contract/includes/modal_confirm_delete.html" %}
+  {% include "contract/includes/modal_approve_contract.html" %}
+
+  <script>
+    const AJAX_UPLOAD_URL = "{% url 'patients_api:upload_list_patient' %}";
+    const AJAX_CREATE_PATIENT_URL = "{% url 'patients_api:create_patient_ajax' %}";
+  </script>
+  <script>window.RESULTS_URL = "/data/results";</script>
+  <script src="{% static 'contract/js/contract_list.js' %}"></script>
+  <script src="{% static 'contract/js/modal.js' %}"></script>
+  <script src="{% static 'health_record/js/modal_patient_doc.js' %}"></script>
+  <script src="{% static 'contract/js/checkup_list.js' %}"></script>
+{% endblock %}

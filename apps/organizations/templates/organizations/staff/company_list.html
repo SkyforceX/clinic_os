@@ -1,0 +1,319 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Danh sách công ty{% endblock %}
+
+{% load static %}
+{% block extra_head %}
+  <link rel="stylesheet" href="">
+  <meta name="description" content="Danh sách công ty">
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-10">
+    <div class="text-center mb-4">
+      <h2 class="fw-bold">Danh sách công ty</h2>
+    </div>
+
+    <!-- Tab Navigation -->
+<ul class="nav nav-tabs mt-4" id="companyTab" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="add-company-tab" data-bs-toggle="tab" data-bs-target="#add-company" type="button" role="tab">
+      ➕ Thêm Công Ty
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="upload-patient-tab" data-bs-toggle="tab" data-bs-target="#upload-patient" type="button" role="tab">
+      📤 Upload Danh Sách Bệnh Nhân
+    </button>
+  </li>
+</ul>
+  
+  <!-- Tab Content -->
+  <div class="tab-content border border-top-0 p-4 bg-white rounded-bottom shadow-sm" id="companyTabContent">
+  
+    <!-- Tab 1: Thêm Công Ty -->
+    <div class="tab-pane fade show active" id="add-company" role="tabpanel">
+      <form method="post" class="row g-3" action="{% url 'organizations:company_list' %}">
+        {% csrf_token %}
+        <input type="hidden" name="add_company" value="1">
+        <div class="col-12">
+          <label class="form-label">Tên công ty</label>
+          <input type="text" name="company_name" class="form-control" required>
+        </div>
+        <div class="col-sm-12 col-md-9 col-lg-9">
+          <label class="form-label">Địa chỉ</label>
+          <input type="text" name="company_address" class="form-control">
+        </div>
+{#        <div class="col-md-4">#}
+{#          <label class="form-label">MST</label>#}
+{#          <input type="text" name="tax_code" class="form-control">#}
+{#        </div>#}
+        <div class="col-sm-12 col-md-3 col-lg-3">
+          <label class="form-label">Số điện thoại</label>
+          <input type="text" name="company_phone" class="form-control">
+        </div>
+        <div class="col-12 mt-2">
+          <button type="submit" class="btn btn-success">Thêm công ty</button>
+        </div>
+      </form>
+    </div>
+  
+    <!-- Tab 2: Upload bệnh nhân -->
+    <div class="tab-pane fade" id="upload-patient" role="tabpanel">
+      <form method="post" enctype="multipart/form-data" class="row g-3" action="{% url 'organizations:company_list' %}">
+        {% csrf_token %}
+        <input type="hidden" name="upload_excel" value="1">
+        <div class="col-md-6">
+          <label class="form-label">Chọn công ty</label>
+          <select name="company_id" class="form-select" required>
+            <option value="">-- Chọn công ty --</option>
+            {% for company in companies %}
+              <option value="{{ company.id }}">{{ company.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Chọn file Excel</label>
+          <input type="file" name="excel_file" accept=".xlsx,.xls" class="form-control" required>
+        </div>
+        <div class="col-12 mt-2">
+          <input type="checkbox" name="force_update" value="1" id="force_update">
+          <label for="force_update">Ghi đè nếu trùng mã BN nhưng thông tin khác</label>
+          <button type="submit" class="btn btn-primary">Tải lên</button>
+        </div>
+      </form>
+  
+      {% if error_rows %}
+        <div class="mt-4 p-3 border border-danger rounded bg-light">
+          <h5 class="text-danger">Lỗi khi xử lý file:</h5>
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped mt-3">
+              <thead class="table-danger">
+                <tr>
+                  <th>#</th>
+                  <th>Mã BN</th>
+                  <th>Họ tên</th>
+                  <th>Thiếu dữ liệu</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in error_rows %}
+                  <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ row.ma_bn }}</td>
+                    <td>{{ row.ho_ten }}</td>
+                    <td>{{ row.missing }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  
+
+    <!-- Lọc theo công ty -->
+    <form method="get" class="mb-4">
+        <div class="input-group">
+            <label class="input-group-text">Xem danh sách bệnh nhân:</label>
+            <select name="company_id" class="form-select" onchange="this.form.submit()">
+                <option value="">-- Chọn công ty --</option>
+                {% for c in companies %}
+                    <option value="{{ c.id }}" {% if c.id|stringformat:"s" == selected_company_id %}selected{% endif %}>
+                        {{ c.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+    {% if selected_company_id and patients %}
+    <!-- Nút xóa -->
+    <form method="post" action="{% url 'patients:delete_patients_by_company' selected_company_id %}" onsubmit="return confirmDelete();">
+        {% csrf_token %}
+        <button
+            type="submit"
+            class="btn btn-danger"
+            name="action"
+            value="delete"
+            {% if request.user.username != 'duc.it' and request.user.username != 'admin93' %}disabled title="Chỉ tài khoản IT mới được phép xóa"{% endif %}
+        >
+            🗑️ Xóa danh sách
+        </button>
+    </form>
+{% endif %}
+    <script>
+        function confirmDelete() {
+            return confirm("Bạn có chắc chắn muốn xóa toàn bộ bệnh nhân của công ty này?");
+        }
+    </script>
+
+    <!-- Hiển thị bệnh nhân -->
+    {% if patients %}
+        <div class="bg-white rounded shadow-sm p-3">
+            <h5>Danh sách bệnh nhân</h5>
+            <table class="table table-bordered table-hover">
+                <thead>
+                  <tr>
+                    <th class="text-center">STT</th>
+                    <th>Mã BN</th>
+                    <th>Họ tên</th>
+                    <th>Giới tính</th>
+                    <th>Ngày sinh</th>
+                    {% if is_manager %}
+                      <th class="text-center" style="width: 180px;">Thao tác</th>
+                    {% endif %}
+                  </tr>
+                </thead>
+                <tbody id="patientTableBody">
+                  {% for p in patients %}
+                    <tr id="patient-row-{{ p.id }}">
+                      <td class="text-center patient-stt">{{ forloop.counter }}</td>
+                      <td class="patient-ma-bn">{{ p.ma_bn }}</td>
+                      <td class="patient-ho-ten">{{ p.ho_ten }}</td>
+                      <td class="patient-gioi-tinh">{{ p.gioi_tinh }}</td>
+                      <td class="patient-ngay-sinh" data-date="{{ p.ngay_sinh|date:'Y-m-d' }}">{{ p.ngay_sinh|date:"d/m/Y" }}</td>
+                      {% if is_manager %}
+                      <td class="text-center">
+                        <div class="d-flex justify-content-center gap-2">
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary js-edit-patient-btn"
+                            data-patient-id="{{ p.id }}"
+                            data-ma-bn="{{ p.ma_bn }}"
+                            data-ho-ten="{{ p.ho_ten }}"
+                            data-gioi-tinh="{{ p.gioi_tinh }}"
+                            data-ngay-sinh="{{ p.ngay_sinh|date:'Y-m-d' }}"
+                          >
+                            Sửa
+                          </button>
+
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-danger js-delete-patient-btn"
+                            data-patient-id="{{ p.id }}"
+                            data-patient-name="{{ p.ho_ten }}"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+      <!-- Modal edit / delete item in list -->
+      <div class="modal fade" id="editPatientModal" tabindex="-1" aria-labelledby="editPatientModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <form id="editPatientForm">
+              {% csrf_token %}
+              <div class="modal-header">
+                <h5 class="modal-title" id="editPatientModalLabel">Sửa thông tin bệnh nhân</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+              </div>
+
+              <div class="modal-body">
+                <input type="hidden" id="edit_patient_id" name="patient_id">
+
+                <div class="mb-3">
+                  <label for="edit_ma_bn" class="form-label">Mã BN</label>
+                  <input type="text" class="form-control" id="edit_ma_bn" name="ma_bn" required>
+                  <div class="invalid-feedback" id="error_ma_bn"></div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="edit_ho_ten" class="form-label">Họ tên</label>
+                  <input type="text" class="form-control" id="edit_ho_ten" name="ho_ten" required>
+                  <div class="invalid-feedback" id="error_ho_ten"></div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="edit_gioi_tinh" class="form-label">Giới tính</label>
+                  <select class="form-select" id="edit_gioi_tinh" name="gioi_tinh" required>
+                    <option value="">-- Chọn giới tính --</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                  </select>
+                  <div class="invalid-feedback" id="error_gioi_tinh"></div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="edit_ngay_sinh" class="form-label">Ngày sinh</label>
+                  <input type="date" class="form-control" id="edit_ngay_sinh" name="ngay_sinh" required>
+                  <div class="invalid-feedback" id="error_ngay_sinh"></div>
+                </div>
+
+                <div id="editPatientGeneralError" class="alert alert-danger d-none mb-0"></div>
+              </div>
+
+              <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                <button type="submit" class="btn btn-primary" id="savePatientBtn">
+                  <span class="js-btn-text">Lưu thay đổi</span>
+                  <span class="js-btn-spinner spinner-border spinner-border-sm ms-2 d-none"></span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="deletePatientModal" tabindex="-1" aria-labelledby="deletePatientModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="deletePatientModalLabel">Xóa bệnh nhân</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" id="delete_patient_id">
+              <p class="mb-0">
+                Bạn có chắc muốn xóa bệnh nhân <strong id="delete_patient_name"></strong>?
+              </p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+              <button type="button" class="btn btn-danger" id="confirmDeletePatientBtn">
+                <span class="js-btn-text">Xóa</span>
+                <span class="js-btn-spinner spinner-border spinner-border-sm ms-2 d-none"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080">
+        <div id="listCompanyToast" class="toast align-items-center border-0 text-bg-success" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body" id="listCompanyToastBody">Thao tác thành công</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Đóng"></button>
+          </div>
+        </div>
+      </div>
+
+    {% endif %}
+    </div>
+  </div>
+  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  window.CLINIC_PATIENT_AJAX = {
+    updateBaseUrl: "{% url 'patients:update_patient_ajax' 0 %}",
+    deleteBaseUrl: "{% url 'patients:delete_patient_ajax' 0 %}",
+    getAllPatientsUrl: "{% url 'patients:get_all_patients' %}",
+    getPatientsByCompanyUrl: "{% url 'patients:get_patients_by_company' 0 %}",
+  };
+</script>
+<script src="{% static 'clinical/js/clinic.js' %}"></script>
+{% endblock %}
+
+

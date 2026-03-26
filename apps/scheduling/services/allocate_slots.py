@@ -2,9 +2,9 @@ from datetime import timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Sum
 
-from apps.scheduling.models import ScheduleSlot
+from apps.scheduling.models import ScheduleSlot, SlotType
 
 
 MAX_AM_LIMIT = 100
@@ -29,12 +29,6 @@ def _working_days(contract):
     ]
 
 
-def _slot_registered(slot):
-    if slot.shift == "AM":
-        return max(slot.registered_am or 0, slot.appointments.count())
-    return max(slot.registered_pm or 0, slot.appointments.count())
-
-
 @transaction.atomic
 def allocate_contract_slots(*, contract, actor=None):
     total_needed = int(contract.employee_count or 0)
@@ -47,10 +41,20 @@ def allocate_contract_slots(*, contract, actor=None):
     total_available = 0
 
     for day in days:
-        schedules = ScheduleSlot.objects.filter(date=day).exclude(contract=contract)
-
-        used_am = sum((slot.limit_am or 0) for slot in schedules if slot.shift == "AM")
-        used_pm = sum((slot.limit_pm or 0) for slot in schedules if slot.shift == "PM")
+        used_am = (
+            ScheduleSlot.objects
+            .filter(date=day, shift="AM")
+            .exclude(contract=contract)
+            .aggregate(total=Sum("capacity"))
+            .get("total") or 0
+        )
+        used_pm = (
+            ScheduleSlot.objects
+            .filter(date=day, shift="PM")
+            .exclude(contract=contract)
+            .aggregate(total=Sum("capacity"))
+            .get("total") or 0
+        )
 
         remaining_am = max(0, MAX_AM_LIMIT - used_am)
         remaining_pm = max(0, MAX_PM_LIMIT - used_pm)
@@ -99,69 +103,50 @@ def allocate_contract_slots(*, contract, actor=None):
         schedule_am = (
             ScheduleSlot.objects
             .select_for_update()
-            .filter(contract=contract, date=day, shift="AM")
+            .filter(contract=contract, date=day, shift="AM", slot_type=SlotType.CONTRACT)
             .first()
         )
         if schedule_am:
-            reg_am = _slot_registered(schedule_am)
-            new_limit_am = max(am_assign, reg_am)
-            dirty_fields = []
-            if schedule_am.registered_am != reg_am:
-                schedule_am.registered_am = reg_am
-                dirty_fields.append("registered_am")
-            if schedule_am.limit_am != new_limit_am:
-                schedule_am.limit_am = new_limit_am
-                dirty_fields.append("limit_am")
-            if dirty_fields:
-                dirty_fields.append("updated_at")
-                schedule_am.save(update_fields=dirty_fields)
+            new_capacity = max(am_assign, schedule_am.booked_count or 0)
+            if schedule_am.capacity != new_capacity:
+                schedule_am.capacity = new_capacity
+                schedule_am.save(update_fields=["capacity", "updated_at"])
         elif am_assign > 0:
             ScheduleSlot.objects.create(
                 contract=contract,
                 date=day,
                 shift="AM",
-                limit_am=am_assign,
-                limit_pm=0,
-                registered_am=0,
-                registered_pm=0,
+                slot_type=SlotType.CONTRACT,
+                capacity=am_assign,
+                booked_count=0,
             )
 
         schedule_pm = (
             ScheduleSlot.objects
             .select_for_update()
-            .filter(contract=contract, date=day, shift="PM")
+            .filter(contract=contract, date=day, shift="PM", slot_type=SlotType.CONTRACT)
             .first()
         )
         if schedule_pm:
-            reg_pm = _slot_registered(schedule_pm)
-            new_limit_pm = max(pm_assign, reg_pm)
-            dirty_fields = []
-            if schedule_pm.registered_pm != reg_pm:
-                schedule_pm.registered_pm = reg_pm
-                dirty_fields.append("registered_pm")
-            if schedule_pm.limit_pm != new_limit_pm:
-                schedule_pm.limit_pm = new_limit_pm
-                dirty_fields.append("limit_pm")
-            if dirty_fields:
-                dirty_fields.append("updated_at")
-                schedule_pm.save(update_fields=dirty_fields)
+            new_capacity = max(pm_assign, schedule_pm.booked_count or 0)
+            if schedule_pm.capacity != new_capacity:
+                schedule_pm.capacity = new_capacity
+                schedule_pm.save(update_fields=["capacity", "updated_at"])
         elif pm_assign > 0:
             ScheduleSlot.objects.create(
                 contract=contract,
                 date=day,
                 shift="PM",
-                limit_am=0,
-                limit_pm=pm_assign,
-                registered_am=0,
-                registered_pm=0,
+                slot_type=SlotType.CONTRACT,
+                capacity=pm_assign,
+                booked_count=0,
             )
 
     stale_slots = (
         ScheduleSlot.objects
-        .filter(contract=contract)
+        .filter(contract=contract, slot_type=SlotType.CONTRACT)
         .exclude(date__in=days)
-        .annotate(num_appointments=Count("appointments"))
-        .filter(num_appointments=0)
+        .filter(booked_count=0)
     )
     stale_slots.delete()
 

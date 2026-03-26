@@ -55,7 +55,7 @@ def parse_birth_date(value):
         if parsed:
             return parsed
 
-        for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y"):
+        for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d"):
             try:
                 return datetime.strptime(text, fmt).date()
             except ValueError:

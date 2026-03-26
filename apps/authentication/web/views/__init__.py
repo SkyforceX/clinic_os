@@ -1,7 +1,7 @@
 from apps.authentication.web.views.password_reset_views import (
-    forgot_password,
-    reset_password,
     verify_otp,
+    reset_password,
+    request_password_reset,
 )
 from apps.authentication.web.views.patient_auth_views import (
     patient_dashboard,
@@ -19,7 +19,7 @@ __all__ = [
     "patient_login",
     "patient_dashboard",
     "patient_logout",
-    "forgot_password",
+    "request_password_reset",
     "verify_otp",
     "reset_password",
 ]

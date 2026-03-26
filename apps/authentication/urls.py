@@ -9,7 +9,7 @@ urlpatterns = [
     path('staff/', views.staff_login, name='staff_login'),
     path('staff-logout/', views.staff_logout, name='staff_logout'),
     path('dang-xuat/', views.patient_logout, name='patient_logout'),
-    path('quen-mat-khau/', views.forgot_password, name='forgot_password'),
+    path('quen-mat-khau/', views.request_password_reset, name='forgot_password'),
     path('xac-thuc-otp/', views.verify_otp, name='verify_otp'),
     path('dat-lai-mat-khau/', views.reset_password, name='reset_password'),
 ]

@@ -1,0 +1,311 @@
+{% extends "base_admin.html" %}
+
+
+{% load static %}
+{% block extra_head %}
+  <meta name="description" content="Sửa lịch khám sức khỏe">
+{% endblock %}
+
+{% block content %}
+      <!-- Modal thông báo -->
+      <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0 shadow rounded">
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title" id="messageModalLabel">Thông báo</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="alert {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% if messages %}
+      <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          var modal = new bootstrap.Modal(document.getElementById('messageModal'));
+          modal.show();
+        });
+      </script>
+      {% endif %}
+
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8">
+      <div class="text-center mb-4">
+            <h2 class="mb-4 fw-bold">Sửa hợp đồng khám sức khỏe công ty</h2>
+      </div>
+
+      <form method="post" class="needs-validation bg-light p-4 rounded shadow-sm" novalidate>
+        {% csrf_token %}
+
+        <!-- Công ty -->
+        <div class="mb-3">
+          <label for="company_id" class="form-label">Công ty</label>
+          <select class="form-control" name="company_id" id="company_id" required>
+            <option value="">-- Chọn công ty --</option>
+            {% for company in companies %}
+              <option value="{{ company.id }}" {% if company.id == contract.company.id %}selected{% endif %}>
+                {{ company.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+{#        <div class="row g-3">#}
+{#          <div class="col-12">#}
+{#            <label class="form-label">Địa chỉ</label>#}
+{#            <input type="text" class="form-control" name="company_address"#}
+{#                  value="{{ contract.company.address|default_if_none:'' }}" readonly>#}
+{#          </div>#}
+{#          <div class="col-6">#}
+{#            <label class="form-label">Mã số thuế</label>#}
+{#            <input type="text" class="form-control" name="tax_code"#}
+{#                  value="{{ contract.company.tax_code|default_if_none:'' }}" readonly>#}
+{#          </div>#}
+{#          <div class="col-6">#}
+{#            <label class="form-label">Số điện thoại</label>#}
+{#            <input type="text" class="form-control" name="company_phone"#}
+{#                  value="{{ contract.company.phone|default_if_none:'' }}" readonly>#}
+{#          </div> #}
+{#        </div>#}
+
+        <hr class="my-3">
+
+        <!-- Thông tin hợp đồng -->
+{#        <div class="row">#}
+{#          <div class="col-md-4">#}
+{#            <label for="contract_number" class="form-label">Số hợp đồng</label>#}
+{#            <input type="text" class="form-control" name="contract_number" id="contract_number"#}
+{#                  value="{{ contract.contract_number|default_if_none:'' }}" readonly>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="row">#}
+{#          <div class="col-sm-12 col-md-6 col-lg-6">#}
+{#            <label class="form-label">Người liên hệ / Đại diện</label>#}
+{#            <input type="text" class="form-control" name="representative"#}
+{#                  value="{{ contract.contact_person|default_if_none:'' }}" placeholder="Anh/Chị ...">#}
+{#          </div>#}
+{#          <div class="col-sm-12 col-md-6 col-lg-6">#}
+{#            <label class="form-label">Chức danh</label>#}
+{#            <input type="text" class="form-control" name="representative_title"#}
+{#                  value="{{ contract.representative_title|default_if_none:'' }}" placeholder="VD: Giám đốc / HR Manager">#}
+{#          </div>#}
+{#        </div>#}
+        <div class="row">
+          <div class="col-md-4">
+            <label for="employee_count" class="form-label">Số lượng khách hàng</label>
+            <input type="number" class="form-control" name="employee_count" id="employee_count"
+                  value="{{ contract.employee_count|default_if_none:'' }}" min="0" required>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-4">
+            <label for="start_date" class="form-label">Ngày bắt đầu khám</label>
+            <input type="date" class="form-control date-picker" name="start_date" id="start_date"
+                  value="{{ contract.start_date|default_if_none:''|date:'Y-m-d' }}" placeholder="dd/mm/yyyy" required>
+          </div>
+          <div class="col-md-4">
+            <label for="end_date" class="form-label">Ngày kết thúc khám</label>
+            <input type="date" class="form-control date-picker" name="end_date" id="end_date"
+                  value="{{ contract.end_date|default_if_none:''|date:'Y-m-d' }}" placeholder="dd/mm/yyyy" required>
+          </div>
+
+
+{#          <div class="col-md-4">#}
+{#            <label class="form-label" for="reception_from_date">Tiếp nhận KSK từ ngày</label>#}
+{#            <input id="reception_from_date" type="date" name="reception_from_date" class="form-control"#}
+{#                  value="{{ contract.reception_from_date|date:'Y-m-d' }}">#}
+{#          </div>#}
+        </div>
+{#        <div class="row">#}
+{#          <div class="col-12">#}
+{#            <label class="form-label" for="contract_value_text">Giá trị hợp đồng</label>#}
+{#            <textarea id="contract_value_text" name="contract_value_text" rows="2" class="form-control"#}
+{#              placeholder="Ví dụ: Dự kiến 200.000.000 VNĐ (Hai trăm triệu đồng)">{{ contract.contract_value_text|default_if_none:'' }}</textarea>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="row">#}
+{#          <div class="col-12">#}
+{#            <label class="form-label" for="deposit_payment_text">Thanh toán đặt cọc</label>#}
+{#            <textarea id="deposit_payment_text" name="deposit_payment_text" rows="2" class="form-control"#}
+{#              placeholder="Ví dụ: Đặt cọc 30% giá trị hợp đồng trước 05 ngày làm việc">{{ contract.deposit_payment_text|default_if_none:'' }}</textarea>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="row">#}
+{#          <div class="col-12">#}
+{#            <label class="form-label" for="settlement_time_text">Thời gian quyết toán</label>#}
+{#            <textarea id="settlement_time_text" name="settlement_time_text" rows="2" class="form-control"#}
+{#              placeholder="Ví dụ: Quyết toán trong vòng 07 ngày kể từ khi nhận đủ chứng từ">{{ contract.settlement_time_text|default_if_none:'' }}</textarea>#}
+{#          </div>#}
+{#        </div>#}
+
+        <!-- Đợt lấy máu -->
+        <div class="row">
+        <div class="col-12">
+          <label class="form-label">Đợt lấy máu</label>
+          <table class="table table-bordered" id="blood-collection-table">
+            <thead>
+              <tr>
+                <th>Ngày lấy máu</th>
+                <th>Địa điểm</th>
+                <th>Số người</th>
+                <th>Số nhân viên</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="blood-collection-tbody">
+              {% for info in contract.blood_collections_schedules.all %}
+                <tr class="blood-row">
+                  <td><input type="date" class="form-control date-picker" name="blood_collection_date[]" value="{{ info.collection_date|default_if_none:''|date:'Y-m-d' }}"></td>
+                  <td><input type="text" class="form-control" name="blood_location[]" value="{{ info.location }}"></td>
+                  <td><input type="number" class="form-control" min="0" name="blood_people_count[]" value="{{ info.people_count }}"></td>
+                  <td><input type="number" class="form-control" min="0" name="blood_staff_count[]" value="{{ info.staff_count }}"></td>
+                  <td><button type="button" class="btn btn-danger btn-sm remove-row">🗑️</button></td>
+                </tr>
+              {% empty %}
+                <tr class="blood-row">
+                  <td><input type="date" class="form-control date-picker" name="blood_collection_date[]" placeholder="dd/mm/yyyy"></td>
+                  <td><input type="text" class="form-control" name="blood_location[]"></td>
+                  <td><input type="number" class="form-control" min="0" name="blood_people_count[]"></td>
+                  <td>
+                    <input type="number" class="form-control" min="0"
+                           name="blood_staff_count[]"
+                          {% if not flag_nurse %}readonly{% endif %}
+                    >
+                  </td>
+                  <td><button type="button" class="btn btn-danger btn-sm remove-row">🗑️</button></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <button type="button" class="btn btn-secondary btn-sm" id="add-blood-row">+ Thêm dòng</button>
+        </div>
+        </div>
+
+        <div class="form-check mt-3">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="redistribute_slots"
+            name="redistribute_slots"
+            value="1"
+          >
+          <label class="form-check-label" for="redistribute_slots">
+            Tái phân bổ lại slot khám sau khi lưu
+          </label>
+          <div class="form-text">
+            Tick nếu muốn hệ thống phân bổ lại các slot theo ngày bắt đầu/kết thúc khám
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12">
+            <label for="note" class="form-label">Ghi chú</label>
+            <textarea class="form-control" name="note" id="note" rows="3">{{ contract.note|default_if_none:'' }}</textarea>
+          </div>
+        </div>
+
+        <!-- Audit -->
+        <div class="row g-3 mt-3">
+          <div class="col-lg-6 col-md-6">
+            <label class="form-label fw-bold">Ngày khởi tạo</label>
+            <input type="text" class="form-control" value="{{ contract.created_at|date:'d/m/Y H:i' }}" readonly>
+          </div>
+          {% if contract.updated_at and contract.updated_at != contract.created_at %}
+            <div class="col-lg-6 col-md-6">
+              <label class="form-label fw-bold">Ngày cập nhật gần nhất</label>
+              <input type="text" class="form-control" value="{{ contract.updated_at|date:'d/m/Y H:i' }}" readonly>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Finish status -->
+        <div class="row g-3 mt-3">
+          <div class="col-lg-12">
+            <label class="form-label fw-bold">Trạng thái</label>
+            {% if contract.is_finished %}
+              <span class="badge bg-success">Đã kết thúc</span>
+            {% else %}
+              <span class="badge bg-secondary">Chưa kết thúc</span>
+            {% endif %}
+
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     id="is_finished"
+                     name="is_finished"
+                     value="1"
+                     {% if contract.is_finished %}checked{% endif %}>
+              <label class="form-check-label" for="is_finished">
+                Kết thúc lịch khám
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-3">
+          <a href="{% url 'contract:contract_list' %}" class="btn btn-secondary">Quay lại</a>
+          <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script>
+  // Hàm khởi tạo flatpickr cho selector tùy chọn
+function initFlatpickr(selector = ".date-picker") {
+    flatpickr(selector, {
+      dateFormat: "Y-m-d",      // định dạng gửi về Django
+      altInput: true,           // hiển thị định dạng khác cho người dùng
+      altFormat: "d/m/Y",       // hiển thị dd/mm/yyyy
+      locale: flatpickr.l10ns.vn, // tiếng Việt
+      allowInput: true,
+      disableMobile: true,
+      //maxDate: "today"          // (tùy chọn) chặn chọn ngày tương lai
+    });
+};
+  document.getElementById('add-blood-row').addEventListener('click', function (e) {
+    e.preventDefault();
+    let tbody = document.getElementById('blood-collection-tbody');
+    let newRow = document.createElement('tr');
+    newRow.className = 'blood-row';
+    newRow.innerHTML = `
+      <td><input type="date" class="form-control date-picker" name="blood_collection_date[]" placeholder="dd/mm/yyyy"></td>
+      <td><input type="text" class="form-control" name="blood_location[]"></td>
+      <td><input type="number" class="form-control" min="0" name="blood_people_count[]"></td>
+      <td>
+        <input
+          type="number"
+          class="form-control blood-staff-count-input"
+          min="0"
+          name="blood_staff_count[]"
+          {% if not flag_nurse %}readonly{% endif %}
+        >
+      </td>
+      <td><button type="button" class="btn btn-danger btn-sm remove-row">🗑️</button></td>
+    `;
+    tbody.appendChild(newRow);
+    // chỉ khởi tạo flatpickr cho input mới
+    const newInput = tbody.querySelector("tr:last-child .date-picker");
+    initFlatpickr(newInput);
+  });
+
+  document.getElementById('blood-collection-tbody').addEventListener('click', function (e) {
+    if (e.target.classList.contains('remove-row')) {
+      e.target.closest('tr').remove();
+    }
+  });
+</script>
+<script src="{% static 'contract/js/contract_list.js' %}"></script>
+{% endblock %}

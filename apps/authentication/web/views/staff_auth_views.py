@@ -25,7 +25,7 @@ def staff_login(request):
 
     return render(
         request,
-        "authentication/staff_login_form.html",
+        "authentication/staff/staff_login_form.html",
         {
             "form": form,
             "error": error,

@@ -1,8 +1,8 @@
+from django.contrib.auth.hashers import make_password
+from django.utils import timezone
 from django.contrib import messages
 from django.shortcuts import redirect, render
-from django.views.decorators.cache import never_cache
 
-from apps.authentication.forms import ForgotPasswordForm, OtpVerifyForm, ResetPasswordForm
 from apps.authentication.services.password_reset import (
     PasswordResetError,
     create_password_reset_otp,
@@ -11,87 +11,140 @@ from apps.authentication.services.password_reset import (
     validate_latest_otp,
 )
 
+from apps.authentication.models import OtpRequest
+from apps.authentication.otp_utils import generate_otp, send_zalo_otp
+from apps.authentication.selectors.patient_auth_selectors import find_patient_for_reset
+from apps.authentication.services.patient_auth import normalize_phone
 
-@never_cache
-def forgot_password(request):
-    form = ForgotPasswordForm(request.POST or None)
 
-    if request.method == "POST" and form.is_valid():
+class PasswordResetError(Exception):
+    pass
+
+
+def create_password_reset_otp(*, patient_code, phone):
+    normalized_phone = normalize_phone(phone)
+    patient = find_patient_for_reset(
+        patient_code=patient_code,
+        phone=normalized_phone,
+    )
+    if not patient:
+        raise PasswordResetError("Không tìm thấy khách hàng hoặc số điện thoại không đúng")
+
+    otp = generate_otp()
+    send_zalo_otp(normalized_phone, otp)
+
+    otp_request = OtpRequest.objects.create(
+        phone=normalized_phone,
+        otp=otp,
+        time_sent=timezone.now(),
+    )
+    return {
+        "patient": patient,
+        "phone": normalized_phone,
+        "otp_request": otp_request,
+    }
+
+
+def validate_latest_otp(*, phone, otp):
+    return (
+        OtpRequest.objects.filter(
+            phone=str(phone or "").strip(),
+            otp=str(otp or "").strip(),
+            used=False,
+        )
+        .order_by("-time_sent")
+        .first()
+    )
+
+
+def mark_otp_verified(*, otp_request):
+    if not otp_request or not otp_request.is_valid():
+        raise PasswordResetError("OTP không đúng hoặc đã hết hạn")
+
+    otp_request.used = True
+    otp_request.save(update_fields=["used"])
+
+
+def reset_patient_password(*, patient_code, phone, new_password):
+    normalized_phone = normalize_phone(phone)
+
+    patient = find_patient_for_reset(
+        patient_code=patient_code,
+        phone=normalized_phone,
+    )
+    if not patient:
+        raise PasswordResetError("Có lỗi, không tìm thấy tài khoản")
+
+    patient.password = make_password(new_password)
+    patient.save(update_fields=["password"])
+    return patient
+
+
+def request_password_reset(request):
+    if request.method == "POST":
+        patient_code = request.POST.get("patient_code")
+        phone = request.POST.get("phone")
+
         try:
-            payload = create_password_reset_otp(
-                patient_code=form.cleaned_data["patient_code"],
-                phone=form.cleaned_data["phone"],
+            result = create_password_reset_otp(
+                patient_code=patient_code,
+                phone=phone,
             )
-            request.session["reset_patient_code"] = form.cleaned_data["patient_code"]
-            request.session["reset_phone"] = payload["phone"]
-            return redirect("authentication:verify_otp")
-        except PasswordResetError as exc:
-            form.add_error(None, str(exc))
 
-    return render(request, "authentication/forgot_password.html", {"form": form})
+            request.session["reset_patient_code"] = patient_code
+            request.session["reset_phone"] = result["phone"]
+
+            messages.success(request, "OTP đã được gửi qua Zalo.")
+            return redirect("authentication:verify_otp")
+
+        except PasswordResetError as exc:
+            messages.error(request, str(exc))
+
+    return render(request, "authentication/forgot_password.html")
 
 
 def verify_otp(request):
-    patient_code = request.session.get("reset_patient_code")
-    phone = request.session.get("reset_phone")
+    if request.method == "POST":
+        otp = request.POST.get("otp")
+        phone = request.session.get("reset_phone")
 
-    form = OtpVerifyForm(
-        request.POST or None,
-        initial={
-            "patient_code": patient_code,
-            "phone": phone,
-        },
-    )
+        otp_request = validate_latest_otp(phone=phone, otp=otp)
+        if not otp_request:
+            messages.error(request, "OTP không đúng hoặc đã hết hạn.")
+            return redirect("authentication:verify_otp")
 
-    if request.method == "POST" and form.is_valid():
-        otp_request = validate_latest_otp(
-            phone=phone,
-            otp=form.cleaned_data["otp"],
-        )
-        try:
-            mark_otp_verified(otp_request=otp_request)
-            request.session["otp_verified"] = True
-            request.session["otp_value"] = form.cleaned_data["otp"]
-            return redirect("authentication:reset_password")
-        except PasswordResetError as exc:
-            form.add_error("otp", str(exc))
+        mark_otp_verified(otp_request=otp_request)
+        request.session["otp_verified"] = True
 
-    return render(request, "authentication/verify_otp.html", {"form": form})
+        return redirect("authentication:reset_password")
+
+    return render(request, "authentication/verify_otp.html")
 
 
-@never_cache
 def reset_password(request):
-    patient_code = request.session.get("reset_patient_code")
-    phone = request.session.get("reset_phone")
-    otp_value = request.session.get("otp_value", "")
-
     if not request.session.get("otp_verified"):
         return redirect("authentication:forgot_password")
 
-    form = ResetPasswordForm(
-        request.POST or None,
-        initial={
-            "patient_code": patient_code,
-            "phone": phone,
-            "otp": otp_value,
-        },
-    )
+    if request.method == "POST":
+        new_password = request.POST.get("password")
+        confirm_password = request.POST.get("confirm_password")
 
-    if request.method == "POST" and form.is_valid():
+        if new_password != confirm_password:
+            messages.error(request, "Mật khẩu không khớp.")
+            return redirect("authentication:reset_password")
+
         try:
             reset_patient_password(
-                patient_code=patient_code,
-                phone=phone,
-                new_password=form.cleaned_data["new_password"],
+                patient_code=request.session.get("reset_patient_code"),
+                phone=request.session.get("reset_phone"),
+                new_password=new_password,
             )
-            request.session.pop("reset_patient_code", None)
-            request.session.pop("reset_phone", None)
-            request.session.pop("otp_verified", None)
-            request.session.pop("otp_value", None)
 
-            messages.success(request, "Đổi mật khẩu thành công. Mời bạn đăng nhập lại.")
+            request.session.flush()
+            messages.success(request, "Đặt lại mật khẩu thành công.")
             return redirect("authentication:patient_login")
-        except PasswordResetError as exc:
-            form.add_error(None, str(exc))
 
-    return render(request, "authentication/reset_password.html", {"form": form})
+        except PasswordResetError as exc:
+            messages.error(request, str(exc))
+
+    return render(request, "authentication/reset_password.html")

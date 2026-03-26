@@ -1,0 +1,188 @@
+{% extends "base_admin.html" %}
+{% load humanize %}
+{% block title %}Tạo báo giá mới{% endblock %}
+
+{% block content %}
+<style>
+.qform-card{background:var(--bs-body-bg,#fff);border:1px solid #dee2e6;border-radius:8px;padding:1.25rem;margin-bottom:1rem}
+.catalog-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.catalog-table th{background:#1a5276;color:#fff;padding:6px 8px;text-align:center;font-size:.78rem;white-space:nowrap;line-height:1.3}
+.catalog-table th.svc-col{text-align:left}
+.catalog-table td{padding:5px 7px;border-bottom:1px solid #eaecef;vertical-align:middle}
+.catalog-table tr:hover td{background:#f8f9fa}
+.group-hdr td{background:#1a5276!important;color:#fff;font-weight:600;font-size:.8rem;padding:5px 9px}
+.subgroup-hdr td{background:#2e86c1!important;color:#fff;font-size:.77rem;padding:4px 9px}
+.note-badge{font-size:.7rem;padding:2px 6px;border-radius:10px;background:#e8f5e9;color:#2e7d32;white-space:nowrap}
+.gift-badge{background:#fff3e0;color:#e65100}
+.totals-bar{position:sticky;bottom:0;background:#fff;border-top:2px solid #1a5276;padding:.7rem 1rem;display:flex;gap:1.5rem;align-items:center;z-index:100;box-shadow:0 -2px 8px rgba(0,0,0,.1);flex-wrap:wrap}
+.totals-bar .label{font-size:.75rem;color:#555;margin-bottom:1px}
+.totals-bar .val{font-size:.95rem;font-weight:700;color:#1a5276}
+.gender-check{display:flex;gap:6px;justify-content:center}
+.gender-check label{font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:2px}
+.stt-col{width:32px;text-align:center;color:#888}
+/* Giá ưu đãi cell */
+.udai-cell{text-align:right;font-size:.8rem;color:#1a5276;font-weight:600;white-space:nowrap}
+.udai-free{color:#27ae60;font-size:.75rem}
+/* Toolbar giảm giá */
+.discount-toolbar{background:#fffde7;border:1px solid #ffc107;border-radius:6px;padding:.6rem 1rem;margin-bottom:0;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.discount-toolbar .dt-label{font-size:.78rem;font-weight:600;color:#795548;white-space:nowrap}
+.discount-group{display:flex;align-items:center;gap:.4rem}
+.discount-group label{font-size:.75rem;color:#555;white-space:nowrap}
+.pct-input{width:62px;text-align:center;border:1px solid #ffc107;border-radius:4px;padding:3px 5px;font-size:.82rem;background:#fff}
+.pct-input:focus{border-color:#f57f17;outline:none;background:#fffde7}
+/* Per-row % inputs */
+.row-pct-input{width:54px;text-align:center;border:1px solid #ced4da;border-radius:4px;padding:3px 4px;font-size:.8rem}
+.row-pct-input:focus{border-color:#1a5276;outline:none;background:#fffde7}
+.row-pct-input:disabled{background:#f0f0f0;color:#aaa;cursor:not-allowed}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0"><i class="fa fa-file-invoice-dollar"></i> Tạo báo giá mới</h5>
+  <a href="{% url 'contract:quotation_list' %}" class="btn btn-sm btn-outline-secondary">← Danh sách</a>
+</div>
+
+<form method="post" action="{% url 'contract:save_quotation' %}" id="qform">
+{% csrf_token %}
+<input type="hidden" name="quotation_id" value="">
+
+<!-- ── Thông tin khách hàng ── -->
+<div class="qform-card">
+  <div class="row g-3">
+    <div class="col-12 col-md-5 col-lg-4">
+      <label class="form-label fw-semibold">Tên Công ty <span class="text-danger">*</span></label>
+      <input type="text" name="company_name" class="form-control" required placeholder="CÔNG TY CỔ PHẦN...">
+    </div>
+    <div class="col-12 col-sm-6 col-md-3 col-lg-3">
+      <label class="form-label fw-semibold">Người liên hệ</label>
+      <input type="text" name="contact_name" class="form-control" placeholder="Anh/Chị...">
+    </div>
+    <div class="col-12 col-sm-6 col-md-4 col-lg-5">
+      <label class="form-label fw-semibold">Địa chỉ</label>
+      <input type="text" name="company_address" class="form-control" placeholder="Địa chỉ công ty...">
+    </div>
+<!--    <div class="col-6 col-sm-4 col-md-3 col-lg-2">-->
+<!--      <label class="form-label fw-semibold">Hiệu lực đến</label>-->
+<!--      <input type="date" name="valid_until" class="form-control" value="{{ default_valid_until }}">-->
+<!--    </div>-->
+    <div class="col-6 col-sm-3 col-md-2 col-lg-2">
+      <label class="form-label fw-semibold">Ưu đãi từ (người)</label>
+      <input type="number" name="pax_from" class="form-control" placeholder="VD: 50" min="1">
+    </div>
+    <div class="col-12 col-sm-5 col-md-7 col-lg-8">
+      <label class="form-label fw-semibold">Ghi chú</label>
+      <input type="text" name="note" class="form-control" placeholder="Ghi chú thêm...">
+    </div>
+  </div>
+</div>
+
+<!-- ── Số lượng nhân viên ── -->
+<div class="qform-card">
+  <div class="row g-3 align-items-end">
+    <div class="col-sm-12 col-lg-3">
+      <span class="fw-semibold">Số lượng dự kiến:</span>
+      <div class="text-muted" style="font-size:.8rem;margin-top:2px"><i class="fa fa-info-circle"></i> Không bắt buộc khi chỉ xuất báo giá.</div>
+    </div>
+    <div class="col-sm-12 col-md-4 col-lg-3">
+      <label class="form-label text-center w-100" style="color:#1a5276">👨 NAM</label>
+      <input type="number" name="male_count" id="male_count_input" class="form-control text-center" value="" min="0" oninput="calcGrand()">
+    </div>
+    <div class="col-sm-12 col-md-4 col-lg-3">
+      <label class="form-label text-center w-100" style="color:#6a1b9a">👩 NỮ ĐỘC THÂN</label>
+      <input type="number" name="female_single_count" id="fs_count_input" class="form-control text-center" value="" min="0" oninput="calcGrand()">
+    </div>
+    <div class="col-sm-12 col-md-4 col-lg-3">
+      <label class="form-label text-center w-100" style="color:#00695c">👩‍👧 NỮ GIA ĐÌNH</label>
+      <input type="number" name="female_family_count" id="ff_count_input" class="form-control text-center" value="" min="0" oninput="calcGrand()">
+    </div>
+  </div>
+</div>
+
+<!-- ── Danh mục dịch vụ ── -->
+<div class="qform-card p-0 overflow-hidden">
+
+  <!-- toolbar header -->
+  <div class="p-3 d-flex justify-content-between align-items-center flex-wrap gap-2" style="background:#f8f9fa;border-bottom:1px solid #dee2e6">
+    <strong style="font-size:.88rem">Danh mục dịch vụ – tích chọn hạng mục đưa vào báo giá</strong>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAll(true)">Chọn tất cả</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAll(false)">Bỏ chọn</button>
+    </div>
+  </div>
+
+  <!-- Discount toolbar -->
+  <div class="discount-toolbar px-3 py-2" style="border-radius:0;border-left:none;border-right:none;border-top:none">
+    <span class="dt-label">🏷 Giảm giá toàn cột (%):</span>
+    <div class="discount-group">
+      <label for="global_pct_m">Tất cả</label>
+      <input type="number" id="global_pct_all" class="pct-input"  min="0" max="100" step="0.5"
+             oninput="applyGlobalAll(this.value)">
+      <span style="font-size:.75rem;color:#aaa">%</span>
+    </div>
+    <div class="discount-group" style="border-left:1px solid #ddd;padding-left:.8rem">
+      <label for="global_pct_m">👨 Nam</label>
+      <input type="number" id="global_pct_m" name="discount_male_pct" class="pct-input"  min="0" max="100" step="0.5" value="0"
+             oninput="recalcAll()">
+      <span style="font-size:.75rem;color:#aaa">%</span>
+    </div>
+    <div class="discount-group">
+      <label for="global_pct_fs">👩 Nữ ĐT</label>
+      <input type="number" id="global_pct_fs" name="discount_fs_pct" class="pct-input"  min="0" max="100" step="0.5" value="0"
+             oninput="recalcAll()">
+      <span style="font-size:.75rem;color:#aaa">%</span>
+    </div>
+    <div class="discount-group">
+      <label for="global_pct_ff">👩‍👧 Nữ GĐ</label>
+      <input type="number" id="global_pct_ff" name="discount_ff_pct" class="pct-input" placeholder="0" min="0" max="100" step="0.5" value="0"
+             oninput="recalcAll()">
+      <span style="font-size:.75rem;color:#aaa">%</span>
+    </div>
+    <span class="text-muted ms-2" style="font-size:.73rem">Giá ưu đãi = giá catalog × (1 – % cột). Giảm thêm ở từng hàng.</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="catalog-table" id="catalogTable">
+      <thead>
+        <tr>
+          <th style="width:32px"><input type="checkbox" id="masterCheck" onchange="selectAll(this.checked)"></th>
+          <th class="stt-col" style="width:36px">STT</th>
+          <th class="svc-col">TÊN DỊCH VỤ</th>
+          <th style="width:108px">GIÁ ƯU ĐÃI<br><small class="fw-normal">(VNĐ)</small></th>
+          <th style="width:70px">GIẢM<br>NAM %</th>
+          <th style="width:70px">GIẢM<br>NỮ ĐT %</th>
+          <th style="width:70px">GIẢM<br>NỮ GĐ %</th>
+          <th style="width:80px;text-align:center">ÁP DỤNG</th>
+        </tr>
+      </thead>
+      <tbody id="catalogBody">
+      {% for group_name, group in groups.items %}
+        <tr class="group-hdr">
+          <td colspan="8">{{ group_name }}</td>
+        </tr>
+        {% for item in group.items %}{% include "contract/staff/includes/_proposal_row.html" %}{% endfor %}
+        {% for sg_name, sg_items in group.subgroups.items %}
+        <tr class="subgroup-hdr"><td colspan="8">{{ sg_name }}</td></tr>
+        {% for item in sg_items %}{% include "contract/staff/includes/_proposal_row.html" %}{% endfor %}
+        {% endfor %}
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Submit ── -->
+<div class="d-flex justify-content-end gap-2 mb-5">
+  <a href="{% url 'contract:quotation_list' %}" class="btn btn-outline-secondary">Hủy</a>
+  <button type="submit" class="btn btn-primary px-4"><i class="fa fa-save"></i> Lưu & Xem trước</button>
+</div>
+</form>
+
+<!-- ── Sticky totals ── -->
+<div class="totals-bar">
+  <div><div class="label">👨 Nam / người</div><div class="val" id="bar_total_m">0 ₫</div></div>
+  <div><div class="label">👩 Nữ ĐT / người</div><div class="val" id="bar_total_fs">0 ₫</div></div>
+  <div><div class="label">👩‍👧 Nữ GĐ / người</div><div class="val" id="bar_total_ff">0 ₫</div></div>
+  <div style="margin-left:auto"><div class="label">💰 TỔNG DỰ KIẾN</div><div class="val" id="bar_grand" style="color:#c0392b;font-size:1.1rem">0 ₫</div></div>
+</div>
+
+{% include "contract/staff/includes/_proposal_js.html" %}
+{% endblock %}

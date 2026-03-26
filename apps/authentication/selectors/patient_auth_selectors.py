@@ -9,14 +9,29 @@ def find_patient_for_login(*, patient_code):
     )
 
 
+def _normalize_phone(value):
+    raw = str(value or "").strip().replace(" ", "").replace("-", "")
+    if raw.startswith("0") and len(raw) >= 10:
+        return "84" + raw[1:]
+    if raw.startswith("84") and len(raw) >= 10:
+        return raw
+    return raw
+
+
 def find_patient_for_reset(*, patient_code, phone):
     normalized_code = str(patient_code or "").strip()
-    normalized_phone = str(phone or "").strip()
-    return (
+    normalized_phone = _normalize_phone(phone)
+
+    patient = (
         Patient.objects.select_related("company")
-        .filter(
-            ma_bn__iexact=normalized_code,
-            phone=normalized_phone,
-        )
+        .filter(ma_bn__iexact=normalized_code)
         .first()
     )
+    if not patient:
+        return None
+
+    patient_phone = _normalize_phone(getattr(patient, "phone", ""))
+    if not patient_phone or patient_phone != normalized_phone:
+        return None
+
+    return patient

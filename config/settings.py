@@ -92,6 +92,7 @@ INSTALLED_APPS = [
     "apps.contract",
     "apps.scheduling",
     "apps.clinical",
+    "apps.catalogs",
 
     # DRF
     "rest_framework",

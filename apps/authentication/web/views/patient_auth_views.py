@@ -1,7 +1,8 @@
 from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 
 from apps.authentication.forms import PatientLoginForm
+from apps.authentication.selectors.session_selectors import get_current_patient_from_session
 from apps.authentication.services.patient_auth import (
     PatientAuthenticationError,
     authenticate_patient_credentials,
@@ -9,7 +10,6 @@ from apps.authentication.services.patient_auth import (
     logout_patient_session,
 )
 from apps.authentication.utils import patient_access_required
-from apps.patients.models import Patient
 
 
 def patient_login(request):
@@ -22,7 +22,7 @@ def patient_login(request):
                 password=form.cleaned_data["password"],
             )
             login_patient_session(request=request, patient=patient)
-            return redirect("booking:register_schedule")
+            return redirect("scheduling:register_schedule")
         except PatientAuthenticationError as exc:
             message = str(exc)
             if "Mã BN" in message:
@@ -35,11 +35,10 @@ def patient_login(request):
 
 @patient_access_required
 def patient_dashboard(request):
-    patient_id = request.session.get("patient_id")
-    if not patient_id:
+    patient = getattr(request, "current_patient", None) or get_current_patient_from_session(request)
+    if not patient:
         return redirect("authentication:patient_login")
 
-    patient = get_object_or_404(Patient, id=patient_id)
     return render(
         request,
         "authentication/patient_dashboard.html",

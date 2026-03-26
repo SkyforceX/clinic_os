@@ -1,67 +1,137 @@
-from django.contrib import admin
 
-from apps.booking.models import HealthContract, ContractServiceDetail, BloodCollectionInfo
+from django.contrib import admin, messages
+from django.shortcuts import redirect
+from django.utils.html import format_html
+
+from apps.contract.models.document import DocumentTemplate, IssuedDocument
+from apps.contract.models.quotation import QuotationDraft, QuotationLine
 
 
-@admin.register(HealthContract)
-class HealthContractAdmin(admin.ModelAdmin):
+@admin.register(DocumentTemplate)
+class DocumentTemplateAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
-        "contract_number",
-        "company",
-        "employee_count",
-        "start_date",
-        "end_date",
-        "is_approved",
-        "is_terminated",
+        "id", "code", "name", "doc_type", "version",
+        "is_active",
+        "current_file",  # ← thêm cột này
+        "updated_at",
+    )
+    actions = ["action_upload_new_docx", "action_deactivate", "action_activate"]
+    list_filter = ("doc_type", "is_active")
+    search_fields = ("code", "name", "version")
+    readonly_fields = (
+        "created_at", "updated_at",
+        "current_file",  # ← thêm vào readonly để hiện trong form
+    )
+    fieldsets = (
+        (
+            "Thông tin template",
+            {
+                "fields": (
+                    "code", "name", "doc_type", "version", "is_active",
+                    "current_file",  # ← hiện file đang dùng (readonly)
+                    "docx_file",  # ← widget upload file mới (giữ nguyên)
+                )
+            },
+        ),
+        (
+            "Lưu ý dùng DOCX template",
+            {
+                "fields": (),
+                "description": (
+                    "<div style='max-width:860px'>"
+                    "<p><strong>Khuyến nghị:</strong> upload file <code>.docx</code> thật, không dùng <code>.doc</code>.</p>"
+                    "<p>Template báo giá nên đặt marker <code>{{ QUOTATION_TABLE }}</code> trên một dòng riêng để hệ thống chèn bảng danh mục khám đúng vị trí.</p>"
+                    "<p>Các key text chuẩn: <code>{{ company_name }}</code>, <code>{{ contact_name }}</code>, "
+                    "<code>{{ company_address }}</code>, <code>{{ valid_until }}</code>, <code>{{ pax_from }}</code>, "
+                    "<code>{{ male_count }}</code>, <code>{{ female_single_count }}</code>, <code>{{ female_family_count }}</code>, "
+                    "<code>{{ note }}</code>, <code>{{ total_male }}</code>, <code>{{ total_female_single }}</code>, "
+                    "<code>{{ total_female_family }}</code>, <code>{{ grand_total }}</code>.</p>"
+                    "</div>"
+                ),
+            },
+        ),
+        ("Thời gian", {"fields": ("created_at", "updated_at")}),
+    )
+    
+    # ── Hiện link tải file hiện tại ──────────────────────────
+    @admin.display(description="File hiện tại")
+    def current_file(self, obj):
+        if obj.docx_file:
+            filename = obj.docx_file.name.split("/")[-1]
+            return format_html(
+                '<a href="{}" target="_blank">⬇ {}</a>',
+                obj.docx_file.url,
+                filename,
+            )
+        return "—"
+        
+    # ── Action 1: Mở form sửa (upload file mới) ──────────────────────────
+    @admin.action(description="✏️ Sửa / Upload file mới")
+    def action_upload_new_docx(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(
+                request,
+                "Chỉ chọn đúng 1 template để sửa.",
+                level=messages.WARNING,
+            )
+            return
+        obj = queryset.first()
+        # Redirect thẳng đến change form của object đó
+        return redirect(
+            f"../contract/documenttemplate/{obj.pk}/change/"
+        )
+    
+    # ── Action 2: Tắt active ──────────────────────────────────────────────
+    @admin.action(description="🔴 Tắt (is_active = False)")
+    def action_deactivate(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f"Đã tắt {updated} template.")
+    
+    # ── Action 3: Bật active ──────────────────────────────────────────────
+    @admin.action(description="🟢 Bật (is_active = True)")
+    def action_activate(self, request, queryset):
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f"Đã bật {updated} template.")
+        
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+        if obj.is_active:
+            (
+                DocumentTemplate.objects.filter(doc_type=obj.doc_type, is_active=True)
+                .exclude(pk=obj.pk)
+                .update(is_active=False)
+            )
+
+
+@admin.register(IssuedDocument)
+class IssuedDocumentAdmin(admin.ModelAdmin):
+    list_display = ("id", "doc_type", "status", "quotation", "version", "issued_at", "created_by")
+    list_filter = ("doc_type", "status")
+    search_fields = ("quotation__company_name",)
+    readonly_fields = (
+        "doc_type",
+        "status",
+        "quotation",
+        "template",
+        "version",
+        "payload_json",
+        "docx_file",
+        "pdf_file",
+        "issued_at",
         "created_by",
         "created_at",
+        "updated_at",
     )
-    search_fields = (
-        "contract_number",
-        "company__name",
-        "contact_person",
-    )
-    list_filter = (
-        "is_approved",
-        "is_terminated",
-        "is_finished",
-        "created_at",
-    )
-    ordering = ("-created_at",)
 
 
-@admin.register(ContractServiceDetail)
-class ContractServiceDetailAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "contract",
-        "item_name",
-        "group_name",
-        "for_male",
-        "for_female_single",
-        "for_female_family",
-    )
-    search_fields = (
-        "contract__contract_number",
-        "item_name",
-        "group_name",
-    )
-    ordering = ("contract_id", "id")
+@admin.register(QuotationDraft)
+class QuotationDraftAdmin(admin.ModelAdmin):
+    list_display = ("id", "company_name", "contact_name", "valid_until", "created_by", "created_at")
+    search_fields = ("company_name", "contact_name")
 
 
-@admin.register(BloodCollectionInfo)
-class BloodCollectionInfoAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "contract",
-        "collection_date",
-        "location",
-        "people_count",
-        "staff_count",
-    )
-    search_fields = (
-        "contract__contract_number",
-        "location",
-    )
-    ordering = ("collection_date", "id")
+@admin.register(QuotationLine)
+class QuotationLineAdmin(admin.ModelAdmin):
+    list_display = ("id", "quotation", "item_name", "group_name", "subgroup_name", "display_order")
+    search_fields = ("item_name", "quotation__company_name")

@@ -1,10 +1,6 @@
 from datetime import date
 
-from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import DateField, F, Q, Subquery, Value
-from django.db.models.functions import Coalesce, JSONObject
-
-from apps.booking.models import BloodCollectionInfo, HealthContract
+from apps.contract.models import Contract
 from apps.organizations.selectors.company_selectors import (
     get_company_for_actor,
     list_companies_for_actor,
@@ -48,9 +44,14 @@ def get_company_scoped_for_actor(*, user, company_id):
 
 
 def build_patient_documents_payload(*, company_id, contract_id):
+    """
+    Bản an toàn cho giai đoạn refactor:
+    - chưa phụ thuộc vào relation documents legacy
+    - vẫn giữ payload shape để UI/service khác không vỡ
+    """
     try:
-        contract = HealthContract.objects.get(id=contract_id)
-    except HealthContract.DoesNotExist:
+        contract = Contract.objects.get(id=contract_id)
+    except Contract.DoesNotExist:
         return None, "Không tìm thấy hợp đồng."
 
     contract_end = (
@@ -59,71 +60,8 @@ def build_patient_documents_payload(*, company_id, contract_id):
         or date.today()
     )
 
-    min_blood_date_sq = Subquery(
-        BloodCollectionInfo.objects
-        .filter(contract_id=contract_id)
-        .order_by("collection_date")
-        .values("collection_date")[:1]
-    )
-
-    min_blood_date_sq = Coalesce(
-        min_blood_date_sq,
-        Value(
-            contract.created_at.date() if getattr(contract, "created_at", None) else date.today(),
-            output_field=DateField(),
-        ),
-    )
-
-    patients = (
-        Patient.objects
-        .filter(company_id=company_id)
-        .annotate(
-            blood_docs=ArrayAgg(
-                JSONObject(
-                    id=F("documents__id"),
-                    file=F("documents__file"),
-                    visit_date=F("documents__visit_date"),
-                    is_final=F("documents__is_final"),
-                    created_at=F("documents__created_at"),
-                ),
-                filter=(
-                    Q(documents__company_id=company_id)
-                    & Q(documents__visit_date__gte=min_blood_date_sq)
-                    & Q(documents__visit_date__lte=Value(contract_end))
-                ),
-                ordering=[F("documents__visit_date").desc()],
-            ),
-            imaging_docs=ArrayAgg(
-                JSONObject(
-                    id=F("documents__id"),
-                    file=F("documents__file"),
-                    visit_date=F("documents__visit_date"),
-                    is_final=F("documents__is_final"),
-                    created_at=F("documents__created_at"),
-                ),
-                filter=(
-                    Q(documents__company_id=company_id)
-                    & Q(documents__visit_date__gte=min_blood_date_sq)
-                    & Q(documents__visit_date__lte=Value(contract_end))
-                ),
-                ordering=[F("documents__visit_date").desc()],
-            ),
-            periodic_book_docs=ArrayAgg(
-                JSONObject(
-                    id=F("documents__id"),
-                    file=F("documents__file"),
-                    visit_date=F("documents__visit_date"),
-                    is_final=F("documents__is_final"),
-                    created_at=F("documents__created_at"),
-                ),
-                filter=(
-                    Q(documents__company_id=company_id)
-                    & Q(documents__visit_date__gte=min_blood_date_sq)
-                    & Q(documents__visit_date__lte=Value(contract_end))
-                ),
-                ordering=[F("documents__visit_date").desc()],
-            ),
-        )
+    patients = list(
+        Patient.objects.filter(company_id=company_id)
         .values(
             "id",
             "uuid",
@@ -132,14 +70,16 @@ def build_patient_documents_payload(*, company_id, contract_id):
             "gioi_tinh",
             "ngay_sinh",
             "phone",
-            "blood_docs",
-            "imaging_docs",
-            "periodic_book_docs",
         )
         .order_by("id")
     )
 
+    for row in patients:
+        row["blood_docs"] = []
+        row["imaging_docs"] = []
+        row["periodic_book_docs"] = []
+
     return {
         "contract_end": contract_end,
-        "rows": list(patients),
+        "rows": patients,
     }, None

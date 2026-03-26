@@ -8,7 +8,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
-from apps.booking.models import HealthContract
+from apps.contract.models import Contract
+from apps.contract.models.contract import CLOSED_STATUSES
 from apps.contract.policies import ContractPolicy
 from apps.contract.services.corporate_contracts import (
     build_catalog_groups,
@@ -20,9 +21,11 @@ from apps.organizations.selectors.company_selectors import list_companies_for_ac
 
 @login_required(login_url="authentication:staff_login")
 def create_corporate_contract(request):
+    from apps.contract.models.quotation import QuotationDraft
     companies = list_companies_for_actor(request.user)
     flag_nurse = ContractPolicy.is_nurse(request.user)
     catalog_groups = build_catalog_groups()
+    quotations = QuotationDraft.objects.order_by("-created_at")[:50]
 
     return render(
         request,
@@ -31,6 +34,7 @@ def create_corporate_contract(request):
             "companies": companies,
             "flag_nurse": flag_nurse,
             "catalog_groups": catalog_groups,
+            "quotations": quotations,
         },
     )
 
@@ -60,7 +64,7 @@ def corporate_contract_list(request):
     today = timezone.now().date()
     expired_date = today - timedelta(days=21)
 
-    qs = HealthContract.objects.select_related(
+    qs = Contract.objects.select_related(
         "company",
         "created_by",
         "corporate_profile",
@@ -69,8 +73,9 @@ def corporate_contract_list(request):
     if ContractPolicy.is_manager(request.user):
         contracts = qs.order_by("-created_at")
     else:
-        contracts = qs.filter(
-            is_terminated=False,
+        contracts = qs.exclude(
+            status__in=CLOSED_STATUSES,
+        ).filter(
             created_at__date__gt=expired_date,
             created_by=request.user,
         ).order_by("-created_at")
@@ -85,7 +90,7 @@ def corporate_contract_list(request):
 @login_required(login_url="authentication:staff_login")
 def corporate_quote_print(request, contract_id):
     contract = get_object_or_404(
-        HealthContract.objects.select_related("company", "corporate_profile", "created_by"),
+        Contract.objects.select_related("company", "corporate_profile", "created_by"),
         pk=contract_id,
         corporate_profile__isnull=False,
     )
@@ -104,7 +109,7 @@ def corporate_quote_print(request, contract_id):
 @login_required(login_url="authentication:staff_login")
 def corporate_contract_print(request, contract_id):
     contract = get_object_or_404(
-        HealthContract.objects.select_related("company", "corporate_profile", "created_by"),
+        Contract.objects.select_related("company", "corporate_profile", "created_by"),
         pk=contract_id,
         corporate_profile__isnull=False,
     )

@@ -104,6 +104,12 @@ table {
   a:hover {
     text-decoration: underline;
   }
+  .margin-auto {
+    margin: 0 auto;
+  }
+  .w-100 {
+    width: 100%;
+  }
   /* ------------------------------------------------ */
 .center-logo-wrap {
     width: 100%;
@@ -1848,4 +1854,40 @@ table.data-table {
     display: block !important;
   }
   body.sidebar-open{ overflow: auto; }
+}
+
+/* ── Sidebar menu: section labels & active state ───────────────────────────
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* Nhãn nhóm menu (Lịch KSK / Báo giá / Hợp đồng DN …) */
+.menu li.menu-section-label {
+  padding: 14px 16px 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+  user-select: none;
+  /* Divider trên mỗi nhóm (trừ nhóm đầu) */
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 4px;
+}
+
+.menu li:first-child.menu-section-label {
+  border-top: none;
+  margin-top: 0;
+}
+
+/* Link đang active (trang hiện tại) */
+.menu li a.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-weight: 600;
+  border-left: 3px solid #fff;
+  padding-left: calc(1rem - 3px); /* bù lại border để text không nhảy */
+}
+
+.menu li a.active:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

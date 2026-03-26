@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 
 from django.db import transaction
 
-from apps.booking.models import BloodCollectionInfo, HealthContract
+from apps.contract.models import BloodCollectionSchedule, Contract
 from apps.organizations.models import Company
 from apps.contract.domain.exceptions import (
     ContractPermissionDenied,
@@ -77,7 +77,7 @@ def _normalize_rows(rows, *, actor):
 
 @transaction.atomic
 def execute(cmd: UpdateContractCommand):
-    contract = HealthContract.objects.select_for_update().filter(pk=cmd.contract_id).first()
+    contract = Contract.objects.select_for_update().filter(pk=cmd.contract_id).first()
     if not contract:
         raise ContractValidationError("Không tìm thấy hợp đồng.")
 
@@ -131,11 +131,11 @@ def execute(cmd: UpdateContractCommand):
     contract.save()
 
     rows = _normalize_rows(cmd.blood_collection_rows or [], actor=cmd.actor)
-    BloodCollectionInfo.objects.filter(contract_id=contract.id).delete()
+    BloodCollectionSchedule.objects.filter(contract_id=contract.id).delete()
     if rows:
-        BloodCollectionInfo.objects.bulk_create(
+        BloodCollectionSchedule.objects.bulk_create(
             [
-                BloodCollectionInfo(
+                BloodCollectionSchedule(
                     contract=contract,
                     collection_date=row.collection_date,
                     location=row.location,

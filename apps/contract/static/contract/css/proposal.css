@@ -1,0 +1,186 @@
+.preview-wrap { max-width: 940px; margin: 0 auto; }
+.preview-doc { background: #fff; border: 1px solid #ddd; padding: 2.5rem; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+.doc-title { text-align: center; font-size: 1.35rem; font-weight: 700; color: #1a5276; text-transform: uppercase; }
+.doc-subtitle { text-align: center; font-style: italic; color: #555; }
+.recipient-block { border: 1px solid #d5e8f0; background: #f0f7fb; border-radius: 6px; padding: .75rem 1rem; margin: .75rem 0; line-height: 1.9; font-size: .88rem; }
+.preview-table { width: 100%; border-collapse: collapse; margin: .75rem 0; font-size: .82rem; }
+.preview-table th { background: #1a5276; color: #fff; padding: 6px 8px; text-align: center; }
+.preview-table th.left { text-align: left; }
+.preview-table td { padding: 5px 8px; border: 1px solid #ccd6de; vertical-align: middle; }
+.preview-table tr.group-row td { background: #1a5276 !important; color: #fff; font-weight: 700; font-size: .78rem; }
+.preview-table tr.subgroup-row td { background: #2874a6 !important; color: #fff; font-size: .77rem; }
+.preview-table tr.total-row td { background: #fef9e7 !important; font-weight: 700; border-top: 2px solid #1a5276; }
+.preview-table tr.grand-row td { background: #fdebd0 !important; font-weight: 700; font-size: .88rem; }
+.check-mark { color: #1a5276; font-weight: 700; }
+.price-cell {white-space: nowrap; }
+.free-txt { color: #27ae60; font-size: .77rem; }
+.gift-txt { color: #e67e22; font-size: .77rem; }
+.na-txt { color: #bbb; }
+@media print {
+  .no-print { display: none !important; }
+  body * { visibility: hidden; }
+  #printArea, #printArea * { visibility: visible; }
+  #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+}
+.issue-progress-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(3px);
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.issue-progress-overlay.show {
+  display: flex;
+}
+
+.issue-progress-card {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+  border: 1px solid rgba(26, 82, 118, 0.12);
+}
+
+.issue-progress-head {
+  padding: 20px 22px 10px;
+  background: linear-gradient(135deg, #1a5276, #2f80ed);
+  color: #fff;
+}
+
+.issue-progress-title {
+  font-size: 1.08rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.issue-progress-subtitle {
+  margin: 0;
+  font-size: .88rem;
+  opacity: .92;
+}
+
+.issue-progress-body {
+  padding: 18px 22px 22px;
+}
+
+.issue-progress-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.issue-progress-label {
+  font-size: .92rem;
+  font-weight: 600;
+  color: #243b53;
+}
+
+.issue-progress-percent {
+  font-size: .92rem;
+  font-weight: 700;
+  color: #1a5276;
+  min-width: 52px;
+  text-align: right;
+}
+
+.issue-progress-bar-wrap {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: #eaf1f7;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.08);
+}
+
+.issue-progress-bar {
+  width: 0%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1a5276 0%, #2f80ed 55%, #56ccf2 100%);
+  transition: width .35s ease;
+  position: relative;
+}
+
+.issue-progress-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 72px;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.35), rgba(255,255,255,0));
+  animation: issueBarShine 1.4s linear infinite;
+}
+
+@keyframes issueBarShine {
+  from { transform: translateX(0); }
+  to { transform: translateX(140px); }
+}
+
+.issue-progress-status {
+  margin-top: 12px;
+  font-size: .9rem;
+  color: #486581;
+  min-height: 22px;
+}
+
+.issue-progress-steps {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.issue-progress-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: .88rem;
+  color: #52606d;
+}
+
+.issue-progress-steps li .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  flex: 0 0 10px;
+  transition: all .2s ease;
+}
+
+.issue-progress-steps li.active {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.issue-progress-steps li.active .dot {
+  background: #2f80ed;
+  box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.14);
+}
+
+.issue-progress-steps li.done .dot {
+  background: #16a34a;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.14);
+}
+
+.issue-progress-note {
+  margin-top: 14px;
+  font-size: .82rem;
+  color: #7b8794;
+}
+
+.btn-loading-disabled,
+.btn-loading-disabled:disabled {
+  pointer-events: none !important;
+  opacity: .75 !important;
+}

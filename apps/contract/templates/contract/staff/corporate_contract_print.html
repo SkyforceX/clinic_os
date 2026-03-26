@@ -1,0 +1,275 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% load contract_tags %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'contract/css/corporate_contract.css' %}">
+<style>
+.cc-doc{max-width:820px;margin:0 auto;background:#fff;padding:2.5rem;box-shadow:0 2px 12px rgba(0,0,0,.08);font-size:.88rem;line-height:1.7}
+.cc-doc-header{text-align:center;margin-bottom:1.5rem}
+.cc-doc-header p{margin:.15rem 0;font-size:.85rem}
+.cc-doc h1{font-size:1.2rem;text-transform:uppercase;letter-spacing:.5px;margin:.5rem 0 .1rem;font-weight:700}
+.cc-doc h2{font-size:.95rem;text-transform:uppercase;margin:1.2rem 0 .5rem;font-weight:700}
+.cc-doc-party{margin:1rem 0;padding:.6rem 1rem;border-left:3px solid #1a5276;background:#f0f7fb}
+.cc-doc-party p{margin:.2rem 0}
+.cc-doc .hi{background:#fff9c4;padding:0 2px}  /* Highlight = .mark in original */
+.contract-table{width:100%;border-collapse:collapse;font-size:.82rem;margin:.5rem 0}
+.contract-table th{background:#1a5276;color:#fff;padding:5px 8px;text-align:center;font-size:.78rem}
+.contract-table th.left{text-align:left}
+.contract-table td{border:1px solid #ccd6de;padding:4px 7px;vertical-align:middle}
+.contract-table .group-row td{background:#1a5276;color:#fff;font-weight:700;font-size:.77rem}
+.contract-table .total-row td{background:#fef9e7;font-weight:700;border-top:2px solid #1a5276}
+.contract-table .grand-row td{background:#fdebd0;font-weight:700}
+.price-cell{text-align:right;white-space:nowrap}
+.check-cell{text-align:center}
+.free-txt{color:#27ae60;font-size:.75rem}
+.gift-txt{color:#e67e22;font-size:.75rem}
+.signature-block{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:2.5rem;text-align:center}
+.sig-box{padding:.5rem}
+.sig-title{font-weight:700;text-transform:uppercase;font-size:.83rem;margin-bottom:.2rem}
+.sig-space{height:55px}
+.sig-name{font-weight:700}
+.no-print{display:block}
+@media print{
+  .no-print{display:none!important}
+  body*{visibility:hidden}
+  .cc-doc,
+  .cc-doc *{visibility:visible}
+  .cc-doc{position:absolute;left:0;top:0;width:100%;box-shadow:none;padding:15mm 20mm}
+}
+</style>
+
+<div class="cc-page">
+  <div class="cc-print-toolbar no-print" style="margin-bottom:1.5rem;display:flex;gap:.5rem">
+    <button onclick="window.print()" class="cc-btn cc-btn--primary">🖨 In hợp đồng</button>
+    <a href="{% url 'contract:corporate_contract_list' %}" class="cc-btn cc-btn--secondary">← Danh sách</a>
+    <a href="{% url 'contract:corporate_quote_print' contract.id %}" class="cc-btn cc-btn--secondary">Xem báo giá</a>
+  </div>
+
+  <div class="cc-doc">
+    <div class="cc-doc-header">
+      <p><strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong></p>
+      <p>Độc Lập – Tự Do – Hạnh Phúc</p>
+      <h1>Hợp đồng khám sức khỏe định kỳ</h1>
+      <p style="font-size:.82rem">Số: {{ contract.contract_number }}/KSK-DN/{% now "Y" %}</p>
+      <p style="font-size:.82rem">
+        Hợp Đồng này được lập vào ngày
+        <span class="hi">{{ profile.contract_date|date:"j" }} tháng {{ profile.contract_date|date:"n" }} năm {{ profile.contract_date|date:"Y" }}</span>
+        giữa và bởi:
+      </p>
+    </div>
+
+    <div class="cc-doc-party">
+      <p><strong>BÊN A : CÔNG TY CỔ PHẦN Y KHOA VIETMEDI</strong></p>
+      <p><strong>PHÒNG KHÁM ĐA KHOA VIETMEDI</strong></p>
+      <p>Địa chỉ : Số 339 Điện Biên Phủ, Phường Bàn Cờ, TP. HCM</p>
+      <p>Điện thoại : (028) 38 993 339 &nbsp;|&nbsp; Fax : (028) 38 993 339</p>
+      <p>Đại diện : <strong>{{ profile.signer_a_name|default:"TS.BS. PHẠM THẾ VIỆT" }}</strong> &nbsp;|&nbsp;
+         Chức vụ : {{ profile.signer_a_title|default:"Tổng Giám Đốc" }}</p>
+      <p>Mã số thuế : 0318293823</p>
+      <p><strong>Tên tài khoản : CÔNG TY CỔ PHẦN Y KHOA VIETMEDI</strong></p>
+      <p><strong>Số tài khoản : 1002433968 (VNĐ) – Vietcombank CN TP.HCM</strong></p>
+      <p style="font-style:italic">(Sau đây gọi là "Nhà Cung Cấp Dịch Vụ")</p>
+    </div>
+
+    <div class="cc-doc-party">
+      <p><strong class="hi">BÊN B : {{ profile.company_name_snapshot }}</strong></p>
+      {% if profile.company_address_snapshot %}
+      <p class="hi">Địa chỉ : {{ profile.company_address_snapshot }}</p>
+      {% endif %}
+      {% if profile.company_phone_snapshot %}
+      <p class="hi">Điện thoại : {{ profile.company_phone_snapshot }}</p>
+      {% endif %}
+      {% if profile.signer_b_name %}
+      <p class="hi">Đại diện : {{ profile.signer_b_name }}</p>
+      {% endif %}
+      {% if profile.signer_b_title %}
+      <p class="hi">Chức vụ : {{ profile.signer_b_title }}</p>
+      {% endif %}
+      {% if profile.company_tax_code_snapshot %}
+      <p class="hi">Mã số thuế : {{ profile.company_tax_code_snapshot }}</p>
+      {% endif %}
+      <p style="font-style:italic">(Sau đây gọi là "Khách Hàng")</p>
+    </div>
+
+    <p>Sau khi bàn bạc thoả thuận, hai bên thống nhất ký và thực hiện hợp đồng dịch vụ khám sức khoẻ tổng quát gồm những điều khoản sau:</p>
+
+    <h2>Điều I: Thời gian và Địa điểm thực hiện Hợp đồng</h2>
+    <p>Bên A nhận thực hiện Hợp đồng dịch vụ khám sức khỏe cho nhân viên Bên B theo những mục sau:</p>
+
+    <ol style="padding-left:1.5rem">
+      <li style="margin-bottom:.5rem">
+        <strong>Thời gian thực hiện Hợp Đồng :</strong>
+        <span class="hi">
+          Từ ngày {{ contract.start_date|date:"d/m/Y" }}
+          {% if contract.end_date %} – {{ contract.end_date|date:"d/m/Y" }}{% endif %}
+        </span>
+      </li>
+
+      <li style="margin-bottom:.5rem">
+        <strong>Địa điểm và thời gian lấy mẫu xét nghiệm Máu/Nước tiểu</strong>
+        {% if profile.blood_collection_time_from or profile.blood_collection_time_to %}
+        <div style="margin-left:1rem">
+          <p>
+            <u><strong>Thời gian lấy mẫu xét nghiệm</strong></u> :
+            <span class="hi">
+              {% if profile.blood_collection_time_from %}Từ {{ profile.blood_collection_time_from|time:"H \g\i\ờ i \p\h\ú\t" }}{% endif %}
+              {% if profile.blood_collection_time_to %} đến {{ profile.blood_collection_time_to|time:"H \g\i\ờ i \p\h\ú\t" }}{% endif %}
+            </span>
+          </p>
+        </div>
+        {% endif %}
+        {% if profile.blood_collection_location %}
+        <div style="margin-left:1rem">
+          <p><u><strong>Địa điểm lấy mẫu xét nghiệm</strong></u> : <span class="hi">{{ profile.blood_collection_location }}</span></p>
+        </div>
+        {% endif %}
+        {% if blood_collections %}
+        <div style="margin-left:1rem;margin-top:.3rem">
+          {% for row in blood_collections %}
+          <p>
+            <span class="hi">{{ row.collection_date|date:"l, \n\g\à\y j \t\h\á\n\g n \n\ă\m Y" }}</span>
+            {% if row.location %}– {{ row.location }}{% endif %}
+            {% if row.people_count %}({{ row.people_count }} người){% endif %}
+          </p>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </li>
+
+      <li style="margin-bottom:.5rem">
+        <strong>Thời gian tiếp nhận KSK :</strong>
+        <div style="margin-left:1rem">
+          <p>Sáng : 08 giờ 00 đến 09 giờ 30 &nbsp;|&nbsp; Chiều : 13 giờ 00 đến 14 giờ 00</p>
+          {% if contract.reception_from_date %}
+          <p>
+            <span class="hi">Từ ngày: {{ contract.reception_from_date|date:"d/m/Y" }}</span>
+          </p>
+          {% endif %}
+          <p>Từ thứ Hai đến thứ Bảy (Trừ Chủ nhật, Ngày nghỉ lễ và thời gian nghỉ trưa từ 12 giờ đến 13 giờ mỗi ngày)</p>
+        </div>
+      </li>
+
+      <li style="margin-bottom:.5rem">
+        Trả kết quả cho bên B gồm 2 phần: kết quả từng cá nhân và báo cáo thống kê tổng hợp trong vòng 10 ngày làm việc.
+      </li>
+
+      <li>
+        <strong>Nội dung khám chi tiết – DANH MỤC KHÁM {% now "Y" %}</strong>
+        <table class="contract-table" style="margin-top:.5rem">
+          <thead>
+            <tr>
+              <th style="width:30px">STT</th>
+              <th class="left">DỊCH VỤ</th>
+              <th style="width:90px">GIÁ ƯU ĐÃI<br>(VNĐ)</th>
+              <th style="width:55px">NAM</th>
+              <th style="width:65px">NỮ ĐT</th>
+              <th style="width:65px">NỮ GĐ</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% regroup details by group_name as grouped_details %}
+          {% for group in grouped_details %}
+            <tr class="group-row"><td colspan="6">{{ group.grouper }}</td></tr>
+            {% for item in group.list %}
+            <tr>
+              <td class="check-cell">{{ forloop.counter }}</td>
+              <td>
+                <strong>{{ item.item_name }}</strong>
+                {% if item.description %}<br><small class="text-muted">{{ item.description }}</small>{% endif %}
+              </td>
+              <td class="price-cell">
+                {% if item.price_male %}{{ item.price_male|vnd }}
+                {% elif item.price_female_single %}{{ item.price_female_single|vnd }}
+                {% elif item.price_female_family %}{{ item.price_female_family|vnd }}
+                {% else %}–{% endif %}
+              </td>
+              <td class="check-cell">{% if item.for_male %}✓{% else %}–{% endif %}</td>
+              <td class="check-cell">{% if item.for_female_single %}✓{% else %}–{% endif %}</td>
+              <td class="check-cell">{% if item.for_female_family %}✓{% else %}–{% endif %}</td>
+            </tr>
+            {% endfor %}
+          {% endfor %}
+          <tr class="total-row">
+            <td colspan="3" class="text-end" style="font-size:.78rem">Giá trị Gói khám (VND/người):</td>
+            <td class="price-cell">{% if profile.male_count %}{{ profile.subtotal_male|vnd }}{% else %}–{% endif %}</td>
+            <td class="price-cell">{% if profile.female_single_count %}{{ profile.subtotal_female_single|vnd }}{% else %}–{% endif %}</td>
+            <td class="price-cell">{% if profile.female_family_count %}{{ profile.subtotal_female_family|vnd }}{% else %}–{% endif %}</td>
+          </tr>
+          <tr style="font-size:.8rem;background:#f8f9fa">
+            <td colspan="3" class="text-end">Số lượng nhân viên:</td>
+            <td class="check-cell">{{ profile.male_count }}</td>
+            <td class="check-cell">{{ profile.female_single_count }}</td>
+            <td class="check-cell">{{ profile.female_family_count }}</td>
+          </tr>
+          <tr class="grand-row">
+            <td colspan="3" class="text-end">GIÁ TRỊ HỢP ĐỒNG (VNĐ):</td>
+            <td colspan="3" class="price-cell" style="font-size:.95rem;color:#c0392b">
+              <strong>{{ profile.grand_total|vnd }} ₫</strong>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </li>
+    </ol>
+
+    <h2>Điều II: Giá trị Hợp đồng và Phương thức Thanh toán</h2>
+    <ol style="padding-left:1.5rem">
+      <li style="margin-bottom:.5rem">
+        <strong>Giá trị hợp đồng :</strong>
+        Giá trị hợp đồng được tính theo giá trị gói khám và căn cứ vào số lượng nhân viên của bên B đã sử dụng Gói khám.
+        <br>Những dịch vụ từ chối trong Gói khám có lý do chính đáng sẽ được giảm trừ 100% giá trị.
+      </li>
+      <li style="margin-bottom:.5rem">
+        <strong>Ưu đãi :</strong> Giảm 10% trên tất cả dịch vụ chẩn đoán phát sinh ngoài danh mục đã đăng ký.
+        Thời hạn ưu đãi kết thúc khi Hợp đồng được thanh lý.
+      </li>
+      <li style="margin-bottom:.5rem">
+        <strong>Thanh toán đặt cọc</strong><br>
+        <span class="hi">
+          Bên B sẽ thanh toán phí đặt cọc bằng <strong>{{ profile.deposit_pct|floatformat:"-2" }}% giá trị Hợp đồng ước tính</strong>,
+          tương đương: <strong>{{ profile.deposit_amount|vnd }} ₫</strong>
+          {% if profile.deposit_deadline %}
+            trước ngày <strong>{{ profile.deposit_deadline|date:"j/n/Y" }}</strong>.
+          {% endif %}
+        </span>
+      </li>
+      <li style="margin-bottom:.5rem">
+        Bên B thanh toán toàn bộ cho Bên A theo giá trị đã được
+        <span class="hi">quyết toán trong vòng <strong>{{ profile.settlement_days }}</strong> ngày</span>
+        sau khi Bên A giao hóa đơn tài chính và toàn bộ kết quả khám.
+      </li>
+      <li>Thanh toán bằng chuyển khoản. Nếu Bên B thanh toán không đúng tiến độ sẽ chịu phạt chậm thanh toán theo lãi suất nợ quá hạn do Ngân hàng Nhà nước công bố.</li>
+    </ol>
+
+    <h2>Điều III: Nghĩa vụ của các Bên</h2>
+    <p><strong>a) Bên A :</strong> Thực hiện đầy đủ nội dung Điều 1; cung cấp biểu mẫu và hướng dẫn khám.</p>
+    <p><strong>b) Bên B :</strong> Cung cấp danh sách nhân viên trước 3 ngày làm việc; bố trí thời gian, địa điểm lấy máu; thanh toán đúng hạn.</p>
+
+    <h2>Điều IV: Bồi thường và Phạt Hợp đồng</h2>
+    <p>Bên vi phạm sẽ bị phạt 8% tổng giá trị Hợp đồng và bồi thường thiệt hại theo quy định của pháp luật.</p>
+
+    <h2>Điều V: Các Điều khoản Chung</h2>
+    <p>Hợp đồng có hiệu lực kể từ ngày ký. Được lập thành 02 bản, mỗi bên giữ 01 bản có giá trị pháp lý như nhau.</p>
+    {% if profile.contract_note %}
+    <p><strong>Ghi chú:</strong> {{ profile.contract_note }}</p>
+    {% endif %}
+
+    <div class="signature-block">
+      <div class="sig-box">
+        <div class="sig-title">Bên A</div>
+        <div style="font-size:.8rem">Tổng Giám Đốc</div>
+        <div class="sig-space"></div>
+        <div class="sig-name">{{ profile.signer_a_name|default:"TS.BS. PHẠM THẾ VIỆT" }}</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-title">Bên B</div>
+        <div style="font-size:.8rem">{{ profile.signer_b_title|default:"Giám Đốc" }}</div>
+        <div class="sig-space"></div>
+        <div class="sig-name">{{ profile.signer_b_name|default:"" }}</div>
+        <div style="font-size:.8rem">{{ profile.company_name_snapshot }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% load contract_tags %}
+
+{% block title %}Danh sách Hợp đồng Doanh nghiệp{% endblock %}
+
+{% block content %}
+<style>
+.badge-draft{background:#fff3cd;color:#856404;border:1px solid #ffc107}
+.badge-approved{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+.badge-terminated{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.tbl-action{display:flex;gap:4px;justify-content:center;flex-wrap:wrap}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0">📑 Danh sách Hợp đồng KSK Doanh nghiệp</h5>
+  <a href="{% url 'contract:create_corporate_contract' %}" class="btn btn-primary btn-sm">
+    <i class="fa fa-plus"></i> Tạo hợp đồng mới
+  </a>
+</div>
+
+{% if messages %}
+  {% for m in messages %}
+  <div class="alert alert-{{ m.tags|default:'info' }} alert-dismissible fade show py-2">
+    {{ m }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endif %}
+
+{% if contracts %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" style="font-size:.85rem">
+      <thead class="table-dark">
+        <tr>
+          <th>Số HĐ</th>
+          <th>Công ty</th>
+          <th>Người liên hệ</th>
+          <th class="text-center">Nam</th>
+          <th class="text-center">Nữ ĐT</th>
+          <th class="text-center">Nữ GĐ</th>
+          <th class="text-end">Giá trị HĐ</th>
+          <th>Thời gian KSK</th>
+          <th>Ngày tạo</th>
+          <th class="text-center">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for c in contracts %}
+      <tr>
+        <td>
+          <code style="font-size:.8rem">{{ c.contract_number }}</code>
+          {% if c.is_approved %}
+            <span class="badge badge-approved ms-1" style="font-size:.68rem">Đã duyệt</span>
+          {% elif c.is_terminated %}
+            <span class="badge badge-terminated ms-1" style="font-size:.68rem">Đã hủy</span>
+          {% else %}
+            <span class="badge badge-draft ms-1" style="font-size:.68rem">Nháp</span>
+          {% endif %}
+        </td>
+        <td><strong>{{ c.company.name }}</strong></td>
+        <td>{{ c.contact_person|default:"–" }}</td>
+        <td class="text-center">{{ c.corporate_profile.male_count }}</td>
+        <td class="text-center">{{ c.corporate_profile.female_single_count }}</td>
+        <td class="text-center">{{ c.corporate_profile.female_family_count }}</td>
+        <td class="text-end fw-semibold" style="color:#1a5276">
+          {{ c.corporate_profile.grand_total|vnd }} ₫
+        </td>
+        <td>
+          {% if c.start_date %}
+            {{ c.start_date|date:"d/m/Y" }}
+            {% if c.end_date %} – {{ c.end_date|date:"d/m/Y" }}{% endif %}
+          {% else %}–{% endif %}
+        </td>
+        <td>{{ c.created_at|date:"d/m/Y H:i" }}</td>
+        <td>
+          <div class="tbl-action">
+            <a href="{% url 'contract:corporate_contract_print' c.id %}"
+               class="btn btn-xs btn-outline-primary" title="Xem hợp đồng">
+              <i class="fa fa-file-contract"></i>
+            </a>
+            <a href="{% url 'contract:corporate_quote_print' c.id %}"
+               class="btn btn-xs btn-outline-secondary" title="Xem báo giá">
+              <i class="fa fa-file-invoice-dollar"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="text-center py-5 text-muted">
+  <i class="fa fa-file-contract fa-3x mb-3 d-block"></i>
+  Chưa có hợp đồng doanh nghiệp nào.
+  <a href="{% url 'contract:create_corporate_contract' %}">Tạo ngay →</a>
+</div>
+{% endif %}
+{% endblock %}

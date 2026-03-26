@@ -66,7 +66,7 @@ def company_list_view(request):
         "company_form": CompanyForm(),
         "company_edit_form": CompanyForm(instance=selected_company) if selected_company else CompanyForm(),
     }
-    return render(request, "clinic/staff/list_company.html", context)
+    return render(request, "organizations/staff/company_list.html", context)
 
 
 @login_required(login_url="authentication:staff_login")

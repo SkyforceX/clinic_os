@@ -1,0 +1,355 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% load contract_tags %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'contract/css/corporate_contract.css' %}">
+
+<div class="cc-page">
+  <div class="cc-container">
+    <div class="cc-page-header">
+      <h1 class="cc-page-title">📋 Tạo Hợp đồng KSK Doanh nghiệp</h1>
+    </div>
+
+    <form method="post" action="{% url 'contract:save_corporate_contract' %}" class="cc-form" id="ccForm">
+      {% csrf_token %}
+
+      {# ── Liên kết báo giá (tùy chọn) ── #}
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <h2 class="cc-card-title">Liên kết báo giá</h2>
+          <p class="cc-card-desc">Chọn báo giá đã lập để tự động điền danh mục dịch vụ và giá.</p>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-grid cc-grid--3">
+            <div class="cc-field">
+              <label>Chọn báo giá (tùy chọn)</label>
+              <select name="quotation_id" class="cc-select" id="quotation_select"
+                      onchange="loadQuotationData(this.value)">
+                <option value="">-- Nhập tay danh mục bên dưới --</option>
+                {% for q in quotations %}
+                  <option value="{{ q.pk }}"
+                    data-company="{{ q.company_name }}"
+                    data-address="{{ q.company_address }}"
+                    data-contact="{{ q.contact_name }}"
+                    data-male="{{ q.male_count }}"
+                    data-fs="{{ q.female_single_count }}"
+                    data-ff="{{ q.female_family_count }}"
+                    data-grand="{{ q.grand_total }}">
+                    {{ q.company_name }} — {{ q.created_at|date:"d/m/Y" }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div id="quotation_preview" class="mt-2" style="display:none">
+            <div class="alert alert-info py-2" style="font-size:.85rem">
+              <i class="fa fa-link"></i> Đã chọn báo giá:
+              <strong id="qp_company"></strong> –
+              Tổng dự kiến: <strong id="qp_total"></strong>
+              <span class="text-muted">(danh mục & giá sẽ được lấy tự động)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ── Bên B: Thông tin công ty ── #}
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <h2 class="cc-card-title">BÊN B – Thông tin Công ty</h2>
+          <p class="cc-card-desc">Thông tin này sẽ in lên hợp đồng.</p>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-grid cc-grid--2">
+            <div class="cc-field">
+              <label class="cc-required">Tên Công ty</label>
+              <select name="company_id" class="cc-select" required id="company_select">
+                <option value="">-- Chọn công ty --</option>
+                {% for c in companies %}
+                  <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="cc-field">
+              <label>Điện thoại</label>
+              <input type="text" name="company_phone" class="cc-input">
+            </div>
+            <div class="cc-field cc-field--wide">
+              <label>Địa chỉ</label>
+              <input type="text" name="company_address" class="cc-input" id="company_address_input">
+            </div>
+            <div class="cc-field">
+              <label>Mã số thuế</label>
+              <input type="text" name="tax_code" class="cc-input">
+            </div>
+            <div class="cc-field">
+              <label>Người đại diện ký</label>
+              <input type="text" name="signer_b_name" class="cc-input" id="contact_input" placeholder="Ông/Bà...">
+            </div>
+            <div class="cc-field">
+              <label>Chức vụ</label>
+              <input type="text" name="signer_b_title" class="cc-input" placeholder="Giám đốc...">
+            </div>
+            <div class="cc-field">
+              <label>Người liên hệ thực hiện HĐ</label>
+              <input type="text" name="contact_person" class="cc-input" placeholder="Người phụ trách...">
+            </div>
+            <div class="cc-field">
+              <label>Chức danh liên hệ</label>
+              <input type="text" name="representative_title" class="cc-input">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ── Điều I: Thời gian & Địa điểm ── #}
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <h2 class="cc-card-title">ĐIỀU I – Thời gian & Địa điểm thực hiện</h2>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-grid cc-grid--3">
+            <div class="cc-field">
+              <label class="cc-required">Ngày lập hợp đồng</label>
+              <input type="date" name="contract_date" class="cc-input" value="{% now 'Y-m-d' %}">
+            </div>
+            <div class="cc-field">
+              <label class="cc-required">Thời gian thực hiện HĐ – Từ ngày</label>
+              <input type="date" name="start_date" class="cc-input" required>
+            </div>
+            <div class="cc-field">
+              <label class="cc-required">Đến ngày</label>
+              <input type="date" name="end_date" class="cc-input" required>
+            </div>
+          </div>
+          <hr style="margin:1rem 0">
+          <p class="fw-semibold mb-2" style="font-size:.88rem">📋 Lấy mẫu xét nghiệm Máu / Nước tiểu</p>
+          <div class="cc-grid cc-grid--3">
+            <div class="cc-field">
+              <label>Giờ bắt đầu lấy mẫu</label>
+              <input type="time" name="blood_time_from" class="cc-input" placeholder="08:30">
+            </div>
+            <div class="cc-field">
+              <label>Giờ kết thúc lấy mẫu</label>
+              <input type="time" name="blood_time_to" class="cc-input" placeholder="10:00">
+            </div>
+            <div class="cc-field">
+              <label>Địa điểm lấy mẫu xét nghiệm</label>
+              <input type="text" name="blood_collection_location" class="cc-input"
+                     placeholder="Văn phòng Công ty: ...">
+            </div>
+          </div>
+          <hr style="margin:1rem 0">
+          <p class="fw-semibold mb-2" style="font-size:.88rem">🏥 Tiếp nhận KSK tại phòng khám</p>
+          <div class="cc-grid cc-grid--3">
+            <div class="cc-field">
+              <label>Tiếp nhận KSK từ ngày</label>
+              <input type="date" name="reception_from_date" class="cc-input">
+            </div>
+          </div>
+          <hr style="margin:1rem 0">
+          <p class="fw-semibold mb-2" style="font-size:.88rem">📅 Lịch lấy máu tại địa điểm (tuỳ chọn nhiều đợt)</p>
+          <div id="blood-rows">
+            <div class="cc-grid cc-grid--4 blood-row mb-2">
+              <div class="cc-field">
+                <label>Ngày lấy máu</label>
+                <input type="date" name="blood_collection_date[]" class="cc-input">
+              </div>
+              <div class="cc-field">
+                <label>Địa điểm</label>
+                <input type="text" name="blood_location[]" class="cc-input">
+              </div>
+              <div class="cc-field">
+                <label>Số người</label>
+                <input type="number" name="blood_people_count[]" min="0" value="0" class="cc-input">
+              </div>
+              <div class="cc-field">
+                <label>Số điều dưỡng</label>
+                <input type="number" name="blood_staff_count[]" min="0" value="0" class="cc-input"
+                  {% if not flag_nurse %}readonly{% endif %}>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="cc-btn cc-btn--secondary cc-btn--sm mt-1"
+                  onclick="addBloodRow()">+ Thêm đợt</button>
+        </div>
+      </div>
+
+      {# ── Cơ cấu nhân sự ── #}
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <h2 class="cc-card-title">Cơ cấu nhân sự</h2>
+          <p class="cc-card-desc">Số lượng người tham gia khám.</p>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-grid cc-grid--3">
+            <div class="cc-field">
+              <label>👨 Nam</label>
+              <input type="number" name="male_count" id="male_count_input" min="0" value="0"
+                     class="cc-input" oninput="updateDepositCalc()">
+            </div>
+            <div class="cc-field">
+              <label>👩 Nữ độc thân</label>
+              <input type="number" name="female_single_count" id="fs_count_input" min="0" value="0"
+                     class="cc-input" oninput="updateDepositCalc()">
+            </div>
+            <div class="cc-field">
+              <label>👩‍👧 Nữ gia đình</label>
+              <input type="number" name="female_family_count" id="ff_count_input" min="0" value="0"
+                     class="cc-input" oninput="updateDepositCalc()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ── ĐIỀU II: Thanh toán ── #}
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <h2 class="cc-card-title">ĐIỀU II – Giá trị & Thanh toán</h2>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-grid cc-grid--3">
+            <div class="cc-field">
+              <label>Đặt cọc (%)</label>
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="number" name="deposit_pct" id="deposit_pct_input"
+                       class="cc-input" value="30" min="0" max="100" step="1"
+                       oninput="updateDepositCalc()" style="flex:1">
+                <span style="font-size:.88rem;color:#555">%</span>
+              </div>
+            </div>
+            <div class="cc-field">
+              <label>Số tiền đặt cọc (tự tính)</label>
+              <input type="text" id="deposit_amount_display" class="cc-input"
+                     style="background:#f8f9fa;font-weight:700;color:#c0392b" readonly>
+            </div>
+            <div class="cc-field">
+              <label>Hạn đặt cọc trước ngày</label>
+              <input type="date" name="deposit_deadline" class="cc-input">
+            </div>
+            <div class="cc-field">
+              <label>Quyết toán trong vòng (ngày)</label>
+              <input type="number" name="settlement_days" class="cc-input" value="10" min="1">
+            </div>
+          </div>
+          <div id="deposit_note" class="mt-2" style="font-size:.82rem;color:#777;display:none">
+            <i class="fa fa-info-circle"></i>
+            Tổng giá trị HĐ ước tính: <strong id="grand_display">0</strong> ₫ →
+            Đặt cọc <strong id="pct_display">30</strong>%
+            = <strong id="deposit_display" style="color:#c0392b">0</strong> ₫
+          </div>
+        </div>
+      </div>
+
+      {# ── Chữ ký & Ghi chú ── #}
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <h2 class="cc-card-title">Chữ ký & Ghi chú</h2>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-grid cc-grid--2">
+            <div class="cc-field">
+              <label>Bên A – Người ký (mặc định: TS.BS. Phạm Thế Việt)</label>
+              <input type="text" name="signer_a_name" class="cc-input"
+                     value="TS.BS. PHẠM THẾ VIỆT" placeholder="TS.BS. PHẠM THẾ VIỆT">
+            </div>
+            <div class="cc-field">
+              <label>Bên A – Chức danh</label>
+              <input type="text" name="signer_a_title" class="cc-input"
+                     value="Tổng Giám Đốc" placeholder="Tổng Giám Đốc">
+            </div>
+            <div class="cc-field">
+              <label>Ghi chú hợp đồng</label>
+              <textarea name="contract_note" class="cc-textarea" rows="2"></textarea>
+            </div>
+            <div class="cc-field">
+              <label>Ghi chú chung</label>
+              <textarea name="note" class="cc-textarea" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ── Actions ── #}
+      <div class="cc-actions-sticky">
+        <div class="cc-actions-sticky__inner">
+          <div class="cc-inline-total">
+            <span class="cc-inline-total__label">Tổng giá trị HĐ ước tính</span>
+            <span class="cc-inline-total__value" id="js-grand-total">0 ₫</span>
+          </div>
+          <div class="cc-toolbar">
+            <a href="{% url 'contract:corporate_contract_list' %}" class="cc-btn cc-btn--secondary">
+              Danh sách HĐ
+            </a>
+            <button type="submit" class="cc-btn cc-btn--primary">
+              <i class="fa fa-file-contract"></i> Tạo Hợp đồng
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ── Giá từ báo giá đã chọn ────────────────────────────────────────────────
+let selectedGrand = 0;
+
+function fmtVnd(n) { return Math.round(n).toLocaleString('vi-VN'); }
+
+function loadQuotationData(qid) {
+  const sel = document.getElementById('quotation_select');
+  const opt = sel.options[sel.selectedIndex];
+  const preview = document.getElementById('quotation_preview');
+
+  if (!qid) {
+    preview.style.display = 'none';
+    selectedGrand = 0;
+    updateDepositCalc();
+    return;
+  }
+
+  document.getElementById('company_address_input').value = opt.dataset.address || '';
+  document.getElementById('contact_input').value = opt.dataset.contact || '';
+  document.getElementById('male_count_input').value = opt.dataset.male || 0;
+  document.getElementById('fs_count_input').value = opt.dataset.fs || 0;
+  document.getElementById('ff_count_input').value = opt.dataset.ff || 0;
+
+  selectedGrand = parseInt(opt.dataset.grand || 0);
+  document.getElementById('qp_company').textContent = opt.dataset.company || '';
+  document.getElementById('qp_total').textContent = fmtVnd(selectedGrand) + ' ₫';
+  preview.style.display = 'block';
+  updateDepositCalc();
+}
+
+function updateDepositCalc() {
+  const grand = selectedGrand;
+  const pct = parseFloat(document.getElementById('deposit_pct_input').value) || 0;
+  const deposit = Math.round(grand * pct / 100);
+
+  document.getElementById('js-grand-total').textContent = fmtVnd(grand) + ' ₫';
+
+  if (grand > 0) {
+    document.getElementById('deposit_note').style.display = 'block';
+    document.getElementById('grand_display').textContent = fmtVnd(grand);
+    document.getElementById('pct_display').textContent = pct;
+    document.getElementById('deposit_display').textContent = fmtVnd(deposit);
+    document.getElementById('deposit_amount_display').value = fmtVnd(deposit) + ' ₫';
+  } else {
+    document.getElementById('deposit_note').style.display = 'none';
+    document.getElementById('deposit_amount_display').value = '';
+  }
+}
+
+// ── Thêm dòng lấy máu ────────────────────────────────────────────────────
+function addBloodRow() {
+  const container = document.getElementById('blood-rows');
+  const row = container.querySelector('.blood-row').cloneNode(true);
+  row.querySelectorAll('input').forEach(inp => { inp.value = inp.type === 'number' ? 0 : ''; });
+  container.appendChild(row);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────
+updateDepositCalc();
+</script>
+{% endblock %}
