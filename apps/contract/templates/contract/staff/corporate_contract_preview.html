@@ -1,0 +1,533 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% load contract_tags %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'contract/css/proposal.css' %}">
+<link rel="stylesheet" href="{% static 'contract/css/corporate_contract.css' %}">
+<style>
+.contract-preview-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:.84rem;
+  margin:.75rem 0;
+}
+.contract-preview-table th{
+  background:#1a5276;
+  color:#fff;
+  padding:6px 8px;
+  text-align:center;
+  font-size:.78rem;
+  border:1px solid #d9e2ec;
+  vertical-align:middle;
+}
+.contract-preview-table th.left{text-align:left}
+.contract-preview-table td{
+  border:1px solid #d9e2ec;
+  padding:6px 8px;
+  vertical-align:middle;
+  background:#fff;
+}
+.contract-preview-table .group-row td{
+  background:#eef5fb;
+  color:#1a5276;
+  font-weight:700;
+}
+.contract-preview-table .total-row td{
+  background:#f8fafc;
+  font-weight:700;
+}
+.contract-preview-table .grand-row td{
+  background:#fff3cd;
+  font-weight:700;
+}
+.contract-meta-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin:14px 0 10px;
+}
+.contract-meta-card{
+  background:#f8fbfe;
+  border:1px solid #d9e2ec;
+  border-left:4px solid #1a5276;
+  border-radius:8px;
+  padding:12px 14px;
+}
+.contract-meta-card p{margin:0 0 4px}
+.contract-section-title{
+  font-size:.95rem;
+  font-weight:700;
+  text-transform:uppercase;
+  color:#1a5276;
+  margin:1.2rem 0 .45rem;
+}
+.contract-highlight{
+  background:#fff8db;
+  padding:0 3px;
+  border-radius:3px;
+}
+.contract-signature{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:40px;
+  margin-top:2.25rem;
+  text-align:center;
+}
+.contract-signature .sig-space{height:70px}
+.contract-check{
+  text-align:center;
+  font-weight:700;
+  color:#1f2937;
+}
+.contract-note-box{
+  font-size:.82rem;
+}
+@media (max-width: 768px){
+  .contract-meta-grid,
+  .contract-signature{
+    grid-template-columns:1fr;
+  }
+}
+@media print{
+  .no-print{display:none!important}
+  body *{visibility:hidden}
+  .preview-doc,
+  .preview-doc *{visibility:visible}
+  .preview-doc{
+    position:absolute;
+    inset:0;
+    width:100%;
+    max-width:none;
+    box-shadow:none;
+    margin:0;
+  }
+}
+</style>
+{% endblock %}
+
+{% block title %}Xem trước hợp đồng – {{ profile.company_name_snapshot }}{% endblock %}
+
+{% block content %}
+<div class="preview-wrap">
+  <div class="d-flex justify-content-between align-items-center mb-3 no-print flex-wrap gap-2">
+    <h5 class="mb-0">
+      <i class="fa fa-file-contract"></i> Xem trước hợp đồng – {{ profile.company_name_snapshot }}
+    </h5>
+
+    <div class="d-flex gap-2 flex-wrap">
+      <form method="post"
+            action="{% url 'contract:issue_contract_document' contract.id %}"
+            class="d-inline"
+            id="issueContractForm">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-success" id="issueContractBtn">
+          <i class="fa fa-file-word"></i> Phát hành PDF
+        </button>
+      </form>
+
+      {% if latest_issued %}
+        {% if latest_issued.pdf_file %}
+          <a href="{% url 'contract:download_issued_contract_pdf' latest_issued.id %}"
+             class="btn btn-sm btn-danger" download>
+            <i class="fa fa-file-pdf"></i> PDF v{{ latest_issued.version }}
+          </a>
+        {% endif %}
+
+<!--        <a href="{% url 'contract:download_issued_contract_docx' latest_issued.id %}"-->
+<!--           class="btn btn-sm btn-outline-secondary" download>-->
+<!--          <i class="fa fa-file-word"></i> Word v{{ latest_issued.version }}-->
+<!--        </a>-->
+      {% endif %}
+
+<!--      <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">🖨 In trình duyệt</button>-->
+
+      <a href="{% url 'contract:corporate_contract_list' %}" class="btn btn-sm btn-outline-secondary">← Danh sách</a>
+      <a href="{% url 'contract:corporate_quote_print' contract.id %}" class="btn btn-sm btn-outline-secondary">Xem báo giá</a>
+
+      {% if can_edit_contract %}
+        <a href="{% url 'contract:edit_corporate_contract' contract.id %}" class="btn btn-sm btn-outline-warning">
+          <i class="fa fa-pen"></i> Sửa
+        </a>
+      {% endif %}
+
+      {% if can_delete_contract %}
+        <form method="post"
+              action="{% url 'contract:delete_corporate_contract' contract.id %}"
+              class="d-inline"
+              onsubmit="return confirm('Xóa hợp đồng {{ contract.contract_number|default:'#' }}? Thao tác này không thể hoàn tác.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-outline-danger">
+            <i class="fa fa-trash"></i> Xóa
+          </button>
+        </form>
+      {% endif %}
+
+      {% if contract.is_locked %}
+        <span class="badge bg-success align-self-center">🔒 Đã chốt</span>
+      {% else %}
+        <span class="badge bg-warning text-dark align-self-center">Chưa chốt</span>
+      {% endif %}
+
+      {% if latest_issued %}
+        <span class="badge bg-info text-dark align-self-center">
+          PDF v{{ latest_issued.version }} – {{ latest_issued.issued_at|date:"d/m/Y H:i" }}
+        </span>
+      {% endif %}
+
+      {% if not contract.is_locked and can_lock_contract %}
+        <form method="post"
+              action="{% url 'contract:lock_corporate_contract' contract.id %}"
+              class="d-inline"
+              onsubmit="return confirm('Chốt hợp đồng này? Sau khi chốt sẽ khóa luôn báo giá liên kết.')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-primary">🔒 Chốt hợp đồng</button>
+        </form>
+      {% endif %}
+
+      {% if contract.is_locked and can_unlock_contract %}
+        <form method="post"
+              action="{% url 'contract:unlock_corporate_contract' contract.id %}"
+              class="d-inline"
+              onsubmit="return confirm('Gỡ chốt hợp đồng này? Chỉ nên dùng khi cần mở khóa cho sale chỉnh sửa.')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-outline-secondary">🔓 Gỡ chốt</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if contract.is_locked %}
+    <div class="alert alert-success no-print py-2">
+      Hợp đồng đã được chốt{% if contract.locked_by %} bởi <strong>{{ contract.locked_by.get_full_name|default:contract.locked_by.username }}</strong>{% endif %}
+      {% if contract.locked_at %} lúc {{ contract.locked_at|date:"d/m/Y H:i" }}{% endif %}.
+      {% if profile.quotation %} Báo giá liên kết cũng đã bị khóa.{% endif %}
+    </div>
+  {% else %}
+    <div class="alert alert-warning no-print py-2">
+      Hợp đồng hiện chưa chốt. Lưu ý kiểm tra lại nội dung trước khi khóa.
+    </div>
+  {% endif %}
+
+  {% if latest_issued %}
+    <div class="alert alert-info no-print py-2">
+      <strong>Bản phát hành gần nhất:</strong> v{{ latest_issued.version }} – {{ latest_issued.issued_at|date:"d/m/Y H:i" }}
+    </div>
+  {% endif %}
+
+  <div class="preview-doc" id="printArea">
+    <div class="text-center mb-3">
+      <div class="doc-title">Hợp đồng khám sức khỏe định kỳ</div>
+      <div class="doc-subtitle">CORPORATE MEDICAL CHECK-UP CONTRACT</div>
+      <p class="text-center text-muted mb-1" style="font-size:.82rem">
+        Số: {{ contract.contract_number|default:"" }}
+      </p>
+      <p class="text-center mb-2" style="font-size:.82rem;color:#666">
+        Hợp đồng được lập vào ngày
+        <span class="contract-highlight">
+          {{ profile.contract_date|date:"j" }} tháng {{ profile.contract_date|date:"n" }} năm {{ profile.contract_date|date:"Y" }}
+        </span>
+      </p>
+      <hr>
+    </div>
+
+    <div class="contract-meta-grid">
+      <div class="contract-meta-card">
+        <p><strong>BÊN A : CÔNG TY CỔ PHẦN Y KHOA VIETMEDI</strong></p>
+        <p><strong>PHÒNG KHÁM ĐA KHOA VIETMEDI</strong></p>
+        <p>Địa chỉ : Số 339 Điện Biên Phủ, Phường Bàn Cờ, TP. HCM</p>
+        <p>Điện thoại : (028) 38 993 339 &nbsp;|&nbsp; Fax : (028) 38 993 339</p>
+        <p>Đại diện : <strong>{{ profile.signer_a_name|default:"TS.BS. PHẠM THẾ VIỆT" }}</strong></p>
+        <p>Chức vụ : {{ profile.signer_a_title|default:"Tổng Giám Đốc" }}</p>
+        <p>Mã số thuế : 0318293823</p>
+        <p><strong>Tài khoản : CÔNG TY CỔ PHẦN Y KHOA VIETMEDI</strong></p>
+        <p><strong>STK : 1002433968 (VNĐ) – Vietcombank CN TP.HCM</strong></p>
+        <p><em>(Sau đây gọi là "Nhà Cung Cấp Dịch Vụ")</em></p>
+      </div>
+
+      <div class="contract-meta-card">
+        <p><strong>BÊN B : {{ profile.company_name_snapshot }}</strong></p>
+        {% if profile.company_address_snapshot %}
+          <p>Địa chỉ : <span class="contract-highlight">{{ profile.company_address_snapshot }}</span></p>
+        {% endif %}
+        {% if profile.company_phone_snapshot %}
+          <p>Điện thoại : <span class="contract-highlight">{{ profile.company_phone_snapshot }}</span></p>
+        {% endif %}
+        {% if profile.signer_b_name %}
+          <p>Đại diện : <span class="contract-highlight">{{ profile.signer_b_name }}</span></p>
+        {% endif %}
+        {% if profile.signer_b_title %}
+          <p>Chức vụ : <span class="contract-highlight">{{ profile.signer_b_title }}</span></p>
+        {% endif %}
+        {% if profile.company_tax_code_snapshot %}
+          <p>Mã số thuế : <span class="contract-highlight">{{ profile.company_tax_code_snapshot }}</span></p>
+        {% endif %}
+        <p><em>(Sau đây gọi là "Khách Hàng")</em></p>
+      </div>
+    </div>
+
+    <p>
+      Sau khi bàn bạc thoả thuận, hai bên thống nhất ký và thực hiện hợp đồng dịch vụ khám sức khoẻ tổng quát gồm những điều khoản sau:
+    </p>
+
+    <div class="contract-section-title">Điều I: Thời gian và Địa điểm thực hiện Hợp đồng</div>
+    <p>Bên A nhận thực hiện Hợp đồng dịch vụ khám sức khỏe cho nhân viên Bên B theo những mục sau:</p>
+
+    <ol style="padding-left:1.5rem">
+      <li style="margin-bottom:.55rem">
+        <strong>Thời gian thực hiện Hợp Đồng :</strong>
+        <span class="contract-highlight">
+          Từ ngày {{ contract.start_date|date:"d/m/Y" }}
+          {% if contract.end_date %} – {{ contract.end_date|date:"d/m/Y" }}{% endif %}
+        </span>
+      </li>
+
+      <li style="margin-bottom:.55rem">
+        <strong>Địa điểm và thời gian lấy mẫu xét nghiệm Máu/Nước tiểu</strong>
+
+          {% if profile.blood_collection_from_at or profile.blood_collection_to_at %}
+          <div style="margin-left:1rem">
+            <p>
+              <u><strong>Thời gian lấy mẫu xét nghiệm</strong></u> :
+              <span class="contract-highlight">
+                {% if profile.blood_collection_from_at %}
+                  Từ {{ profile.blood_collection_from_at|date:"H:i \g\i\ờ, \n\g\à\y d/m/Y" }}
+                {% endif %}
+                {% if profile.blood_collection_to_at %}
+                  đến {{ profile.blood_collection_to_at|date:"H:i \g\i\ờ, \n\g\à\y d/m/Y" }}
+                {% endif %}
+              </span>
+            </p>
+          </div>
+        {% elif profile.blood_collection_time_from or profile.blood_collection_time_to %}
+          <div style="margin-left:1rem">
+            <p>
+              <u><strong>Thời gian lấy mẫu xét nghiệm</strong></u> :
+              <span class="contract-highlight">
+                {% if profile.blood_collection_time_from %}Từ {{ profile.blood_collection_time_from|time:"H \g\i\ờ i \p\h\ú\t" }}{% endif %}
+                {% if profile.blood_collection_time_to %} đến {{ profile.blood_collection_time_to|time:"H \g\i\ờ i \p\h\ú\t" }}{% endif %}
+              </span>
+            </p>
+          </div>
+        {% endif %}
+
+        {% if profile.blood_collection_location %}
+          <div style="margin-left:1rem">
+            <p>
+              <u><strong>Địa điểm lấy mẫu xét nghiệm</strong></u> :
+              <span class="contract-highlight">{{ profile.blood_collection_location }}</span>
+            </p>
+          </div>
+        {% endif %}
+
+        {% if blood_collections %}
+          <div style="margin-left:1rem;margin-top:.3rem">
+            {% for row in blood_collections %}
+              <p>
+                <span class="contract-highlight">{{ row.collection_date|date:"l, \n\g\à\y j \t\h\á\n\g n \n\ă\m Y" }}</span>
+                {% if row.location %} – {{ row.location }}{% endif %}
+                {% if row.people_count %} ({{ row.people_count }} người){% endif %}
+              </p>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </li>
+
+      <li style="margin-bottom:.55rem">
+        <strong>Thời gian tiếp nhận KSK :</strong>
+        <div style="margin-left:1rem">
+          <p>Sáng : 08 giờ 00 đến 09 giờ 30 &nbsp;|&nbsp; Chiều : 13 giờ 00 đến 14 giờ 00</p>
+          {% if contract.reception_from_date %}
+            <p>
+              <span class="contract-highlight">Từ ngày: {{ contract.reception_from_date|date:"d/m/Y" }}</span>
+            </p>
+          {% endif %}
+          <p>Từ thứ Hai đến thứ Bảy (Trừ Chủ nhật, Ngày nghỉ lễ và thời gian nghỉ trưa từ 12 giờ đến 13 giờ mỗi ngày)</p>
+        </div>
+      </li>
+
+      <li style="margin-bottom:.55rem">
+        Trả kết quả cho bên B gồm 2 phần: kết quả từng cá nhân và báo cáo thống kê tổng hợp trong vòng 10 ngày làm việc.
+      </li>
+
+      <li>
+        <strong>Nội dung khám chi tiết – DANH MỤC KHÁM {% now "Y" %}</strong>
+
+        <table class="contract-preview-table" style="margin-top:.5rem">
+          <thead>
+            <tr>
+              <th style="width:30px">STT</th>
+              <th class="left">DỊCH VỤ</th>
+              <th style="width:90px">GIÁ ƯU ĐÃI<br>(VNĐ)</th>
+              <th style="width:55px">NAM</th>
+              <th style="width:65px">NỮ ĐT</th>
+              <th style="width:65px">NỮ GĐ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% regroup details by group_name as grouped_details %}
+            {% for group in grouped_details %}
+              <tr class="group-row">
+                <td colspan="6">{{ group.grouper }}</td>
+              </tr>
+
+              {% for item in group.list %}
+                <tr>
+                  <td class="text-center text-muted">{{ item.stt|default:"–" }}</td>
+                  <td>
+                    <strong>{{ item.item_name }}</strong>
+                    {% if item.description %}<br><small class="text-muted">{{ item.description }}</small>{% endif %}
+                  </td>
+                  <td class="text-end">
+                    {% if item.price_male %}{{ item.price_male|vnd }}
+                    {% elif item.price_female_single %}{{ item.price_female_single|vnd }}
+                    {% elif item.price_female_family %}{{ item.price_female_family|vnd }}
+                    {% else %}–{% endif %}
+                  </td>
+                  <td class="contract-check">{% if item.for_male %}✓{% else %}–{% endif %}</td>
+                  <td class="contract-check">{% if item.for_female_single %}✓{% else %}–{% endif %}</td>
+                  <td class="contract-check">{% if item.for_female_family %}✓{% else %}–{% endif %}</td>
+                </tr>
+              {% endfor %}
+            {% endfor %}
+
+            <tr class="total-row">
+              <td colspan="3" class="text-end" style="font-size:.78rem">Giá trị Gói khám (VND/người):</td>
+              <td class="text-end">{% if profile.male_count %}{{ profile.subtotal_male|vnd }}{% else %}–{% endif %}</td>
+              <td class="text-end">{% if profile.female_single_count %}{{ profile.subtotal_female_single|vnd }}{% else %}–{% endif %}</td>
+              <td class="text-end">{% if profile.female_family_count %}{{ profile.subtotal_female_family|vnd }}{% else %}–{% endif %}</td>
+            </tr>
+
+            <tr style="font-size:.8rem;background:#f8f9fa">
+              <td colspan="3" class="text-end">Số lượng nhân viên:</td>
+              <td class="contract-check">{{ profile.male_count }}</td>
+              <td class="contract-check">{{ profile.female_single_count }}</td>
+              <td class="contract-check">{{ profile.female_family_count }}</td>
+            </tr>
+
+            <tr class="grand-row">
+              <td colspan="3" class="text-end">GIÁ TRỊ HỢP ĐỒNG (VNĐ):</td>
+              <td colspan="3" class="text-center" style="font-size:.95rem;color:#c0392b">
+                <strong>{{ profile.grand_total|vnd }} ₫</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </li>
+    </ol>
+
+    <div class="contract-section-title">Điều II: Giá trị Hợp đồng và Phương thức Thanh toán</div>
+    <ol style="padding-left:1.5rem">
+      <li style="margin-bottom:.55rem">
+        <strong>Giá trị hợp đồng :</strong>
+        Giá trị hợp đồng được tính theo giá trị gói khám và căn cứ vào số lượng nhân viên của bên B đã sử dụng Gói khám.
+        <br>Những dịch vụ từ chối trong Gói khám có lý do chính đáng sẽ được giảm trừ 100% giá trị.
+      </li>
+
+      <li style="margin-bottom:.55rem">
+        <strong>Ưu đãi :</strong>
+        Giảm 10% trên tất cả dịch vụ chẩn đoán phát sinh ngoài danh mục đã đăng ký.
+        Thời hạn ưu đãi kết thúc khi Hợp đồng được thanh lý.
+      </li>
+
+      <li style="margin-bottom:.55rem">
+        <strong>Thanh toán đặt cọc</strong><br>
+        <span class="contract-highlight">
+          Bên B sẽ thanh toán phí đặt cọc bằng <strong>{{ profile.deposit_pct|floatformat:"-2" }}% giá trị Hợp đồng ước tính</strong>,
+          tương đương: <strong>{{ profile.deposit_amount|vnd }} ₫</strong>
+          {% if profile.deposit_amount_words %}
+            (<em>{{ profile.deposit_amount_words }}</em>)
+          {% endif %}
+          {% if profile.deposit_deadline %}
+            trước ngày <strong>{{ profile.deposit_deadline|date:"j/n/Y" }}</strong>.
+          {% endif %}
+        </span>
+      </li>
+
+      <li style="margin-bottom:.55rem">
+        Bên B thanh toán toàn bộ cho Bên A theo giá trị đã được
+        <span class="contract-highlight">quyết toán trong vòng <strong>{{ profile.settlement_days }}</strong> ngày</span>
+        sau khi Bên A giao hóa đơn tài chính và toàn bộ kết quả khám.
+      </li>
+
+      <li>
+        Thanh toán bằng chuyển khoản. Nếu Bên B thanh toán không đúng tiến độ sẽ chịu phạt chậm thanh toán theo lãi suất nợ quá hạn do Ngân hàng Nhà nước công bố.
+      </li>
+    </ol>
+
+    <div class="contract-section-title">Điều III: Nghĩa vụ của các Bên</div>
+    <p><strong>a) Bên A :</strong> Thực hiện đầy đủ nội dung Điều I; cung cấp biểu mẫu và hướng dẫn khám.</p>
+    <p><strong>b) Bên B :</strong> Cung cấp danh sách nhân viên trước 3 ngày làm việc; bố trí thời gian, địa điểm lấy máu; thanh toán đúng hạn.</p>
+
+    <div class="contract-section-title">Điều IV: Bồi thường và Phạt Hợp đồng</div>
+    <p>Bên vi phạm sẽ bị phạt 8% tổng giá trị Hợp đồng và bồi thường thiệt hại theo quy định của pháp luật.</p>
+
+    <div class="contract-section-title">Điều V: Các Điều khoản Chung</div>
+    <p>Hợp đồng có hiệu lực kể từ ngày ký. Được lập thành 02 bản, mỗi bên giữ 01 bản có giá trị pháp lý như nhau.</p>
+
+    {% if profile.contract_note %}
+      <div class="alert alert-warning py-2 mt-2 contract-note-box">
+        <strong>Ghi chú:</strong> {{ profile.contract_note }}
+      </div>
+    {% endif %}
+
+    <div class="contract-signature">
+      <div>
+        <div class="fw-bold text-uppercase">Bên A</div>
+        <div style="font-size:.82rem">Tổng Giám Đốc</div>
+        <div class="sig-space"></div>
+        <div class="fw-bold">{{ profile.signer_a_name|default:"TS.BS. PHẠM THẾ VIỆT" }}</div>
+      </div>
+
+      <div>
+        <div class="fw-bold text-uppercase">Bên B</div>
+        <div style="font-size:.82rem">{{ profile.signer_b_title|default:"Giám Đốc" }}</div>
+        <div class="sig-space"></div>
+        <div class="fw-bold">{{ profile.signer_b_name|default:"" }}</div>
+        <div style="font-size:.82rem">{{ profile.company_name_snapshot }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-end gap-2 mt-3 mb-5 no-print">
+    <a href="{% url 'contract:corporate_contract_list' %}" class="btn btn-outline-secondary">← Danh sách</a>
+  </div>
+</div>
+
+<div class="issue-progress-overlay" id="issueProgressOverlay" aria-hidden="true">
+  <div class="issue-progress-card">
+    <div class="issue-progress-head">
+      <div class="issue-progress-title">Đang phát hành hợp đồng</div>
+      <p class="issue-progress-subtitle">Hệ thống đang tạo PDF. Vui lòng chờ trong giây lát.</p>
+    </div>
+    <div class="issue-progress-body">
+      <div class="issue-progress-row">
+        <div class="issue-progress-label">Tiến trình xử lý</div>
+        <div class="issue-progress-percent" id="issueProgressPercent">0%</div>
+      </div>
+
+      <div class="issue-progress-bar-wrap">
+        <div class="issue-progress-bar" id="issueProgressBar"></div>
+      </div>
+
+      <div class="issue-progress-status" id="issueProgressStatus">
+        Đang khởi tạo phát hành hợp đồng...
+      </div>
+
+      <ul class="issue-progress-steps" id="issueProgressSteps">
+        <li data-step="1" class="active"><span class="dot"></span><span>Chuẩn bị dữ liệu hợp đồng</span></li>
+        <li data-step="3"><span class="dot"></span><span>Chuyển đổi sang PDF</span></li>
+        <li data-step="4"><span class="dot"></span><span>Hoàn tất và tải lại trang</span></li>
+      </ul>
+
+      <div class="issue-progress-note">
+        Đã khóa trang. Vui lòng không đóng cửa sổ trình duyệt cho đến khi hoàn tất.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{% static 'contract/js/contract_issue_progressbar.js' %}"></script>
+{% endblock %}

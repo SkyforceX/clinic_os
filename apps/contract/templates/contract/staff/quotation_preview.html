@@ -15,16 +15,44 @@
     <h5 class="mb-0"><i class="fa fa-eye"></i> Xem trước – {{ quotation.company_name }}</h5>
     <div class="d-flex gap-2 flex-wrap">
       <a href="{% url 'contract:quotation_list' %}" class="btn btn-sm btn-outline-secondary">← Danh sách</a>
-      <a href="{% url 'contract:edit_proposal' quotation_id=quotation.pk %}" class="btn btn-sm btn-outline-warning">
-        <i class="fa fa-pen"></i> Sửa
-      </a>
+
+      {% if can_edit_quotation %}
+        <a href="{% url 'contract:edit_proposal' quotation_id=quotation.pk %}" class="btn btn-sm btn-outline-warning">
+          <i class="fa fa-pen"></i> Sửa
+        </a>
+      {% endif %}
+
       <a href="{% url 'contract:create_proposal' %}" class="btn btn-sm btn-outline-secondary">Tạo mới</a>
-      <form method="post" action="{% url 'contract:issue_quotation_document' quotation.pk %}" class="d-inline" id="issueQuotationForm">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-sm btn-success" id="issueQuotationBtn">
-          <i class="fa fa-file-word"></i> Phát hành PDF
-        </button>
-      </form>
+
+      {% if can_issue_document %}
+        <form method="post" action="{% url 'contract:issue_quotation_document' quotation.pk %}" class="d-inline" id="issueQuotationForm">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-success" id="issueQuotationBtn">
+            <i class="fa fa-file-word"></i> Phát hành PDF
+          </button>
+        </form>
+      {% endif %}
+
+      {% if linked_contract %}
+        <div class="alert {% if linked_contract.is_locked %}alert-success{% else %}alert-warning{% endif %} no-print py-2">
+          <strong>Báo giá này đã phát sinh hợp đồng:</strong>
+          <a href="{% url 'contract:corporate_contract_print' linked_contract.id %}">
+            {{ linked_contract.contract_number|default:"Hợp đồng corporate" }}
+          </a>
+          {% if linked_contract.is_locked %}
+            – Hợp đồng đã chốt, báo giá đã bị khóa.
+          {% else %}
+            – Báo giá này không thể dùng để tạo thêm hợp đồng khác.
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {% if quotation.is_locked and not linked_contract %}
+        <div class="alert alert-danger no-print py-2">
+          Báo giá này đang bị khóa.
+        </div>
+      {% endif %}
+
       {% if latest_issued and latest_issued.pdf_file %}
         <a href="{% url 'contract:download_issued_quotation_pdf' latest_issued.pk %}" target="_blank" class="btn btn-sm btn-danger">
           <i class="fa fa-file-pdf"></i> PDF v{{ latest_issued.version }}
@@ -239,7 +267,7 @@
         <li data-step="3"><span class="dot"></span><span>Chuyển đổi sang PDF</span></li>
         <li data-step="4"><span class="dot"></span><span>Hoàn tất và tải lại trang</span></li>
       </ul>
-      <div class="issue-progress-note">Trong lúc này nút bấm đã được khóa để tránh tạo trùng tài liệu.</div>
+      <div class="issue-progress-note">Đã khóa trang. Vui lòng không đóng cửa sổ trình duyệt cho đến khi hoàn tất.</div>
     </div>
   </div>
 </div>
