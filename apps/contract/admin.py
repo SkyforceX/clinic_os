@@ -1,7 +1,7 @@
 
 from django.contrib import admin, messages
 from django.shortcuts import redirect
-from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from apps.contract.models.document import DocumentTemplate, IssuedDocument
 from apps.contract.models.quotation import QuotationDraft, QuotationLine
@@ -69,7 +69,7 @@ class DocumentTemplateAdmin(admin.ModelAdmin):
     def current_file(self, obj):
         if obj.docx_file:
             filename = obj.docx_file.name.split("/")[-1]
-            return format_html(
+            return mark_safe(
                 '<a href="{}" target="_blank">⬇ {}</a>',
                 obj.docx_file.url,
                 filename,

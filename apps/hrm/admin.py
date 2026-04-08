@@ -296,7 +296,7 @@ class EmployeeAdmin(admin.ModelAdmin):
                 username=obj.user.username,
                 sc=status_color,
                 st=status_text,
-                groups=format_html("{}", groups_html),
+                groups=mark_safe("{}", groups_html),
                 sync_url=sync_url,
                 revoke_url=revoke_url,
                 unlink_url=unlink_url,
@@ -304,7 +304,7 @@ class EmployeeAdmin(admin.ModelAdmin):
         else:
             # Chưa có tài khoản
             suggested = account_service.suggest_username(obj.full_name)
-            return format_html(
+            return mark_safe(
                 """
                 <div style="background:#fff8e1;border:1px solid #ffe082;
                             border-radius:6px;padding:12px;max-width:600px">
@@ -342,7 +342,7 @@ class EmployeeAdmin(admin.ModelAdmin):
             "TERMINATED": ("#c62828", "Chấm dứt"),
         }
         color, label = colors.get(obj.status, ("#757575", obj.get_status_display()))
-        return format_html(
+        return mark_safe(
             '<span style="color:{c};font-weight:600;font-size:12px">● {l}</span>',
             c=color, l=label,
         )
@@ -350,11 +350,11 @@ class EmployeeAdmin(admin.ModelAdmin):
     @admin.display(description="Tài khoản")
     def account_status_col(self, obj):
         if not obj.user_id:
-            return format_html('<span style="color:#999;font-size:12px">— chưa có —</span>')
+            return mark_safe('<span style="color:#999;font-size:12px">— chưa có —</span>')
         color = "#2e7d32" if obj.user.is_active else "#c62828"
         groups = obj.user.groups.values_list("name", flat=True)
         groups_str = ", ".join(groups) if groups else "không có nhóm"
-        return format_html(
+        return mark_safe(
             '<span style="color:{c};font-weight:600">{u}</span>'
             '<br><span style="color:#666;font-size:11px">{g}</span>',
             c=color,
@@ -465,7 +465,7 @@ class EmployeeAdmin(admin.ModelAdmin):
                     groups = list(user.groups.values_list("name", flat=True))
                     self.message_user(
                         request,
-                        format_html(
+                        mark_safe(
                             "✅ Đã tạo tài khoản <strong>{}</strong> và cấp nhóm: {}. "
                             "<span style='color:#c62828'>Mật khẩu: <code>{}</code> "
                             "— lưu lại ngay, sẽ không hiển thị lại.</span>",
@@ -526,7 +526,7 @@ class EmployeeAdmin(admin.ModelAdmin):
                     )
                     self.message_user(
                         request,
-                        format_html(
+                        mark_safe(
                             "✅ Đã liên kết tài khoản <strong>{}</strong>. "
                             "Nhóm được cấp: {}.",
                             result["username"],
@@ -602,7 +602,7 @@ class EmployeeAdmin(admin.ModelAdmin):
                 )
                 self.message_user(
                     request,
-                    format_html(
+                    mark_safe(
                         "🔄 Đồng bộ xong. Thu hồi: <em>{}</em>. Cấp mới: <strong>{}</strong>.",
                         ", ".join(result["revoked"]) or "không có",
                         ", ".join(result["granted"]) or "không có mapping",
