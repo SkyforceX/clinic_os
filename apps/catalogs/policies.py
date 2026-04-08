@@ -1,11 +1,13 @@
 class CatalogPolicy:
-    MANAGER_GROUP_NAMES = {"Executive", "IT Admin"}
+    MANAGER_GROUP_NAMES = {"Executives", "IT Admin"}
+    IT_GROUP_NAMES = {"IT Admin"}
     SALES_GROUP_NAMES = {"Sales Team"}
 
     @classmethod
     def is_authenticated_actor(cls, user):
         return bool(user and user.is_authenticated)
 
+    
     @classmethod
     def is_manager(cls, user):
         if not cls.is_authenticated_actor(user):
@@ -13,6 +15,14 @@ class CatalogPolicy:
         if getattr(user, "is_superuser", False):
             return True
         return user.groups.filter(name__in=cls.MANAGER_GROUP_NAMES).exists()
+    
+    @classmethod
+    def is_it_admin(cls, user):
+        if not cls.is_authenticated_actor(user):
+            return False
+        if getattr(user, "is_superuser", False):
+            return True
+        return user.groups.filter(name__in=cls.IT_GROUP_NAMES).exists()
 
     @classmethod
     def is_sales(cls, user):
@@ -26,15 +36,19 @@ class CatalogPolicy:
 
     @classmethod
     def can_manage_categories(cls, user):
-        return cls.is_it_admin(user) or cls.is_sales(user)
+        return cls.is_it_admin(user)
+    
+    @classmethod
+    def can_view_categories(cls, user):
+        return cls.is_manager(user) or cls.is_sales(user)
 
     @classmethod
     def can_view_packages(cls, user):
-        return cls.is_executive(user) or cls.is_sales(user)
+        return cls.is_manager(user) or cls.is_sales(user)
 
     @classmethod
     def can_create_package(cls, user):
-        return cls.is_it_admin(user) or cls.is_sales(user)
+        return cls.is_manager(user) or cls.is_sales(user)
 
     @classmethod
     def can_edit_package(cls, user, package):

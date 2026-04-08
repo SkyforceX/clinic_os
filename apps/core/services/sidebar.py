@@ -190,6 +190,20 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                     active_app_names=["dashboard"],
                     active_url_names=["overview"],
                 ),
+                _item(
+                        request=request,
+                        label="Danh mục khám",
+                        url_name="catalogs:category_list",
+                        active_app_names=["catalogs"],
+                        active_url_name_contains=["category_", "group_"],
+                ),
+                _item(
+                    request=request,
+                    label="Gói khám",
+                    url_name="catalogs:package_list",
+                    active_app_names=["catalogs"],
+                    active_url_name_contains=["package_"],
+                ),
             ],
         ),
     )
@@ -232,21 +246,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                             "corporate_contract_print",
                         ],
                         active_url_name_contains=["corporate_contract", "contract_preview"],
-                    ),
-                    _item(
-                        request=request,
-                        label="Quản lý danh mục khám",
-                        url_name="catalogs:category_list",
-                        active_app_names=["catalogs"],
-                        active_url_name_contains=["category_", "group_"],
-                    ),
-                    _item(
-                        request=request,
-                        label="Quản lý gói khám",
-                        url_name="catalogs:package_list",
-                        active_app_names=["catalogs"],
-                        active_url_name_contains=["package_"],
-                    ),
+                    )
                 ],
             ),
         )

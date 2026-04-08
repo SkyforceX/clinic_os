@@ -105,7 +105,7 @@ def group_delete(request, pk):
 
 @login_required(login_url="authentication:staff_login")
 def category_list(request):
-    if not CatalogPolicy.can_manage_categories(request.user):
+    if not CatalogPolicy.can_view_categories(request.user):
         return _deny(request)
 
     query = (request.GET.get("q") or "").strip()
