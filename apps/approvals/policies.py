@@ -20,10 +20,10 @@ class ApprovalPolicy:
     @classmethod
     def can_approve(cls, user, ar) -> bool:
         """
-        Manager, request đang PENDING, không tự duyệt chính mình
+        Executive, request đang PENDING, không tự duyệt chính mình
         (trừ superuser).
         """
-        if not ContractPolicy.is_manager(user):
+        if not ContractPolicy.is_executive(user):
             return False
         if ar.status != "PENDING":
             return False
