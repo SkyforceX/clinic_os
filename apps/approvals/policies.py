@@ -14,8 +14,8 @@ class ApprovalPolicy:
 
     @classmethod
     def can_view_inbox(cls, user) -> bool:
-        """Chỉ Manager (và superuser) xem được inbox."""
-        return ContractPolicy.is_manager(user)
+        """Chỉ Executive (và superuser) xem được inbox."""
+        return ContractPolicy.is_executive(user)
 
     @classmethod
     def can_approve(cls, user, ar) -> bool:
