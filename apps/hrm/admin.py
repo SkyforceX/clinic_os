@@ -5,7 +5,7 @@ from django.contrib.auth.models import Group
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
-from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from apps.hrm.models.access_control import AccessLog, PositionGroupMapping
 from apps.hrm.models.department import Department, Position
@@ -254,7 +254,7 @@ class EmployeeAdmin(admin.ModelAdmin):
             status_color = "#2e7d32" if obj.user.is_active else "#c62828"
             status_text  = "Đang hoạt động" if obj.user.is_active else "Bị khóa"
 
-            return format_html(
+            return mark_safe(
                 """
                 <div style="background:#f8f9fa;border:1px solid #dee2e6;
                             border-radius:6px;padding:12px;max-width:600px">
