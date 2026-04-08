@@ -1,10 +1,10 @@
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from apps.hrm.models.access_control import AccessLog, PositionGroupMapping
@@ -20,32 +20,15 @@ User = get_user_model()
 # ─────────────────────────────────────────────────────────────────────────────
 
 class AccessLogInline(admin.TabularInline):
-    model   = AccessLog
-    extra   = 0
-    fields  = ("created_at", "action", "django_group", "actor", "note")
+    model = AccessLog
+    extra = 0
+    fields = ("created_at", "action", "django_group", "actor", "note")
     readonly_fields = ("created_at", "action", "django_group", "actor", "note")
     can_delete = False
-    max_num    = 0
+    max_num = 0
     verbose_name_plural = "Lịch sử phân quyền"
 
     def get_queryset(self, request):
-        # Trả về queryset KHÔNG slice.
-        #
-        # Tại sao không thể giới hạn 15 ở đây:
-        #   Django admin gọi get_queryset(request) KHÔNG có obj context,
-        #   rồi truyền kết quả vào FormSet(queryset=...) trong _create_formsets.
-        #   Bên trong BaseInlineFormSet.__init__ Django tiếp tục gọi:
-        #       queryset.filter(employee=obj)
-        #   Nếu queryset đã bị slice ([:15]) thì lệnh filter này raise:
-        #       TypeError: Cannot filter a query once a slice has been taken.
-        #
-        #   get_formset cũng không giải quyết được vì Django truyền
-        #   queryset=inline.get_queryset(request) riêng khi tạo formset instance,
-        #   còn get_formset chỉ trả về FormSet class — bất kỳ kwarg nào
-        #   còn sót trong kwargs sẽ bị đẩy vào inlineformset_factory()
-        #   và gây lỗi "unexpected keyword argument 'queryset'".
-        #
-        # Giải pháp: trả về toàn bộ log, Django tự filter theo employee.
         return (
             super().get_queryset(request)
             .select_related("django_group", "actor")
@@ -118,7 +101,6 @@ class LinkUserForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Loại user đã liên kết nhân viên khác
         linked_user_ids = Employee.objects.exclude(
             user__isnull=True
         ).values_list("user_id", flat=True)
@@ -138,7 +120,7 @@ class EmployeeAdmin(admin.ModelAdmin):
         "status_badge", "employment_type", "hire_date",
         "account_status_col",
     )
-    list_filter  = ("status", "employment_type", "department", "position")
+    list_filter = ("status", "employment_type", "department", "position")
     search_fields = (
         "employee_code", "full_name", "phone", "email",
         "id_card_number", "user__username",
@@ -147,7 +129,7 @@ class EmployeeAdmin(admin.ModelAdmin):
         "uuid", "created_by", "created_at", "updated_at",
         "account_info_panel",
     )
-    inlines  = [AccessLogInline]
+    inlines = [AccessLogInline]
     ordering = ("full_name",)
 
     fieldsets = (
@@ -236,14 +218,13 @@ class EmployeeAdmin(admin.ModelAdmin):
         if not obj.pk:
             return "Lưu hồ sơ trước khi cấp tài khoản."
 
-        create_url  = reverse("admin:hrm_employee_create_account", args=[obj.pk])
-        link_url    = reverse("admin:hrm_employee_link_account",   args=[obj.pk])
-        sync_url    = reverse("admin:hrm_employee_sync_groups",    args=[obj.pk])
-        revoke_url  = reverse("admin:hrm_employee_revoke_groups",  args=[obj.pk])
-        unlink_url  = reverse("admin:hrm_employee_unlink_account", args=[obj.pk])
+        create_url = reverse("admin:hrm_employee_create_account", args=[obj.pk])
+        link_url = reverse("admin:hrm_employee_link_account", args=[obj.pk])
+        sync_url = reverse("admin:hrm_employee_sync_groups", args=[obj.pk])
+        revoke_url = reverse("admin:hrm_employee_revoke_groups", args=[obj.pk])
+        unlink_url = reverse("admin:hrm_employee_unlink_account", args=[obj.pk])
 
         if obj.user:
-            # Đã có tài khoản
             groups_html = "".join(
                 f'<span style="background:#1a73e8;color:#fff;padding:2px 8px;'
                 f'border-radius:10px;font-size:12px;margin:2px;display:inline-block">'
@@ -252,38 +233,38 @@ class EmployeeAdmin(admin.ModelAdmin):
             ) or '<em style="color:#999">Chưa có nhóm nào</em>'
 
             status_color = "#2e7d32" if obj.user.is_active else "#c62828"
-            status_text  = "Đang hoạt động" if obj.user.is_active else "Bị khóa"
+            status_text = "Đang hoạt động" if obj.user.is_active else "Bị khóa"
 
-            return mark_safe(
+            return format_html(
                 """
                 <div style="background:#f8f9fa;border:1px solid #dee2e6;
                             border-radius:6px;padding:12px;max-width:600px">
                   <div style="margin-bottom:10px">
                     <strong>Username:</strong>
-                    <a href="/admin/auth/user/{uid}/change/" target="_blank"
-                       style="font-weight:600">{username}</a>
+                    <a href="/admin/auth/user/{}/change/" target="_blank"
+                       style="font-weight:600">{}</a>
                     &nbsp;
-                    <span style="color:{sc};font-size:12px;font-weight:600">
-                      ● {st}
+                    <span style="color:{};font-size:12px;font-weight:600">
+                      ● {}
                     </span>
                   </div>
                   <div style="margin-bottom:10px">
                     <strong>Nhóm quyền:</strong><br>
-                    <div style="margin-top:4px">{groups}</div>
+                    <div style="margin-top:4px">{}</div>
                   </div>
                   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-                    <a href="{sync_url}" class="button"
+                    <a href="{}" class="button"
                        style="background:#1976d2;color:#fff;padding:4px 12px;
                               border-radius:4px;text-decoration:none;font-size:13px">
                       🔄 Đồng bộ nhóm theo chức vụ
                     </a>
-                    <a href="{revoke_url}" class="button"
+                    <a href="{}" class="button"
                        style="background:#f57c00;color:#fff;padding:4px 12px;
                               border-radius:4px;text-decoration:none;font-size:13px"
                        onclick="return confirm('Thu hồi TOÀN BỘ nhóm quyền?')">
                       ⛔ Thu hồi toàn bộ nhóm
                     </a>
-                    <a href="{unlink_url}" class="button"
+                    <a href="{}" class="button"
                        style="background:#c62828;color:#fff;padding:4px 12px;
                               border-radius:4px;text-decoration:none;font-size:13px"
                        onclick="return confirm('Hủy liên kết tài khoản? Tài khoản vẫn tồn tại.')">
@@ -292,19 +273,18 @@ class EmployeeAdmin(admin.ModelAdmin):
                   </div>
                 </div>
                 """,
-                uid=obj.user.pk,
-                username=obj.user.username,
-                sc=status_color,
-                st=status_text,
-                groups=mark_safe("{}", groups_html),
-                sync_url=sync_url,
-                revoke_url=revoke_url,
-                unlink_url=unlink_url,
+                obj.user.pk,
+                obj.user.username,
+                status_color,
+                status_text,
+                mark_safe(groups_html),
+                sync_url,
+                revoke_url,
+                unlink_url,
             )
         else:
-            # Chưa có tài khoản
             suggested = account_service.suggest_username(obj.full_name)
-            return mark_safe(
+            return format_html(
                 """
                 <div style="background:#fff8e1;border:1px solid #ffe082;
                             border-radius:6px;padding:12px;max-width:600px">
@@ -312,12 +292,12 @@ class EmployeeAdmin(admin.ModelAdmin):
                     ⚠ Nhân viên chưa có tài khoản hệ thống.
                   </p>
                   <div style="display:flex;gap:8px;flex-wrap:wrap">
-                    <a href="{create_url}?suggested={suggested}" class="button"
+                    <a href="{}?suggested={}" class="button"
                        style="background:#2e7d32;color:#fff;padding:4px 12px;
                               border-radius:4px;text-decoration:none;font-size:13px">
                       ➕ Tạo tài khoản mới
                     </a>
-                    <a href="{link_url}" class="button"
+                    <a href="{}" class="button"
                        style="background:#1976d2;color:#fff;padding:4px 12px;
                               border-radius:4px;text-decoration:none;font-size:13px">
                       🔗 Liên kết tài khoản có sẵn
@@ -325,9 +305,9 @@ class EmployeeAdmin(admin.ModelAdmin):
                   </div>
                 </div>
                 """,
-                create_url=create_url,
-                suggested=suggested,
-                link_url=link_url,
+                create_url,
+                suggested,
+                link_url,
             )
 
     # ── List display helpers ──────────────────────────────────────────────────
@@ -335,31 +315,37 @@ class EmployeeAdmin(admin.ModelAdmin):
     @admin.display(description="Trạng thái", ordering="status")
     def status_badge(self, obj):
         colors = {
-            "ACTIVE":     ("#2e7d32", "Đang làm"),
-            "PROBATION":  ("#f57c00", "Thử việc"),
-            "ON_LEAVE":   ("#0277bd", "Nghỉ phép"),
-            "RESIGNED":   ("#757575", "Đã nghỉ"),
+            "ACTIVE": ("#2e7d32", "Đang làm"),
+            "PROBATION": ("#f57c00", "Thử việc"),
+            "ON_LEAVE": ("#0277bd", "Nghỉ phép"),
+            "RESIGNED": ("#757575", "Đã nghỉ"),
             "TERMINATED": ("#c62828", "Chấm dứt"),
         }
         color, label = colors.get(obj.status, ("#757575", obj.get_status_display()))
-        return mark_safe(
-            '<span style="color:{c};font-weight:600;font-size:12px">● {l}</span>',
-            c=color, l=label,
+        return format_html(
+            '<span style="color:{};font-weight:600;font-size:12px">● {}</span>',
+            color,
+            label,
         )
 
     @admin.display(description="Tài khoản")
     def account_status_col(self, obj):
         if not obj.user_id:
-            return mark_safe('<span style="color:#999;font-size:12px">— chưa có —</span>')
+            return format_html(
+                '<span style="color:#999;font-size:12px">{}</span>',
+                "— chưa có —",
+            )
+
         color = "#2e7d32" if obj.user.is_active else "#c62828"
         groups = obj.user.groups.values_list("name", flat=True)
         groups_str = ", ".join(groups) if groups else "không có nhóm"
-        return mark_safe(
-            '<span style="color:{c};font-weight:600">{u}</span>'
-            '<br><span style="color:#666;font-size:11px">{g}</span>',
-            c=color,
-            u=obj.user.username,
-            g=groups_str,
+
+        return format_html(
+            '<span style="color:{};font-weight:600">{}</span>'
+            '<br><span style="color:#666;font-size:11px">{}</span>',
+            color,
+            obj.user.username,
+            groups_str,
         )
 
     # ── Admin Actions ─────────────────────────────────────────────────────────
@@ -383,7 +369,7 @@ class EmployeeAdmin(admin.ModelAdmin):
                 )
                 continue
             try:
-                result = account_service.sync_groups_from_position(
+                account_service.sync_groups_from_position(
                     employee=emp, actor=request.user
                 )
                 ok += 1
@@ -400,7 +386,7 @@ class EmployeeAdmin(admin.ModelAdmin):
             if not emp.user_id:
                 continue
             try:
-                revoked = account_service.revoke_all_groups(
+                account_service.revoke_all_groups(
                     employee=emp, actor=request.user
                 )
                 ok += 1
@@ -446,14 +432,14 @@ class EmployeeAdmin(admin.ModelAdmin):
             return HttpResponseRedirect(self._employee_change_url(employee_id))
 
         suggested = request.GET.get("suggested", "") or account_service.suggest_username(employee.full_name)
-        auto_pw   = account_service.generate_password()
+        auto_pw = account_service.generate_password()
 
         if request.method == "POST":
             form = CreateUserForm(request.POST)
             if form.is_valid():
                 username = form.cleaned_data["username"]
                 password = form.cleaned_data["password"] or auto_pw
-                email    = form.cleaned_data["email"]
+                email = form.cleaned_data["email"]
                 try:
                     user = account_service.create_and_link_user(
                         employee=employee,
@@ -465,7 +451,7 @@ class EmployeeAdmin(admin.ModelAdmin):
                     groups = list(user.groups.values_list("name", flat=True))
                     self.message_user(
                         request,
-                        mark_safe(
+                        format_html(
                             "✅ Đã tạo tài khoản <strong>{}</strong> và cấp nhóm: {}. "
                             "<span style='color:#c62828'>Mật khẩu: <code>{}</code> "
                             "— lưu lại ngay, sẽ không hiển thị lại.</span>",
@@ -481,8 +467,6 @@ class EmployeeAdmin(admin.ModelAdmin):
         else:
             form = CreateUserForm(initial={"username": suggested})
 
-        # Lấy groups sẽ được cấp (preview)
-        from apps.hrm.models.access_control import PositionGroupMapping
         preview_groups = []
         if employee.position:
             preview_groups = list(
@@ -526,7 +510,7 @@ class EmployeeAdmin(admin.ModelAdmin):
                     )
                     self.message_user(
                         request,
-                        mark_safe(
+                        format_html(
                             "✅ Đã liên kết tài khoản <strong>{}</strong>. "
                             "Nhóm được cấp: {}.",
                             result["username"],
@@ -540,8 +524,6 @@ class EmployeeAdmin(admin.ModelAdmin):
         else:
             form = LinkUserForm()
 
-        # Preview groups
-        from apps.hrm.models.access_control import PositionGroupMapping
         preview_groups = []
         if employee.position:
             preview_groups = list(
@@ -602,7 +584,7 @@ class EmployeeAdmin(admin.ModelAdmin):
                 )
                 self.message_user(
                     request,
-                    mark_safe(
+                    format_html(
                         "🔄 Đồng bộ xong. Thu hồi: <em>{}</em>. Cấp mới: <strong>{}</strong>.",
                         ", ".join(result["revoked"]) or "không có",
                         ", ".join(result["granted"]) or "không có mapping",
@@ -613,8 +595,6 @@ class EmployeeAdmin(admin.ModelAdmin):
                 self.message_user(request, str(e), messages.ERROR)
             return HttpResponseRedirect(self._employee_change_url(employee_id))
 
-        # GET → hiển thị confirm
-        from apps.hrm.models.access_control import PositionGroupMapping
         current_groups = list(employee.user.groups.values_list("name", flat=True))
         new_groups = []
         if employee.position:
@@ -669,35 +649,35 @@ class EmployeeAdmin(admin.ModelAdmin):
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
-    list_display  = ("name", "code", "parent", "display_order", "is_active")
-    list_filter   = ("is_active",)
+    list_display = ("name", "code", "parent", "display_order", "is_active")
+    list_filter = ("is_active",)
     search_fields = ("name", "code")
-    ordering      = ("display_order", "name")
+    ordering = ("display_order", "name")
 
 
 @admin.register(Position)
 class PositionAdmin(admin.ModelAdmin):
-    list_display  = ("name", "code", "department", "level", "is_active")
-    list_filter   = ("is_active", "department")
+    list_display = ("name", "code", "department", "level", "is_active")
+    list_filter = ("is_active", "department")
     search_fields = ("name", "code")
-    ordering      = ("-level", "name")
+    ordering = ("-level", "name")
 
 
 @admin.register(PositionGroupMapping)
 class PositionGroupMappingAdmin(admin.ModelAdmin):
-    list_display  = ("position", "django_group", "note")
-    list_filter   = ("django_group",)
+    list_display = ("position", "django_group", "note")
+    list_filter = ("django_group",)
     search_fields = ("position__name", "django_group__name")
     autocomplete_fields = ["position"]
 
 
 @admin.register(AccessLog)
 class AccessLogAdmin(admin.ModelAdmin):
-    list_display  = ("created_at", "employee", "action", "django_group", "actor")
-    list_filter   = ("action", "django_group")
+    list_display = ("created_at", "employee", "action", "django_group", "actor")
+    list_filter = ("action", "django_group")
     search_fields = ("employee__full_name", "employee__employee_code")
     readonly_fields = ("employee", "action", "django_group", "actor", "note", "created_at")
-    ordering      = ("-created_at",)
+    ordering = ("-created_at",)
 
     def has_add_permission(self, request):
         return False
