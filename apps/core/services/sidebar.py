@@ -483,7 +483,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
 
     # ── Phê duyệt ─────────────────────────────────────────────────────────────
     approval_items = []
-    if is_manager:
+    if is_executive:
         cnt = _get_pending_approval_count()
         approval_items.append(
             _item(
