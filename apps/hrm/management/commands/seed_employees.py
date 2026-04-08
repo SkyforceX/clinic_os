@@ -32,6 +32,26 @@ from apps.hrm.models import Employee, EmployeeStatus, EmploymentType
 
 EMPLOYEES = [
     {
+        "source_row": 1,
+        "employee_code": "VMD-0001",
+        "full_name": "Phạm Thế Việt",
+        "tax_code": "",
+        "id_card_number": "",
+        "address": "",
+        "email": "theviet.pham@gmail.com",
+        "phone": "0939999999"
+    },
+    {
+        "source_row": 2,
+        "employee_code": "VMD-0002",
+        "full_name": "Nguyễn Thị Ngọc Châu",
+        "tax_code": "03111111111",
+        "id_card_number": "03111111111",
+        "address": "TP.HCM",
+        "email": "",
+        "phone": ""
+    },
+    {
         "source_row": 13,
         "employee_code": "VMD-0013",
         "full_name": "Nguyễn Thị Ngần",
