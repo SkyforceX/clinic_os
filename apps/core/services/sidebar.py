@@ -195,7 +195,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
     )
 
     # ── Kinh doanh / Contract / Catalogs / DN ────────────────────────────────
-    if is_sales or is_manager:
+    if is_sales or is_executive:
         _append_section(
             sections,
             _section(
