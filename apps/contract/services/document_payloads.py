@@ -758,21 +758,24 @@ def _build_contract_snapshot_line_column_cells(line_data: dict, columns: list[di
 
 
 def _get_contract_snapshot_standard_prices(line_data: dict, key: str) -> tuple[int, int]:
+    # list_price là giá niêm yết gốc từ catalog — dùng làm base khi tính "GIÁ NIÊM YẾT"
+    list_price = _to_int(line_data.get("list_price"))
+
     if key == "male":
         enabled = bool(line_data.get("for_male"))
         discounted = _to_int(line_data.get("price_male")) if enabled else 0
-        base = _to_int(line_data.get("udai_price_male") or line_data.get("price_male")) if enabled else 0
+        base = (list_price or _to_int(line_data.get("udai_price_male") or line_data.get("price_male"))) if enabled else 0
         return discounted, base
 
     if key == "female_single":
         enabled = bool(line_data.get("for_female_single"))
         discounted = _to_int(line_data.get("price_female_single")) if enabled else 0
-        base = _to_int(line_data.get("udai_price_fs") or line_data.get("price_female_single")) if enabled else 0
+        base = (list_price or _to_int(line_data.get("udai_price_fs") or line_data.get("price_female_single"))) if enabled else 0
         return discounted, base
 
     enabled = bool(line_data.get("for_female_family"))
     discounted = _to_int(line_data.get("price_female_family")) if enabled else 0
-    base = _to_int(line_data.get("udai_price_ff") or line_data.get("price_female_family")) if enabled else 0
+    base = (list_price or _to_int(line_data.get("udai_price_ff") or line_data.get("price_female_family"))) if enabled else 0
     return discounted, base
 
 

@@ -358,22 +358,22 @@
                       <span style="color:#e65100;font-size:.75rem">{{ row.line.note|default:"Tặng" }}</span>
                     {% elif col.key == 'male' and row.line.price_male %}
                       <div class="preview-price-stack">
-                        {% if row.line.has_discount_male and row.line.udai_price_male %}
-                        <span class="preview-price-base">{{ row.line.udai_price_male|vnd }}</span>
+                        {% if row.line.has_discount_male and row.line.list_price %}
+                        <span class="preview-price-base">{{ row.line.list_price|vnd }}</span>
                         {% endif %}
                         <span>{{ row.line.price_male|vnd }}</span>
                       </div>
                     {% elif col.key == 'female_single' and row.line.price_female_single %}
                       <div class="preview-price-stack">
-                        {% if row.line.has_discount_female_single and row.line.udai_price_fs %}
-                        <span class="preview-price-base">{{ row.line.udai_price_fs|vnd }}</span>
+                        {% if row.line.has_discount_female_single and row.line.list_price %}
+                        <span class="preview-price-base">{{ row.line.list_price|vnd }}</span>
                         {% endif %}
                         <span>{{ row.line.price_female_single|vnd }}</span>
                       </div>
                     {% elif col.key == 'female_family' and row.line.price_female_family %}
                       <div class="preview-price-stack">
-                        {% if row.line.has_discount_female_family and row.line.udai_price_ff %}
-                        <span class="preview-price-base">{{ row.line.udai_price_ff|vnd }}</span>
+                        {% if row.line.has_discount_female_family and row.line.list_price %}
+                        <span class="preview-price-base">{{ row.line.list_price|vnd }}</span>
                         {% endif %}
                         <span>{{ row.line.price_female_family|vnd }}</span>
                       </div>

@@ -44,7 +44,6 @@ class ScheduleSlotAdmin(admin.ModelAdmin):
         "shift",
         "slot_type",
         "contract",
-        "quotation",
         "capacity",
         "booked_count",
         "remaining_capacity_display",
@@ -53,9 +52,6 @@ class ScheduleSlotAdmin(admin.ModelAdmin):
     list_select_related = ("contract", "quotation")
     search_fields = (
         "contract__id",
-        "quotation__id",
-        "quotation__company__name",
-        "quotation__company__company_name",
     )
     list_filter = (
         "slot_type",
@@ -64,7 +60,6 @@ class ScheduleSlotAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
-    autocomplete_fields = ("quotation",)
     readonly_fields = ("remaining_capacity_display", "created_at", "updated_at")
 
     fieldsets = (
@@ -73,7 +68,6 @@ class ScheduleSlotAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "contract",
-                    "quotation",
                     "date",
                     "shift",
                     "slot_type",
