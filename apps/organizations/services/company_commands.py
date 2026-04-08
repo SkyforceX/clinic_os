@@ -102,3 +102,54 @@ def delete_company(*, actor, company):
         raise OrganizationValidationError(
             "Không thể xóa công ty vì vẫn còn dữ liệu liên kết."
         )
+    
+    
+@transaction.atomic
+def upsert_company_from_quotation(
+    *,
+    actor,
+    name: str,
+    address: str = "",
+    phone: str = "",
+    company=None,
+):
+    if not OrganizationPolicy.can_create(actor):
+        raise OrganizationPermissionDenied("Bạn không có quyền tạo/cập nhật công ty.")
+
+    clean_name = _normalize_text(name)
+    clean_address = _normalize_text(address)
+    clean_phone = _normalize_text(phone)
+
+    if not clean_name:
+        raise OrganizationValidationError("Tên công ty là bắt buộc.")
+
+    # Nếu đang sửa một báo giá đã có company gắn sẵn thì cập nhật đúng record đó.
+    target = company if getattr(company, "pk", None) else None
+
+    # Nếu là báo giá mới -> luôn tạo company mới,
+    # kể cả trùng tên với company của năm trước hoặc cùng năm.
+    if target is None:
+        return Company.objects.create(
+            name=clean_name,
+            address=clean_address or None,
+            phone=clean_phone or None,
+            created_by=actor,
+        )
+
+    target.name = clean_name
+    target.address = clean_address or None
+    if clean_phone:
+        target.phone = clean_phone
+    if not target.created_by_id:
+        target.created_by = actor
+
+    target.save(
+        update_fields=[
+            "name",
+            "address",
+            "phone",
+            "created_by",
+            "updated_at",
+        ]
+    )
+    return target

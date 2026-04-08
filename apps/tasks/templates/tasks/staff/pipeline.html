@@ -1,0 +1,617 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}Bảng công việc{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ══════════════════════════════════════════════
+   Pipeline / Kanban Board – Tasks App
+   Phong cách nhất quán với hệ thống clinic_os
+══════════════════════════════════════════════ */
+
+/* ── Toolbar ─────────────────────────────── */
+.tasks-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+/* ── Board layout: horizontal stages ─────── */
+.pipeline-board {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  /* Chiều cao tự do, scroll ngang khi quá màn hình */
+}
+.pipeline-board::-webkit-scrollbar { height: 6px; }
+.pipeline-board::-webkit-scrollbar-thumb { background: #dee2e6; border-radius: 3px; }
+
+/* ── Column (stage) ──────────────────────── */
+.stage-col {
+  min-width: 270px;
+  width: 270px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.stage-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px 10px 0 0;
+  font-size: .82rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  border: 1px solid rgba(0,0,0,.07);
+  border-bottom: none;
+}
+.stage-count {
+  margin-left: auto;
+  background: rgba(0,0,0,.1);
+  border-radius: 12px;
+  padding: 1px 8px;
+  font-size: .72rem;
+  font-weight: 700;
+  color: inherit;
+}
+
+.stage-body {
+  background: #f4f6f9;
+  border: 1px solid rgba(0,0,0,.07);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  min-height: 80px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  /* Giới hạn chiều cao cột DONE/CANCELLED */
+}
+.stage-body.is-closed {
+  background: #f8f9fa;
+}
+
+/* ── Task Card ───────────────────────────── */
+.task-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: box-shadow .15s, transform .1s;
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.task-card:hover {
+  box-shadow: 0 4px 14px rgba(0,0,0,.1);
+  transform: translateY(-1px);
+  color: inherit;
+}
+.task-card.dragging {
+  opacity: .55;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+}
+.task-card.overdue {
+  border-left: 3px solid #dc3545;
+}
+.task-card.done-card {
+  opacity: .72;
+}
+
+.card-title {
+  font-size: .84rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+.card-title.done-title {
+  text-decoration: line-through;
+  color: #6c757d;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+/* Priority badge */
+.prio { display:inline-block; padding:1px 7px; border-radius:8px; font-size:.67rem; font-weight:700; white-space:nowrap; }
+.prio-LOW    { background:#e9ecef; color:#495057; }
+.prio-MEDIUM { background:#cce5ff; color:#004085; }
+.prio-HIGH   { background:#fff3cd; color:#856404; }
+.prio-URGENT { background:#f8d7da; color:#721c24; }
+
+/* Due date */
+.due-chip {
+  font-size:.68rem;
+  padding: 1px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.due-ok      { background:#eafaf1; color:#1e8449; }
+.due-soon    { background:#fff3cd; color:#856404; }
+.due-overdue { background:#f8d7da; color:#721c24; font-weight:700; }
+
+/* Assignee avatar */
+.assignee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .68rem;
+  color: #6c757d;
+  background: #f1f3f5;
+  border-radius: 10px;
+  padding: 1px 7px;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tags */
+.tag-chip {
+  font-size: .63rem;
+  background: #e8f4fd;
+  color: #2e86c1;
+  border-radius: 6px;
+  padding: 1px 5px;
+}
+
+/* ── "Xem thêm" toggle for DONE/CANCELLED ─ */
+.load-more-btn {
+  width: 100%;
+  padding: 7px;
+  background: #f1f3f5;
+  border: 1px dashed #ced4da;
+  border-radius: 7px;
+  font-size: .78rem;
+  color: #6c757d;
+  cursor: pointer;
+  text-align: center;
+  transition: background .15s;
+}
+.load-more-btn:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+/* ── Drop zone highlight ──────────────────── */
+.stage-body.drag-over {
+  background: #dff0ff;
+  border-color: #2e86c1;
+}
+
+/* ── Filter bar ───────────────────────────── */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  padding: 8px 14px;
+  margin-bottom: 14px;
+}
+.filter-bar label { font-size: .78rem; font-weight: 600; color: #495057; white-space: nowrap; }
+.filter-bar .form-control, .filter-bar .form-select {
+  font-size: .8rem;
+  padding: 4px 8px;
+  height: auto;
+}
+
+/* ── Add card button inside column ─────────── */
+.add-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px dashed #ced4da;
+  border-radius: 7px;
+  background: transparent;
+  color: #6c757d;
+  font-size: .78rem;
+  cursor: pointer;
+  transition: all .15s;
+  text-decoration: none;
+}
+.add-card-btn:hover {
+  background: #fff;
+  border-color: #2e86c1;
+  color: #2e86c1;
+}
+
+/* ── Summary bar ─────────────────────────── */
+.summary-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.s-pill {
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: .76rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+.s-pill:hover { opacity: .85; }
+
+/* ── Empty column placeholder ─────────────── */
+.col-empty {
+  text-align: center;
+  padding: 20px 10px;
+  color: #adb5bd;
+  font-size: .78rem;
+}
+.col-empty i { font-size: 1.4rem; margin-bottom: 6px; display: block; opacity: .4; }
+
+/* ── Responsive: stack columns on mobile ──── */
+@media (max-width: 640px) {
+  .pipeline-board { flex-direction: column; }
+  .stage-col { min-width: 100%; width: 100%; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Page header ── #}
+<div class="tasks-toolbar">
+  <div>
+    <h5 class="mb-0"><i class="fa fa-diagram-project me-2" style="color:#1a5276"></i>Bảng công việc</h5>
+    <div class="text-muted" style="font-size:.78rem">Pipeline tiến độ theo giai đoạn</div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if can_create %}
+    <a href="{% url 'tasks:create' %}" class="btn btn-sm btn-primary">
+      <i class="fa fa-plus me-1"></i>Giao việc mới
+    </a>
+    {% endif %}
+    <a href="?{{ request.GET.urlencode }}&done_limit=50"
+       class="btn btn-sm btn-outline-secondary" title="Hiện thêm task hoàn thành">
+      <i class="fa fa-expand me-1"></i>Mở rộng
+    </a>
+  </div>
+</div>
+
+{# ── Summary pills ── #}
+<div class="summary-pills">
+  {% for col in pipeline %}
+  <a href="?stage={{ col.stage }}" class="s-pill"
+     style="background:{{ col.bg }};color:{{ col.color }};border-color:{{ col.color }}33">
+    <i class="fa {{ col.icon }} me-1"></i>
+    {{ col.label }}
+    <span class="ms-1 fw-bold">{{ col.total_count }}</span>
+  </a>
+  {% endfor %}
+  {% if filters.overdue %}
+  <span class="s-pill" style="background:#f8d7da;color:#721c24;border-color:#f5c6cb">
+    <i class="fa fa-triangle-exclamation me-1"></i>Quá hạn
+  </span>
+  {% endif %}
+</div>
+
+{# ── Filter bar ── #}
+<form method="get" class="filter-bar" id="filterForm">
+  <label>Tìm:</label>
+  <input type="text" name="q" value="{{ filters.search|default:'' }}"
+         class="form-control" style="width:180px" placeholder="Tiêu đề, tag...">
+
+  {% if filter_users %}
+  <label>Người nhận:</label>
+  <select name="assignee" class="form-select" style="width:150px">
+    <option value="">Tất cả</option>
+    {% for u in filter_users %}
+    <option value="{{ u.id }}" {% if filters.assignee_id == u.id|stringformat:"s" %}selected{% endif %}>
+      {{ u.get_full_name|default:u.username }}
+    </option>
+    {% endfor %}
+  </select>
+  {% endif %}
+
+  <label>Ưu tiên:</label>
+  <select name="priority" class="form-select" style="width:130px">
+    <option value="">Tất cả</option>
+    {% for v,l in priorities %}
+    <option value="{{ v }}" {% if filters.priority == v %}selected{% endif %}>{{ l }}</option>
+    {% endfor %}
+  </select>
+
+  <div class="form-check mb-0 ms-1">
+    <input class="form-check-input" type="checkbox" name="overdue" value="1" id="chkOverdue"
+           {% if filters.overdue %}checked{% endif %} onchange="this.form.submit()">
+    <label class="form-check-label" for="chkOverdue" style="font-size:.78rem;white-space:nowrap">Quá hạn</label>
+  </div>
+
+  <button type="submit" class="btn btn-sm btn-primary">Lọc</button>
+  {% if filters.search or filters.priority or filters.assignee_id or filters.overdue %}
+  <a href="{% url 'tasks:board' %}" class="btn btn-sm btn-outline-secondary">✕ Xóa lọc</a>
+  {% endif %}
+</form>
+
+<!--══════════════════════════════════════════-->
+<!--   PIPELINE BOARD — Horizontal stages-->
+<!--═══════════════════════════════════════════-->
+<div class="pipeline-board" id="pipelineBoard">
+
+  {% for col in pipeline %}
+  <div class="stage-col" data-stage="{{ col.stage }}">
+
+    {# Stage header #}
+    <div class="stage-header"
+         style="background:{{ col.bg }};color:{{ col.color }};border-color:{{ col.color }}33">
+      <i class="fa {{ col.icon }}"></i>
+      {{ col.label }}
+      <span class="stage-count">{{ col.total_count }}</span>
+    </div>
+
+    {# Stage body — drop target #}
+    <div class="stage-body {% if col.is_closed %}is-closed{% endif %}"
+         id="col-{{ col.stage }}"
+         data-stage="{{ col.stage }}"
+         ondragover="onDragOver(event)"
+         ondragleave="onDragLeave(event)"
+         ondrop="onDrop(event, '{{ col.stage }}')">
+
+      {# Task cards #}
+      {% for task in col.tasks %}
+      {% with is_done=task.is_done is_cancelled=task.is_cancelled %}
+      <a href="{% url 'tasks:detail' task.id %}"
+         class="task-card {% if task.is_overdue %}overdue{% endif %} {% if is_done or is_cancelled %}done-card{% endif %}"
+         data-id="{{ task.id }}"
+         draggable="{% if not is_done and not is_cancelled %}true{% else %}false{% endif %}"
+         ondragstart="onDragStart(event, {{ task.id }})"
+         ondragend="onDragEnd(event)">
+
+        <div class="card-title {% if is_done %}done-title{% endif %}">
+          {{ task.title }}
+        </div>
+
+        <div class="card-meta">
+          {# Priority #}
+          <span class="prio prio-{{ task.priority }}">
+            {% if task.priority == 'URGENT' %}🔴
+            {% elif task.priority == 'HIGH' %}🟠
+            {% elif task.priority == 'MEDIUM' %}🟡
+            {% else %}⚪{% endif %}
+            {{ task.get_priority_display }}
+          </span>
+
+          {# Due date #}
+          {% if task.due_date %}
+          {% with today=today %}
+          <span class="due-chip
+            {% if task.is_overdue %}due-overdue
+            {% elif task.due_date <= today %}due-soon
+            {% else %}due-ok{% endif %}">
+            <i class="fa fa-calendar-day me-1" style="font-size:.6rem"></i>
+            {{ task.due_date|date:"d/m" }}
+          </span>
+          {% endwith %}
+          {% endif %}
+
+          {# Assignee #}
+          {% if task.assignee %}
+          <span class="assignee-chip">
+            <i class="fa fa-user" style="font-size:.65rem"></i>
+            {{ task.assignee.get_full_name|default:task.assignee.username|truncatechars:14 }}
+          </span>
+          {% else %}
+          <span class="assignee-chip" style="color:#adb5bd">
+            <i class="fa fa-user-slash" style="font-size:.65rem"></i>Chưa giao
+          </span>
+          {% endif %}
+        </div>
+
+        {# Tags #}
+        {% if task.tag_list %}
+        <div class="mt-2 d-flex gap-1 flex-wrap">
+          {% for tag in task.tag_list|slice:":3" %}
+          <span class="tag-chip">{{ tag }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {# Drag handle icon #}
+        {% if not is_done and not is_cancelled %}
+        <div style="position:absolute;top:8px;right:8px;color:#ced4da;font-size:.7rem">
+          <i class="fa fa-grip-vertical"></i>
+        </div>
+        {% endif %}
+      </a>
+      {% endwith %}
+      {% endfor %}
+
+      {# Empty placeholder #}
+      {% if not col.tasks %}
+      <div class="col-empty">
+        <i class="fa {{ col.icon }}"></i>
+        Chưa có công việc
+      </div>
+      {% endif %}
+
+      {# Load more for DONE/CANCELLED #}
+      {% if col.has_more %}
+      <button class="load-more-btn"
+              onclick="loadMoreTasks('{{ col.stage }}', {{ col.shown_count }}, this)"
+              data-stage="{{ col.stage }}"
+              data-offset="{{ col.shown_count }}">
+        <i class="fa fa-chevron-down me-1"></i>
+        Xem thêm {{ col.total_count|add:"-"|add:col.shown_count|stringformat:"s" }} task đã {{ col.label|lower }}…
+      </button>
+      {% endif %}
+
+      {# Add button (only for non-closed stages) #}
+      {% if col.stage != "DONE" and col.stage != "CANCELLED" and can_create %}
+      <a href="{% url 'tasks:create' %}" class="add-card-btn">
+        <i class="fa fa-plus"></i>Thêm công việc
+      </a>
+      {% endif %}
+    </div>
+
+  </div>
+  {% endfor %}
+
+</div>{# end pipeline-board #}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const CSRF = '{{ csrf_token }}';
+let dragTaskId = null;
+
+// ── Drag & Drop ────────────────────────────────────────────────────────────────
+
+function onDragStart(e, taskId) {
+  dragTaskId = taskId;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', taskId);
+}
+
+function onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.stage-body').forEach(b => b.classList.remove('drag-over'));
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+  e.dataTransfer.dropEffect = 'move';
+}
+
+function onDragLeave(e) {
+  // Chỉ xóa khi rời khỏi chính container, không phải child elements
+  if (!e.currentTarget.contains(e.relatedTarget)) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+}
+
+async function onDrop(e, newStage) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragTaskId) return;
+
+  const taskId = dragTaskId;
+  dragTaskId   = null;
+
+  // Không cho kéo vào DONE/CANCELLED bằng drag (chỉ qua nút)
+  if (newStage === 'DONE' || newStage === 'CANCELLED') {
+    showToast('Dùng nút trong trang chi tiết để hoàn thành/hủy công việc.', 'warning');
+    return;
+  }
+
+  // Optimistic UI: di chuyển card ngay
+  const card = document.querySelector(`.task-card[data-id="${taskId}"]`);
+  const targetCol = document.getElementById(`col-${newStage}`);
+  if (card && targetCol) {
+    const addBtn = targetCol.querySelector('.add-card-btn');
+    targetCol.insertBefore(card, addBtn || null);
+    // Xóa "chưa có công việc" nếu có
+    targetCol.querySelector('.col-empty')?.remove();
+  }
+
+  // API call
+  const res = await fetch(`/tasks/${taskId}/move/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify({ stage: newStage }),
+  });
+  const data = await res.json();
+  if (!data.ok) {
+    showToast('Lỗi khi chuyển giai đoạn: ' + (data.error || ''), 'danger');
+    location.reload();
+  } else {
+    // Cập nhật summary pills
+    location.reload();
+  }
+}
+
+// ── Load more done/cancelled tasks ────────────────────────────────────────────
+
+async function loadMoreTasks(stage, offset, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Đang tải...';
+
+  const res  = await fetch(`/tasks/api/load-more/?stage=${stage}&offset=${offset}&limit=10`);
+  const data = await res.json();
+
+  const col  = document.getElementById(`col-${stage}`);
+
+  data.tasks.forEach(task => {
+    const card = document.createElement('a');
+    card.href  = `/tasks/${task.id}/`;
+    card.className = 'task-card done-card';
+    card.dataset.id = task.id;
+    card.draggable = false;
+
+    const assigneeName = task['assignee__first_name']
+      ? `${task['assignee__first_name']} ${task['assignee__last_name']}`.trim()
+      : (task['assignee__username'] || 'Chưa giao');
+
+    const dueBadge = task.due_date
+      ? `<span class="due-chip due-ok"><i class="fa fa-calendar-day me-1" style="font-size:.6rem"></i>${task.due_date}</span>`
+      : '';
+
+    card.innerHTML = `
+      <div class="card-title done-title">${task.title}</div>
+      <div class="card-meta">
+        <span class="prio prio-${task.priority}">${getPrioLabel(task.priority)}</span>
+        ${dueBadge}
+        <span class="assignee-chip"><i class="fa fa-user" style="font-size:.65rem"></i>${assigneeName.substring(0,14)}</span>
+      </div>`;
+
+    col.insertBefore(card, btn);
+  });
+
+  const newOffset = offset + data.tasks.length;
+  if (data.has_more) {
+    btn.disabled = false;
+    btn.dataset.offset = newOffset;
+    btn.innerHTML = `<i class="fa fa-chevron-down me-1"></i>Xem thêm ${data.total - newOffset} task nữa…`;
+    btn.onclick = () => loadMoreTasks(stage, newOffset, btn);
+  } else {
+    btn.remove();
+  }
+}
+
+function getPrioLabel(p) {
+  const m = { LOW:'⚪ Thấp', MEDIUM:'🟡 Trung bình', HIGH:'🟠 Cao', URGENT:'🔴 Khẩn cấp' };
+  return m[p] || p;
+}
+
+// ── Toast notification ────────────────────────────────────────────────────────
+function showToast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `alert alert-${type} shadow-sm`;
+  el.style.cssText = 'position:fixed;top:70px;right:20px;z-index:9999;min-width:240px;font-size:.83rem';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+</script>
+{% endblock %}

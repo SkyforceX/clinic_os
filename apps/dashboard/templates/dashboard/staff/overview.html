@@ -1,0 +1,644 @@
+{% extends "base_admin.html" %}
+{% load static hrm_tags %}
+
+{% block title %}Tổng quan – Clinic OS{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   DASHBOARD LAYOUT
+══════════════════════════════════════════════════════════════════════ */
+.db-page { max-width: 1400px; margin: 0 auto; padding: 0 4px; }
+
+.db-section-title {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: #6c757d;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.db-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e9ecef;
+}
+
+/* ══ Welcome banner ══════════════════════════════════════════════════ */
+.db-welcome {
+  background: linear-gradient(120deg, #0f4c81 0%, #1a6ba0 60%, #0f7e82 100%);
+  border-radius: 16px;
+  padding: 20px 28px;
+  color: #fff;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.db-welcome-title { font-size: 1.25rem; font-weight: 700; margin: 0; }
+.db-welcome-sub   { font-size: .85rem; opacity: .85; margin-top: 3px; }
+.db-date-badge    {
+  background: rgba(255,255,255,.18);
+  border-radius: 10px;
+  padding: 8px 16px;
+  text-align: center;
+  backdrop-filter: blur(4px);
+}
+.db-date-badge .day  { font-size: 2rem; font-weight: 800; line-height: 1; }
+.db-date-badge .month { font-size: .75rem; opacity: .85; }
+
+/* ══ Card wrapper ════════════════════════════════════════════════════ */
+.db-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.db-card-title {
+  font-size: .9rem;
+  font-weight: 700;
+  color: #0f4c81;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.db-card-title i { opacity: .75; }
+
+/* ══ KPI chip (Executive stats) ═══════════════════════════════════════ */
+.kpi-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; }
+.kpi-chip {
+  background: #f0f6ff;
+  border: 1px solid #c8deff;
+  border-radius: 10px;
+  padding: 10px 16px;
+  min-width: 110px;
+  text-align: center;
+}
+.kpi-chip.orange { background: #fff8ec; border-color: #ffd58a; }
+.kpi-chip.green  { background: #edfbf4; border-color: #8fe0b5; }
+.kpi-chip.red    { background: #fff0f0; border-color: #f5b8b8; }
+.kpi-chip.teal   { background: #eafaf8; border-color: #8fd6cf; }
+.kpi-chip.gray   { background: #f5f5f5; border-color: #d0d0d0; }
+.kpi-chip .val   { font-size: 1.6rem; font-weight: 800; color: #0f4c81; line-height: 1; }
+.kpi-chip.orange .val { color: #b45a00; }
+.kpi-chip.green  .val { color: #0a7a42; }
+.kpi-chip.red    .val { color: #b00020; }
+.kpi-chip.teal   .val { color: #0a7272; }
+.kpi-chip.gray   .val { color: #555; }
+.kpi-chip .lbl   { font-size: .68rem; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; margin-top: 3px; }
+
+/* ══ Task stage bar ══════════════════════════════════════════════════ */
+.stage-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+.stage-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: .8rem;
+  font-weight: 600;
+  background: #f1f3f5;
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+.stage-pill .cnt {
+  background: #fff;
+  border-radius: 50%;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .78rem;
+  font-weight: 800;
+  color: inherit;
+}
+.stage-pill.todo        { background: #f0f4ff; border-color: #bdd0ff; color: #2040a0; }
+.stage-pill.in-progress { background: #fffbec; border-color: #ffd97a; color: #8a5c00; }
+.stage-pill.in-review   { background: #f5f0ff; border-color: #d0b0ff; color: #5a10a0; }
+.stage-pill.done        { background: #edfaf5; border-color: #88d9b0; color: #0a6e3c; }
+.stage-pill.cancelled   { background: #f9f9f9; border-color: #cecece; color: #777; }
+
+/* ══ Implementation plan table ════════════════════════════════════════ */
+.impl-list { display: flex; flex-direction: column; gap: 8px; }
+.impl-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f8fbff;
+  border: 1px solid #dbe8f7;
+  border-radius: 10px;
+  font-size: .84rem;
+}
+.impl-item.ongoing { border-left: 4px solid #0f7e82; }
+.impl-item.upcoming { border-left: 4px solid #1a6ba0; }
+.impl-company { font-weight: 700; color: #0f4c81; min-width: 0; flex: 1; }
+.impl-meta { color: #6c757d; font-size: .75rem; white-space: nowrap; }
+.impl-progress-wrap { display: flex; align-items: center; gap: 6px; min-width: 110px; }
+.impl-progress-bar  { flex: 1; height: 6px; background: #e0eaff; border-radius: 3px; }
+.impl-progress-fill { height: 100%; border-radius: 3px; background: #1a6ba0; }
+.impl-pct { font-size: .72rem; color: #0f4c81; font-weight: 700; white-space: nowrap; }
+.impl-empty { text-align: center; color: #aaa; padding: 24px 0; font-size: .85rem; }
+
+/* ══ Weekly booking calendar ══════════════════════════════════════════ */
+.week-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.week-day {
+  border: 1px solid #e5e9f0;
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 80px;
+  font-size: .78rem;
+}
+.week-day.is-today { border-color: #0f4c81; box-shadow: 0 0 0 2px #c2d9f7; }
+.week-day-header {
+  background: #f0f4fa;
+  padding: 5px 8px;
+  font-weight: 700;
+  font-size: .72rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #0f4c81;
+}
+.week-day.is-today .week-day-header { background: #0f4c81; color: #fff; }
+.week-day-date { font-size: .68rem; font-weight: 500; }
+.week-day-body { padding: 5px 7px; }
+.booking-tag {
+  background: #e0f0ff;
+  border-radius: 5px;
+  padding: 2px 6px;
+  margin-bottom: 3px;
+  font-size: .72rem;
+  color: #0f4c81;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.booking-tag .pax { font-weight: 700; color: #0a6090; }
+.booking-empty { color: #bbb; font-size: .7rem; padding: 6px 0; }
+.booking-total { font-size: .7rem; color: #6c757d; margin-top: 4px; text-align: right; }
+
+/* ══ Doctor schedule grid ════════════════════════════════════════════ */
+.doc-sched-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.doc-sched-table th {
+  background: #0f4c81;
+  color: #fff;
+  padding: 7px 8px;
+  text-align: center;
+  font-size: .72rem;
+  font-weight: 600;
+}
+.doc-sched-table th.name-col { text-align: left; min-width: 140px; }
+.doc-sched-table td {
+  border-bottom: 1px solid #f0f2f5;
+  padding: 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+.doc-sched-table tr:last-child td { border-bottom: none; }
+.doc-sched-table td.name-col { text-align: left; font-weight: 600; color: #0f4c81; }
+.doc-sched-table td.name-col small { display: block; font-weight: 400; color: #888; font-size: .72rem; }
+.shift-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: .7rem;
+  font-weight: 600;
+}
+.shift-morning   { background: #fff8dc; color: #a07000; border: 1px solid #f0d060; }
+.shift-afternoon { background: #eef0ff; color: #2040a0; border: 1px solid #b0c0ff; }
+.shift-all-day   { background: #edfaf5; color: #0a6e3c; border: 1px solid #88d9b0; }
+.shift-none      { color: #ccc; font-size: .68rem; }
+.doc-sched-empty { text-align: center; color: #aaa; padding: 24px 0; font-size: .85rem; }
+.doc-sched-today-col { background: #f5f8ff; }
+
+/* ══ Approval summary ════════════════════════════════════════════════ */
+.approval-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.approval-chip {
+  flex: 1;
+  min-width: 80px;
+  text-align: center;
+  padding: 12px 10px;
+  border-radius: 10px;
+  font-size: .78rem;
+}
+.approval-chip .num { font-size: 1.5rem; font-weight: 800; display: block; }
+.approval-chip .lbl { color: #6c757d; font-size: .7rem; margin-top: 2px; }
+.chip-pending  { background: #fff8ec; border: 1px solid #ffd58a; }
+.chip-pending  .num { color: #a06000; }
+.chip-approved { background: #edfaf5; border: 1px solid #88d9b0; }
+.chip-approved .num { color: #0a6e3c; }
+.chip-rejected { background: #fff0f0; border: 1px solid #f5b8b8; }
+.chip-rejected .num { color: #b00020; }
+.chip-total    { background: #f0f4ff; border: 1px solid #bdd0ff; }
+.chip-total    .num { color: #0f4c81; }
+
+/* ══ Responsive ══════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  .week-cal { grid-template-columns: repeat(4, 1fr); }
+  .kpi-chips { gap: 7px; }
+  .kpi-chip  { min-width: 90px; }
+}
+@media (max-width: 479px) {
+  .week-cal { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="db-page">
+
+  <!-- ══ Welcome banner ═══════════════════════════════════════════════ -->
+  <div class="db-welcome">
+    <div>
+      <div class="db-welcome-title">
+        Xin chào, {{ request.user.get_full_name|default:request.user.username }} 👋
+      </div>
+      <!-- <div class="db-welcome-sub">
+        {% if user_role == "executive" %}
+          Bạn đang xem bảng điều hành tổng quan hệ thống clinic_os
+        {% else %}
+          Đây là bảng công việc cá nhân của bạn trong hệ thống clinic_os
+        {% endif %}
+      </div> -->
+    </div>
+    <div class="db-date-badge">
+      <div class="day">{{ today|date:"d" }}</div>
+      <div class="month">Tháng {{ today|date:"n" }} / {{ today|date:"Y" }}</div>
+      <div class="month" style="margin-top:2px">{{ today|date:"l" }}</div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CỘT TRÁI — DỮ LIỆU CHUNG
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="col-12 col-xl-8">
+
+      <!-- ── Kế hoạch triển khai ──────────────────────────────────── -->
+      <p class="db-section-title"><i class="fa fa-calendar-check"></i> Kế hoạch triển khai khám đoàn</p>
+      <div class="db-card">
+        <div class="db-card-title">
+          <i class="fa fa-layer-group"></i>
+          Đang &amp; sắp triển khai
+          <span class="badge bg-primary ms-auto" style="font-size:.7rem">{{ implementation_plans|length }} kế hoạch</span>
+        </div>
+        {% if implementation_plans %}
+        <div class="impl-list">
+          {% for plan in implementation_plans %}
+          <div class="impl-item {% if plan.is_ongoing %}ongoing{% else %}upcoming{% endif %}">
+            <div class="flex-shrink-0">
+              {% if plan.is_ongoing %}
+                <span class="badge" style="background:#0f7e82;font-size:.68rem">Đang thực hiện</span>
+              {% else %}
+                <span class="badge" style="background:#1a6ba0;font-size:.68rem">Sắp tới</span>
+              {% endif %}
+            </div>
+            <div class="impl-company text-truncate">
+              {{ plan.company_name }}
+              <div class="impl-meta">HĐ {{ plan.contract_number }}</div>
+            </div>
+            <div class="impl-meta text-end" style="flex-shrink:0">
+              {% if plan.start_date %}{{ plan.start_date|date:"d/m" }}{% endif %}
+              {% if plan.end_date %} — {{ plan.end_date|date:"d/m/Y" }}{% endif %}
+            </div>
+            <div class="impl-progress-wrap">
+              <div class="impl-progress-bar">
+                <div class="impl-progress-fill" style="width:{{ plan.progress_pct }}%"></div>
+              </div>
+              <span class="impl-pct">{{ plan.progress_pct }}%</span>
+            </div>
+            <div class="impl-meta" style="flex-shrink:0">
+              {{ plan.locked_rows }}/{{ plan.total_rows }} <span style="font-size:.68rem">dòng</span>
+            </div>
+            <a href="{% url 'contract:implementation_plan_detail' contract_id=plan.contract_id %}"
+               class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:.72rem;flex-shrink:0">Chi tiết</a>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="impl-empty">
+          <i class="fa fa-inbox fa-lg mb-2 d-block opacity-30"></i>
+          Không có kế hoạch triển khai nào đang hoặc sắp thực hiện.
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- ── Lịch khám doanh nghiệp theo tuần ────────────────────── -->
+      <p class="db-section-title"><i class="fa fa-building"></i> Lịch khách hàng doanh nghiệp — tuần này</p>
+      <div class="db-card">
+        <div class="db-card-title">
+          <i class="fa fa-calendar-week"></i>
+          {{ week_start|date:"d/m" }} — {{ week_end|date:"d/m/Y" }}
+          <a href="{% url 'scheduling:schedule_table' %}"
+             class="btn btn-sm btn-outline-secondary ms-auto py-0" style="font-size:.72rem">
+            Xem lịch đầy đủ
+          </a>
+        </div>
+        <div class="week-cal">
+          {% for day_info in corporate_bookings %}
+          <div class="week-day {% if day_info.is_today %}is-today{% endif %}">
+            <div class="week-day-header">
+              <span>{{ day_info.day_label }}</span>
+              <span class="week-day-date">{{ day_info.date|date:"d/m" }}</span>
+            </div>
+            <div class="week-day-body">
+              {% if day_info.companies %}
+                {% for co in day_info.companies %}
+                <div class="booking-tag">
+                  <span class="text-truncate" style="max-width:80px" title="{{ co.name }}">{{ co.name|truncatechars:14 }}</span>
+                  <span class="pax">{{ co.pax }}</span>
+                </div>
+                {% endfor %}
+                <div class="booking-total">{{ day_info.total_pax }} người</div>
+              {% else %}
+                <div class="booking-empty">–</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ── Lịch bác sĩ trong tuần ─────────────────────────────── -->
+      <p class="db-section-title"><i class="fa fa-user-md"></i> Lịch làm việc bác sĩ — tuần này</p>
+      <div class="db-card">
+        <div class="db-card-title">
+          <i class="fa fa-stethoscope"></i>
+          Lịch tuần {{ week_start|date:"d/m" }} — {{ week_end|date:"d/m/Y" }}
+          {% if user_role == "executive" or request.user.is_superuser %}
+          <a href="{% url 'hrm:doctor_schedule_list' %}"
+             class="btn btn-sm btn-outline-secondary ms-auto py-0" style="font-size:.72rem">
+            Quản lý lịch
+          </a>
+          {% endif %}
+        </div>
+        {% if doctor_schedules %}
+        <div class="table-responsive">
+          <table class="doc-sched-table">
+            <thead>
+              <tr>
+                <th class="name-col">Bác sĩ</th>
+                {% for wdi in week_days_info %}
+                <th {% if wdi.is_today %}style="background:#0a7272"{% endif %}>
+                  {{ wdi.day_label }}<br>
+                  <span style="font-size:.65rem;opacity:.8">{{ wdi.date|date:"d/m" }}</span>
+                </th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for ds in doctor_schedules %}
+              <tr>
+                <td class="name-col">
+                  {{ ds.doctor_name }}
+                  {% if ds.position %}<small>{{ ds.position }}</small>{% endif %}
+                </td>
+                {% for wdi in week_days_info %}
+                {% with shift_info=ds.shifts|get_item:wdi.day_key %}
+                <td {% if wdi.is_today %}class="doc-sched-today-col"{% endif %}>
+                  {% if shift_info.is_working %}
+                    <span class="shift-badge shift-{{ shift_info.shift }}">{{ shift_info.label }}</span>
+                  {% else %}
+                    <span class="shift-none">–</span>
+                  {% endif %}
+                </td>
+                {% endwith %}
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="doc-sched-empty">
+          <i class="fa fa-calendar-xmark fa-lg mb-2 d-block opacity-30"></i>
+          Chưa có lịch bác sĩ cho tuần này.
+          {% if user_role == "executive" or request.user.is_superuser %}
+          <br><a href="{% url 'hrm:doctor_schedule_edit' %}" class="text-primary">Tạo lịch ngay</a>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+    </div><!-- /col-xl-8 -->
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CỘT PHẢI — DỮ LIỆU CÁ NHÂN
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="col-12 col-xl-4">
+
+      {% if user_role == "executive" %}
+      <!-- ── Executive: Báo giá ────────────────────────────────── -->
+      <p class="db-section-title"><i class="fa fa-chart-pie"></i> Dữ liệu của bạn</p>
+
+      <div class="db-card">
+        <div class="db-card-title"><i class="fa fa-file-invoice-dollar"></i> Báo giá</div>
+        <div class="kpi-chips">
+          <div class="kpi-chip">
+            <div class="val">{{ personal_stats.quotation_counts.draft }}</div>
+            <div class="lbl">Nháp</div>
+          </div>
+          <div class="kpi-chip orange">
+            <div class="val">{{ personal_stats.quotation_counts.submitted }}</div>
+            <div class="lbl">Chờ duyệt</div>
+          </div>
+          <div class="kpi-chip green">
+            <div class="val">{{ personal_stats.quotation_counts.approved }}</div>
+            <div class="lbl">Đã duyệt</div>
+          </div>
+          <div class="kpi-chip teal">
+            <div class="val">{{ personal_stats.quotation_counts.total }}</div>
+            <div class="lbl">Tổng cộng</div>
+          </div>
+        </div>
+        <div class="mt-2">
+          <a href="{% url 'contract:quotation_list' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+            Xem danh sách báo giá →
+          </a>
+        </div>
+      </div>
+
+      <!-- ── Executive: Hợp đồng ───────────────────────────────── -->
+      <div class="db-card">
+        <div class="db-card-title"><i class="fa fa-file-signature"></i> Hợp đồng</div>
+        <div class="kpi-chips">
+          <div class="kpi-chip">
+            <div class="val">{{ personal_stats.contract_counts.draft }}</div>
+            <div class="lbl">Nháp</div>
+          </div>
+          <div class="kpi-chip orange">
+            <div class="val">{{ personal_stats.contract_counts.submitted }}</div>
+            <div class="lbl">Chờ duyệt</div>
+          </div>
+          <div class="kpi-chip green">
+            <div class="val">{{ personal_stats.contract_counts.approved }}</div>
+            <div class="lbl">Đã duyệt</div>
+          </div>
+          <div class="kpi-chip teal">
+            <div class="val">{{ personal_stats.contract_counts.active }}</div>
+            <div class="lbl">Hiệu lực</div>
+          </div>
+          <div class="kpi-chip gray">
+            <div class="val">{{ personal_stats.contract_counts.finished }}</div>
+            <div class="lbl">Hoàn tất</div>
+          </div>
+        </div>
+        <div class="mt-2">
+          <a href="{% url 'contract:corporate_contract_list' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+            Xem danh sách hợp đồng →
+          </a>
+        </div>
+      </div>
+
+      <!-- ── Executive: Tasks đã giao ─────────────────────────── -->
+      <div class="db-card">
+        <div class="db-card-title">
+          <i class="fa fa-list-check"></i>
+          Công việc đã giao
+          <span class="badge bg-secondary ms-auto" style="font-size:.68rem">{{ personal_stats.tasks_created_total }}</span>
+        </div>
+        <div class="stage-bar">
+          {% for st in personal_stats.task_stage_counts %}
+          {% if st.count > 0 %}
+          <div class="stage-pill
+            {% if st.stage == 'TODO' %}todo
+            {% elif st.stage == 'IN_PROGRESS' %}in-progress
+            {% elif st.stage == 'IN_REVIEW' %}in-review
+            {% elif st.stage == 'DONE' %}done
+            {% else %}cancelled{% endif %}">
+            <span class="cnt">{{ st.count }}</span>
+            {{ st.label }}
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        <div class="mt-2">
+          <a href="{% url 'tasks:board' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+            Xem tất cả công việc →
+          </a>
+        </div>
+      </div>
+
+      <!-- ── Executive: Phê duyệt đang chờ ───────────────────── -->
+      <div class="db-card">
+        <div class="db-card-title"><i class="fa fa-clock-rotate-left"></i> Phê duyệt đang chờ</div>
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 4px">
+          <div style="font-size:2.8rem;font-weight:900;color:{% if personal_stats.pending_approvals > 0 %}#a06000{% else %}#0a6e3c{% endif %}">
+            {{ personal_stats.pending_approvals }}
+          </div>
+          <div style="font-size:.82rem;color:#6c757d">
+            yêu cầu đang chờ<br>phê duyệt từ nhân viên
+          </div>
+        </div>
+        <div class="mt-1">
+          <a href="{% url 'approvals:inbox' %}" class="btn btn-sm {% if personal_stats.pending_approvals > 0 %}btn-warning{% else %}btn-outline-secondary{% endif %} w-100" style="font-size:.78rem">
+            Xem inbox phê duyệt →
+          </a>
+        </div>
+      </div>
+
+      {% else %}
+      <!-- ── Staff: Tasks được giao ────────────────────────────── -->
+      <p class="db-section-title"><i class="fa fa-user-check"></i> Dữ liệu của bạn</p>
+
+      <div class="db-card">
+        <div class="db-card-title">
+          <i class="fa fa-list-check"></i>
+          Công việc được giao
+          <span class="badge bg-secondary ms-auto" style="font-size:.68rem">{{ personal_stats.tasks_assigned_total }}</span>
+        </div>
+        <div class="stage-bar">
+          {% for st in personal_stats.task_stage_counts %}
+          {% if st.count > 0 %}
+          <div class="stage-pill
+            {% if st.stage == 'TODO' %}todo
+            {% elif st.stage == 'IN_PROGRESS' %}in-progress
+            {% elif st.stage == 'IN_REVIEW' %}in-review
+            {% elif st.stage == 'DONE' %}done
+            {% else %}cancelled{% endif %}">
+            <span class="cnt">{{ st.count }}</span>
+            {{ st.label }}
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% if personal_stats.tasks_assigned_total == 0 %}
+        <div class="text-muted" style="font-size:.8rem;padding:8px 0">Chưa có công việc nào được giao.</div>
+        {% endif %}
+        <div class="mt-2">
+          <a href="{% url 'tasks:board' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+            Xem công việc của tôi →
+          </a>
+        </div>
+      </div>
+
+      <!-- ── Staff: Yêu cầu phê duyệt của tôi ────────────────── -->
+      <div class="db-card">
+        <div class="db-card-title"><i class="fa fa-paper-plane"></i> Yêu cầu phê duyệt của tôi</div>
+        <div class="approval-row">
+          <div class="approval-chip chip-pending">
+            <span class="num">{{ personal_stats.my_approvals.pending }}</span>
+            <div class="lbl">Đang chờ</div>
+          </div>
+          <div class="approval-chip chip-approved">
+            <span class="num">{{ personal_stats.my_approvals.approved }}</span>
+            <div class="lbl">Đã duyệt</div>
+          </div>
+          <div class="approval-chip chip-rejected">
+            <span class="num">{{ personal_stats.my_approvals.rejected }}</span>
+            <div class="lbl">Từ chối</div>
+          </div>
+          <div class="approval-chip chip-total">
+            <span class="num">{{ personal_stats.my_approvals.total }}</span>
+            <div class="lbl">Tổng</div>
+          </div>
+        </div>
+        <div class="mt-2">
+          <a href="{% url 'approvals:my_requests' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+            Xem yêu cầu của tôi →
+          </a>
+        </div>
+      </div>
+
+      {% endif %}
+
+      <!-- ── Quick links (chung) ──────────────────────────────── -->
+      <div class="db-card">
+        <div class="db-card-title"><i class="fa fa-bolt"></i> Truy cập nhanh</div>
+        <div class="d-flex flex-column gap-2">
+          <a href="{% url 'contract:quotation_list' %}" class="btn btn-sm btn-outline-secondary text-start">
+            <i class="fa fa-file-invoice-dollar me-2"></i> Danh sách báo giá
+          </a>
+          <a href="{% url 'contract:corporate_contract_list' %}" class="btn btn-sm btn-outline-secondary text-start">
+            <i class="fa fa-file-signature me-2"></i> Hợp đồng doanh nghiệp
+          </a>
+          <a href="{% url 'tasks:board' %}" class="btn btn-sm btn-outline-secondary text-start">
+            <i class="fa fa-list-check me-2"></i> Quản lý công việc
+          </a>
+          <a href="{% url 'approvals:inbox' %}" class="btn btn-sm btn-outline-secondary text-start">
+            <i class="fa fa-inbox me-2"></i> Inbox phê duyệt
+          </a>
+          <a href="{% url 'contract:implementation_plan_list' %}" class="btn btn-sm btn-outline-secondary text-start">
+            <i class="fa fa-calendar-check me-2"></i> Kế hoạch triển khai
+          </a>
+          {% if user_role == "executive" or request.user.is_superuser %}
+          <a href="{% url 'hrm:doctor_schedule_list' %}" class="btn btn-sm btn-outline-secondary text-start">
+            <i class="fa fa-stethoscope me-2"></i> Lịch bác sĩ
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+    </div><!-- /col-xl-4 -->
+  </div><!-- /row -->
+</div>
+{% endblock %}

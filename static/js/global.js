@@ -26,6 +26,40 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
+function emitLayoutChanged(detail = {}) {
+  window.dispatchEvent(new CustomEvent("layout:changed", { detail }));
+}
+
+function applySidebarLayoutState() {
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebar-overlay");
+  const body = document.body;
+  if (!sidebar || !body) return;
+
+  const isMobile = window.matchMedia("(max-width: 1023px)").matches;
+  const isCollapsed = sidebar.classList.contains("collapsed");
+  const isOpenMobile = sidebar.classList.contains("active");
+
+  if (isMobile) {
+    body.classList.remove("sidebar-collapsed", "sidebar-expanded");
+    body.classList.toggle("sidebar-open", isOpenMobile);
+    body.setAttribute("data-sidebar-state", isOpenMobile ? "mobile-open" : "mobile-closed");
+    if (overlay) overlay.setAttribute("aria-hidden", isOpenMobile ? "false" : "true");
+  } else {
+    body.classList.remove("sidebar-open");
+    body.classList.toggle("sidebar-collapsed", isCollapsed);
+    body.classList.toggle("sidebar-expanded", !isCollapsed);
+    body.setAttribute("data-sidebar-state", isCollapsed ? "collapsed" : "expanded");
+    if (overlay) overlay.setAttribute("aria-hidden", "true");
+  }
+
+  emitLayoutChanged({
+    mobile: isMobile,
+    collapsed: !isMobile && isCollapsed,
+    open: isMobile ? isOpenMobile : !isCollapsed,
+  });
+}
+
 function toggleSidebar(forceOpen = null) {
   const sidebar = document.getElementById("sidebar");
   const overlay = document.getElementById("sidebar-overlay");
@@ -34,32 +68,54 @@ function toggleSidebar(forceOpen = null) {
   const isMobile = window.matchMedia("(max-width: 1023px)").matches;
 
   if (isMobile) {
-    // MOBILE: chỉ dùng active + overlay, không dùng collapsed/shifted
     const isOpen = sidebar.classList.contains("active");
-    const nextOpen = (forceOpen === null) ? !isOpen : !!forceOpen;
+    const nextOpen = forceOpen === null ? !isOpen : !!forceOpen;
 
     sidebar.classList.toggle("active", nextOpen);
-    sidebar.classList.remove("collapsed");
+    sidebar.classList.toggle("collapsed", !nextOpen);
 
-    document.body.classList.toggle("sidebar-open", nextOpen);
     if (overlay) overlay.setAttribute("aria-hidden", nextOpen ? "false" : "true");
+    applySidebarLayoutState();
     return;
   }
 
-  // DESKTOP: giữ cơ chế thu gọn (collapsed)
-  const isCollapsed = sidebar.classList.contains("collapsed");
-  sidebar.classList.toggle("collapsed", !isCollapsed);
-  sidebar.classList.toggle("active", isCollapsed); // optional cho đúng logic cũ
+  const nextCollapsed =
+    forceOpen === null
+      ? !sidebar.classList.contains("collapsed")
+      : !forceOpen;
+
+  sidebar.classList.toggle("collapsed", nextCollapsed);
+  sidebar.classList.remove("active");
+
+  applySidebarLayoutState();
 }
 
-// đóng khi bấm overlay / ESC
 document.addEventListener("DOMContentLoaded", () => {
   const overlay = document.getElementById("sidebar-overlay");
-  if (overlay) overlay.addEventListener("click", () => toggleSidebar(false));
+
+  applySidebarLayoutState();
+
+  if (overlay) {
+    overlay.addEventListener("click", () => toggleSidebar(false));
+  }
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") toggleSidebar(false);
+    if (e.key === "Escape") {
+      const isMobile = window.matchMedia("(max-width: 1023px)").matches;
+      if (isMobile) toggleSidebar(false);
+    }
   });
+
+  window.addEventListener("resize", () => {
+    applySidebarLayoutState();
+  });
+
+  const sidebar = document.getElementById("sidebar");
+  if (sidebar) {
+    sidebar.addEventListener("transitionend", () => {
+      applySidebarLayoutState();
+    });
+  }
 });
 
 

@@ -1,0 +1,126 @@
+{% extends "base_admin.html" %}
+{% load static hrm_tags %}
+
+{% block title %}Lịch làm việc bác sĩ{% endblock %}
+
+{% block extra_head %}
+<style>
+.sched-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.sched-table th {
+  background: #0f4c81; color: #fff;
+  padding: 8px 10px; text-align: center;
+  font-size: .76rem; font-weight: 600;
+  white-space: nowrap;
+}
+.sched-table th.name-col { text-align: left; min-width: 160px; }
+.sched-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid #f0f2f5;
+  text-align: center;
+  vertical-align: middle;
+}
+.sched-table td.name-col { text-align: left; }
+.sched-table tr:last-child td { border-bottom: none; }
+.sched-table tr:hover td { background: #f8fbff; }
+.shift-badge { display:inline-block; padding:2px 10px; border-radius:10px; font-size:.73rem; font-weight:600; }
+.shift-morning   { background:#fff8dc; color:#a07000; border:1px solid #f0d060; }
+.shift-afternoon { background:#eef0ff; color:#2040a0; border:1px solid #b0c0ff; }
+.shift-all-day   { background:#edfaf5; color:#0a6e3c; border:1px solid #88d9b0; }
+.today-col       { background: #f0f6ff !important; }
+.today-col th    { background: #0a7272 !important; }
+.week-nav { display:flex; align-items:center; gap:10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h5 class="mb-0"><i class="fa fa-stethoscope me-2"></i>Lịch làm việc bác sĩ</h5>
+  {% if can_manage %}
+  <a href="{% url 'hrm:doctor_schedule_edit' %}" class="btn btn-primary btn-sm">
+    <i class="fa fa-plus me-1"></i> Nhập lịch tuần
+  </a>
+  {% endif %}
+</div>
+
+<!-- Week navigator -->
+<div class="week-nav mb-3">
+  <a href="?week={{ prev_offset }}" class="btn btn-sm btn-outline-secondary">← Tuần trước</a>
+  <div class="fw-semibold" style="font-size:.9rem">
+    Tuần {{ week_start|date:"d/m" }} — {{ week_end|date:"d/m/Y" }}
+  </div>
+  <a href="?week={{ next_offset }}" class="btn btn-sm btn-outline-secondary">Tuần sau →</a>
+  {% if week_offset != 0 %}
+  <a href="?week=0" class="btn btn-sm btn-outline-primary">Tuần này</a>
+  {% endif %}
+</div>
+
+<div class="card border-0 shadow-sm rounded-3">
+  <div class="card-body p-0">
+    {% if schedules %}
+    <div class="table-responsive">
+      <table class="sched-table">
+        <thead>
+          <tr>
+            <th class="name-col">Bác sĩ</th>
+            {% for wd in week_days %}
+            <th {% if wd == today %}style="background:#0a7272"{% endif %}>
+              {{ wd|date:"D" }}<br>
+              <span style="font-size:.65rem;opacity:.85">{{ wd|date:"d/m" }}</span>
+            </th>
+            {% endfor %}
+            {% if can_manage %}<th>Thao tác</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for sched in schedules %}
+          {% with sched.get_schedule_display as display %}
+          <tr>
+            <td class="name-col">
+              <div class="fw-semibold" style="color:#0f4c81">{{ sched.doctor.full_name }}</div>
+              {% if sched.doctor.position %}
+              <div class="text-muted" style="font-size:.75rem">{{ sched.doctor.position.name }}</div>
+              {% endif %}
+              {% if sched.note %}
+              <div class="text-muted" style="font-size:.72rem;font-style:italic">{{ sched.note }}</div>
+              {% endif %}
+            </td>
+            {% for day_key in day_keys %}
+            {% with shift_info=display|get_item:day_key %}
+            <td {% if shift_info.is_working %}style="background:#f8fbff"{% endif %}>
+              {% if shift_info.is_working %}
+              <span class="shift-badge shift-{{ shift_info.shift }}">{{ shift_info.shift_label }}</span>
+              {% else %}
+              <span style="color:#ddd">–</span>
+              {% endif %}
+            </td>
+            {% endwith %}
+            {% endfor %}
+            {% if can_manage %}
+            <td>
+              <a href="{% url 'hrm:doctor_schedule_edit_doctor' week_start_str=week_start|date:'Y-m-d' doctor_id=sched.doctor.pk %}"
+                 class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:.72rem">Sửa</a>
+            </td>
+            {% endif %}
+          </tr>
+          {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="fa fa-calendar-xmark fa-2x mb-2 d-block opacity-30"></i>
+      Chưa có lịch bác sĩ cho tuần này.
+      {% if can_manage %}
+      <div class="mt-2">
+        <a href="{% url 'hrm:doctor_schedule_edit_week' week_start_str=week_start|date:'Y-m-d' %}" class="btn btn-primary btn-sm">
+          <i class="fa fa-plus me-1"></i> Tạo lịch tuần này
+        </a>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

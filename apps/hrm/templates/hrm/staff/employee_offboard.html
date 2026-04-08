@@ -1,0 +1,42 @@
+{% extends "base_admin.html" %}
+{% block title %}Nghỉ việc – {{ employee.full_name }}{% endblock %}
+{% block content %}
+<h4 class="mb-1">Xử lý nghỉ việc</h4>
+<p class="text-muted mb-4">{{ employee.full_name }} · {{ employee.employee_code }}</p>
+
+<div class="alert alert-danger">
+  ⚠ Thao tác này sẽ <strong>thu hồi toàn bộ quyền truy cập</strong> và
+  <strong>khóa tài khoản</strong> của nhân viên. Không thể hoàn tác tự động.
+</div>
+
+<form method="post" class="card">
+  {% csrf_token %}
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Ngày nghỉ việc <span class="text-danger">*</span></label>
+        {{ form.resignation_date }}
+        {% if form.resignation_date.errors %}
+          <div class="text-danger small">{{ form.resignation_date.errors }}</div>
+        {% endif %}
+      </div>
+      <div class="col-12">
+        <div class="form-check">
+          {{ form.terminate }}
+          <label class="form-check-label text-danger" for="{{ form.terminate.id_for_label }}">
+            Chấm dứt hợp đồng (không phải tự nguyện nghỉ)
+          </label>
+        </div>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Lý do</label>
+        {{ form.reason }}
+      </div>
+    </div>
+  </div>
+  <div class="card-footer d-flex gap-2">
+    <button type="submit" class="btn btn-danger">Xác nhận nghỉ việc</button>
+    <a href="{% url 'hrm:employee_detail' employee.pk %}" class="btn btn-outline-secondary">Hủy</a>
+  </div>
+</form>
+{% endblock %}

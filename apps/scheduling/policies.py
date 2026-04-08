@@ -18,6 +18,14 @@ class SchedulingPolicy:
         return cls.is_authenticated_actor(user)
 
     @classmethod
+    def can_manage_quote_schedule(cls, user, owner_user_id):
+        if not cls.is_authenticated_actor(user):
+            return False
+        if cls.is_manager(user):
+            return True
+        return owner_user_id == user.id
+
+    @classmethod
     def can_manage_contract_schedule(cls, user, contract):
         if not cls.is_authenticated_actor(user):
             return False
@@ -28,3 +36,7 @@ class SchedulingPolicy:
     @classmethod
     def can_redistribute_slots(cls, user, contract):
         return cls.can_manage_contract_schedule(user, contract)
+
+    @classmethod
+    def can_manage_general_settings(cls, user):
+        return cls.is_manager(user)

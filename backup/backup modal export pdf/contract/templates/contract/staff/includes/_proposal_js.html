@@ -1,0 +1,136 @@
+{# _proposal_js.html — included by create_proposal.html & edit_quotation.html #}
+<script>
+// ─────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────
+function fmtVnd(n) { return Math.round(n).toLocaleString('vi-VN') + ' ₫'; }
+function fmtNum(n) { return Math.round(n).toLocaleString('vi-VN'); }
+function getGlobal(key) { return parseFloat(document.getElementById('global_pct_' + key).value) || 0; }
+
+function applyGlobalAll(val) {
+  ['m','fs','ff'].forEach(k => {
+    const el = document.getElementById('global_pct_' + k);
+    if (el) el.value = val;
+  });
+  recalcAll();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Compute udai + final prices for ONE row, update display + hidden inputs
+// ─────────────────────────────────────────────────────────────────────────
+function recalcRow(id) {
+  const row = document.querySelector(`.svc-row[data-id="${id}"]`);
+  if (!row) return;
+
+  const type = row.dataset.type;
+  if (type === 'free' || type === 'gift') return;  // skip free/gift
+
+  const catM  = parseFloat(row.dataset.catM)  || 0;
+  const catFs = parseFloat(row.dataset.catFs) || 0;
+  const catFf = parseFloat(row.dataset.catFf) || 0;
+
+  const gm  = getGlobal('m');
+  const gfs = getGlobal('fs');
+  const gff = getGlobal('ff');
+
+  // Giá ưu đãi = catalog × (1 - global%/100)
+  const udaiM  = Math.round(catM  * (1 - gm  / 100));
+  const udaiFs = Math.round(catFs * (1 - gfs / 100));
+  const udaiFf = Math.round(catFf * (1 - gff / 100));
+
+  // Per-row additional %
+  const rowM  = parseFloat(document.getElementById(`pct_m_${id}`)?.value)   || 0;
+  const rowFs = parseFloat(document.getElementById(`pct_fs_${id}`)?.value)  || 0;
+  const rowFf = parseFloat(document.getElementById(`pct_ff_${id}`)?.value)  || 0;
+
+  // Final price = udai × (1 - row%/100)
+  const finalM  = Math.round(udaiM  * (1 - rowM  / 100));
+  const finalFs = Math.round(udaiFs * (1 - rowFs / 100));
+  const finalFf = Math.round(udaiFf * (1 - rowFf / 100));
+
+  // Update display: "Giá ưu đãi" column shows the applicable udai
+  const forM  = row.dataset.forM  === '1';
+  const forFs = row.dataset.forFs === '1';
+  const forFf = row.dataset.forFf === '1';
+
+  const displayUdai = forM ? udaiM : (forFs ? udaiFs : udaiFf);
+  const udaiDisplay = document.getElementById(`udai_${id}`);
+  if (udaiDisplay) udaiDisplay.textContent = displayUdai > 0 ? fmtNum(displayUdai) : '–';
+
+  // Update hidden inputs
+  function setH(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
+  setH(`h_udai_m_${id}`,  forM  ? udaiM  : 0);
+  setH(`h_udai_fs_${id}`, forFs ? udaiFs : 0);
+  setH(`h_udai_ff_${id}`, forFf ? udaiFf : 0);
+  setH(`h_pm_${id}`,  forM  ? finalM  : 0);
+  setH(`h_pfs_${id}`, forFs ? finalFs : 0);
+  setH(`h_pff_${id}`, forFf ? finalFf : 0);
+
+  calcTotals();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Recalc every row, then update totals
+// ─────────────────────────────────────────────────────────────────────────
+function recalcAll() {
+  document.querySelectorAll('.svc-row').forEach(row => recalcRow(row.dataset.id));
+  calcTotals();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Totals bar
+// ─────────────────────────────────────────────────────────────────────────
+function calcTotals() {
+  let tm = 0, tfs = 0, tff = 0;
+  document.querySelectorAll('.row-check:checked').forEach(cb => {
+    const id = cb.value;
+    if (document.querySelector(`input[name="checked_male_${id}"]:checked`))
+      tm  += parseInt(document.getElementById(`h_pm_${id}`)?.value)  || 0;
+    if (document.querySelector(`input[name="checked_fs_${id}"]:checked`))
+      tfs += parseInt(document.getElementById(`h_pfs_${id}`)?.value) || 0;
+    if (document.querySelector(`input[name="checked_ff_${id}"]:checked`))
+      tff += parseInt(document.getElementById(`h_pff_${id}`)?.value) || 0;
+  });
+  document.getElementById('bar_total_m').textContent  = fmtVnd(tm);
+  document.getElementById('bar_total_fs').textContent = fmtVnd(tfs);
+  document.getElementById('bar_total_ff').textContent = fmtVnd(tff);
+  calcGrand(tm, tfs, tff);
+}
+
+function calcGrand(tm, tfs, tff) {
+  if (tm === undefined) {
+    tm  = parseInt(document.getElementById('bar_total_m').textContent.replace(/\D/g,''))  || 0;
+    tfs = parseInt(document.getElementById('bar_total_fs').textContent.replace(/\D/g,'')) || 0;
+    tff = parseInt(document.getElementById('bar_total_ff').textContent.replace(/\D/g,'')) || 0;
+  }
+  const mc  = parseInt(document.getElementById('male_count_input').value)  || 0;
+  const fsc = parseInt(document.getElementById('fs_count_input').value)    || 0;
+  const ffc = parseInt(document.getElementById('ff_count_input').value)    || 0;
+  document.getElementById('bar_grand').textContent = fmtVnd(tm*mc + tfs*fsc + tff*ffc);
+}
+
+function onRowCheck(cb) { calcTotals(); }
+
+function selectAll(checked) {
+  document.querySelectorAll('.row-check').forEach(cb => { cb.checked = checked; });
+  document.getElementById('masterCheck').checked = checked;
+  calcTotals();
+}
+
+// Validate
+document.getElementById('qform').addEventListener('submit', function(e) {
+  if ([...document.querySelectorAll('.row-check:checked')].length === 0) {
+    e.preventDefault();
+    alert('Vui lòng chọn ít nhất một dịch vụ.');
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  // If prefillData was set by edit_quotation, apply it first
+  if (typeof prefillExistingLines === 'function') prefillExistingLines();
+  recalcAll();
+});
+</script>

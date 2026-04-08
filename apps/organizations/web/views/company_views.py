@@ -58,13 +58,12 @@ def company_list_view(request):
             patients = Patient.objects.filter(
                 company_id=selected_company.id
             ).order_by("id")
-
+    
     context = {
         "companies": companies,
         "patients": patients,
         "selected_company_id": str(selected_company.id) if selected_company else "",
-        "company_form": CompanyForm(),
-        "company_edit_form": CompanyForm(instance=selected_company) if selected_company else CompanyForm(),
+        "is_manager": OrganizationPolicy.is_manager(request.user),
     }
     return render(request, "organizations/staff/company_list.html", context)
 

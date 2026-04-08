@@ -1,0 +1,451 @@
+{% extends "base_admin.html" %}
+{% load static %}
+
+{% block title %}Thống kê tổng hợp – {{ year }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ── Layout ── */
+.analytics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.year-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.year-tab {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: .82rem;
+  font-weight: 500;
+  border: 1px solid #dee2e6;
+  color: #495057;
+  background: #fff;
+  text-decoration: none;
+  transition: all .15s;
+}
+.year-tab:hover { background: #e9ecef; color: #212529; }
+.year-tab.active { background: #1a5276; color: #fff; border-color: #1a5276; }
+
+/* ── KPI Cards ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 14px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  border-radius: 14px 0 0 14px;
+  background: var(--kpi-color, #1a5276);
+}
+.kpi-label { font-size: .74rem; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+.kpi-value { font-size: 1.55rem; font-weight: 700; color: #1a1a2e; line-height: 1; }
+.kpi-value.small { font-size: 1.15rem; }
+.kpi-sub { font-size: .76rem; color: #6c757d; margin-top: 5px; }
+.kpi-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .72rem; font-weight: 600; }
+.badge-up   { background: #d4edda; color: #155724; }
+.badge-down { background: #f8d7da; color: #721c24; }
+.badge-flat { background: #e9ecef; color: #495057; }
+
+/* ── Chart Cards ── */
+.chart-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.chart-card-title {
+  font-size: .88rem;
+  font-weight: 600;
+  color: #1a5276;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.chart-wrap { position: relative; }
+
+/* ── Funnel ── */
+.funnel-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.funnel-label { width: 120px; font-size: .82rem; color: #495057; flex-shrink: 0; }
+.funnel-bar-wrap { flex: 1; background: #f1f3f5; border-radius: 6px; height: 24px; overflow: hidden; }
+.funnel-bar { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; color: #fff; font-size: .78rem; font-weight: 600; min-width: 40px; transition: width .4s ease; }
+.funnel-bar.q-bar { background: linear-gradient(90deg, #2e86c1, #5dade2); }
+.funnel-bar.c-bar { background: linear-gradient(90deg, #1e8449, #27ae60); }
+.funnel-num { width: 60px; text-align: right; font-size: .84rem; font-weight: 600; color: #212529; }
+.funnel-rate { font-size: .78rem; padding: 3px 10px; background: #fff3cd; color: #856404; border-radius: 10px; font-weight: 600; border: 1px solid #ffc107; }
+
+/* ── Sale Table ── */
+.sale-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.sale-table th { background: #f8f9fa; padding: 8px 12px; font-weight: 600; color: #495057; border-bottom: 2px solid #dee2e6; text-align: left; }
+.sale-table td { padding: 8px 12px; border-bottom: 1px solid #f1f3f5; vertical-align: middle; }
+.sale-table tr:hover td { background: #f8f9fa; }
+.rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: .72rem; font-weight: 700; }
+.rank-1 { background: #ffd700; color: #856404; }
+.rank-2 { background: #c0c0c0; color: #495057; }
+.rank-3 { background: #cd7f32; color: #fff; }
+.rank-n { background: #e9ecef; color: #6c757d; }
+.revenue-bar-wrap { background: #f1f3f5; border-radius: 4px; height: 8px; margin-top: 4px; }
+.revenue-bar { height: 8px; border-radius: 4px; background: linear-gradient(90deg, #1a5276, #2e86c1); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="analytics-header">
+  <div>
+    <h5 class="mb-0"><i class="fa fa-chart-bar me-2" style="color:#1a5276"></i> Thống kê tổng hợp</h5>
+    <div class="text-muted" style="font-size:.8rem">Năm {{ year }} · Dành riêng cho Executive</div>
+  </div>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <div class="year-tabs">
+      {% for y in available_years %}
+        <a href="?year={{ y }}" class="year-tab {% if y == year %}active{% endif %}">{{ y }}</a>
+      {% endfor %}
+    </div>
+    <a href="{% url 'analytics:service_stats' %}?year={{ year }}" class="btn btn-sm btn-outline-primary">
+      <i class="fa fa-list-ul me-1"></i> Thống kê dịch vụ
+    </a>
+  </div>
+</div>
+
+{# ── KPI Cards ── #}
+<div class="kpi-grid">
+
+  <div class="kpi-card" style="--kpi-color:#2e86c1">
+    <div class="kpi-label">Tổng báo giá</div>
+    <div class="kpi-value">{{ kpi.total_quotations }}</div>
+    <div class="kpi-sub">Tạo trong năm {{ year }}</div>
+  </div>
+
+  <div class="kpi-card" style="--kpi-color:#1e8449">
+    <div class="kpi-label">Hợp đồng đã duyệt</div>
+    <div class="kpi-value">{{ kpi.total_contracts }}</div>
+    <div class="kpi-sub">
+      Tỷ lệ chuyển đổi:
+      <strong>{{ funnel.rate }}%</strong>
+    </div>
+  </div>
+
+  <div class="kpi-card" style="--kpi-color:#7d3c98">
+    <div class="kpi-label">Doanh thu năm {{ year }}</div>
+    <div class="kpi-value small">
+      {% if kpi.total_revenue >= 1000000000 %}
+        {{ kpi.total_revenue|floatformat:0 }} ₫
+      {% else %}
+        {{ kpi.total_revenue }} ₫
+      {% endif %}
+    </div>
+    <div class="kpi-sub">
+      {% if kpi.yoy_pct is not None %}
+        So năm trước:
+        {% if kpi.yoy_pct >= 0 %}
+          <span class="kpi-badge badge-up">▲ {{ kpi.yoy_pct }}%</span>
+        {% else %}
+          <span class="kpi-badge badge-down">▼ {{ kpi.yoy_pct|slice:"1:" }}%</span>
+        {% endif %}
+      {% else %}
+        <span class="kpi-badge badge-flat">Chưa có năm trước</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="kpi-card" style="--kpi-color:#ba6a00">
+    <div class="kpi-label">Giá trị TB / hợp đồng</div>
+    <div class="kpi-value small">{{ kpi.avg_contract_value }} ₫</div>
+    <div class="kpi-sub">Trên {{ kpi.total_contracts }} HĐ đã duyệt</div>
+  </div>
+
+</div>
+
+{# ── Row 1: Trend Charts ── #}
+<div class="row g-3 mb-3">
+  <div class="col-12 col-lg-7">
+    <div class="chart-card">
+      <div class="chart-card-title">
+        <i class="fa fa-chart-column"></i> Báo giá & Hợp đồng theo tháng
+      </div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="chartMonthly"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-5">
+    <div class="chart-card" style="height:100%">
+      <div class="chart-card-title">
+        <i class="fa fa-filter"></i> Phễu chuyển đổi
+      </div>
+      <div class="funnel-row mt-3">
+        <div class="funnel-label">Báo giá</div>
+        <div class="funnel-bar-wrap">
+          <div class="funnel-bar q-bar" style="width:100%">{{ funnel.quotations }}</div>
+        </div>
+        <div class="funnel-num">{{ funnel.quotations }}</div>
+      </div>
+      <div class="funnel-row">
+        <div class="funnel-label">Hợp đồng</div>
+        <div class="funnel-bar-wrap">
+          <div class="funnel-bar c-bar"
+               style="width:{% if funnel.quotations %}{{ funnel.rate }}{% else %}0{% endif %}%">
+            {{ funnel.contracts }}
+          </div>
+        </div>
+        <div class="funnel-num">{{ funnel.contracts }}</div>
+      </div>
+      <div class="text-center mt-4">
+        <span class="funnel-rate">
+          <i class="fa fa-arrow-trend-up me-1"></i>
+          Tỷ lệ chuyển đổi: {{ funnel.rate }}%
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Row 2: Revenue ── #}
+<div class="chart-card">
+  <div class="chart-card-title">
+    <i class="fa fa-circle-dollar-to-slot"></i> Doanh thu theo tháng ({{ year }})
+  </div>
+  <div class="chart-wrap" style="height:220px">
+    <canvas id="chartRevenue"></canvas>
+  </div>
+</div>
+
+{# ── Row 3: By Sale ── #}
+{% if by_sale_json %}
+<div class="row g-3">
+  <div class="col-12 col-lg-6">
+    <div class="chart-card">
+      <div class="chart-card-title">
+        <i class="fa fa-chart-bar"></i> Doanh thu theo Sale (Top {{ by_sale_json|length }})
+      </div>
+      <div class="chart-wrap" style="height:{% if by_sale_json|length > 6 %}320{% else %}220{% endif %}px">
+        <canvas id="chartBySale"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="chart-card">
+      <div class="chart-card-title">
+        <i class="fa fa-ranking-star"></i> Bảng xếp hạng Sale
+      </div>
+      <table class="sale-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Sale</th>
+            <th class="text-end">HĐ</th>
+            <th class="text-end">Doanh thu</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in by_sale_json %}
+          <tr>
+            <td>
+              <span class="rank-badge {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-n{% endif %}">
+                {{ forloop.counter }}
+              </span>
+            </td>
+            <td>
+              <div style="font-weight:500">{{ s.name }}</div>
+              {% with pct=s.revenue %}
+              <div class="revenue-bar-wrap">
+                <div class="revenue-bar" style="width:{{ forloop.counter|floatformat:0 }}%"></div>
+              </div>
+              {% endwith %}
+            </td>
+            <td class="text-end fw-semibold">{{ s.contracts }}</td>
+            <td class="text-end" style="white-space:nowrap; font-weight:600; color:#1a5276; font-size:.82rem">
+              {{ s.revenue }} ₫
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── Dữ liệu từ server ──────────────────────────────────────────────────────
+const MONTH_LABELS  = {{ month_labels_json|safe }};
+const MONTHLY_Q     = {{ monthly_q_json|safe }};
+const MONTHLY_C     = {{ monthly_c_json|safe }};
+const MONTHLY_R     = {{ monthly_r_json|safe }};
+const BY_SALE       = {{ by_sale_json|safe }};
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function fmtBillion(v) {
+  if (v >= 1e9)  return (v/1e9).toFixed(1) + ' tỷ';
+  if (v >= 1e6)  return (v/1e6).toFixed(1) + ' tr';
+  if (v >= 1e3)  return (v/1e3).toFixed(0) + 'k';
+  return v.toLocaleString('vi-VN');
+}
+
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.font.size   = 11;
+
+// ── Chart 1: Báo giá & Hợp đồng theo tháng ────────────────────────────────
+new Chart(document.getElementById('chartMonthly'), {
+  type: 'bar',
+  data: {
+    labels: MONTH_LABELS,
+    datasets: [
+      {
+        label: 'Báo giá',
+        data: MONTHLY_Q,
+        backgroundColor: 'rgba(46,134,193,0.75)',
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+      {
+        label: 'Hợp đồng đã duyệt',
+        data: MONTHLY_C,
+        backgroundColor: 'rgba(30,132,73,0.80)',
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', labels: { boxWidth: 12, padding: 14 } },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}`
+        }
+      },
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f1f3f5' } },
+    },
+  },
+});
+
+// ── Chart 2: Doanh thu theo tháng ─────────────────────────────────────────
+const maxRevenue = Math.max(...MONTHLY_R, 1);
+new Chart(document.getElementById('chartRevenue'), {
+  type: 'bar',
+  data: {
+    labels: MONTH_LABELS,
+    datasets: [{
+      label: 'Doanh thu',
+      data: MONTHLY_R,
+      backgroundColor: MONTHLY_R.map(v =>
+        `rgba(125,60,152,${0.4 + 0.55 * v / maxRevenue})`
+      ),
+      borderRadius: 5,
+      borderSkipped: false,
+    }],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => `Doanh thu: ${fmtBillion(ctx.parsed.y)} ₫`
+        }
+      },
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: {
+        beginAtZero: true,
+        grid: { color: '#f1f3f5' },
+        ticks: { callback: v => fmtBillion(v) },
+      },
+    },
+  },
+});
+
+// ── Chart 3: Doanh thu theo Sale (horizontal bar) ─────────────────────────
+if (BY_SALE.length > 0 && document.getElementById('chartBySale')) {
+  const saleNames    = BY_SALE.map(s => s.name);
+  const saleRevenues = BY_SALE.map(s => s.revenue);
+  const maxSale      = Math.max(...saleRevenues, 1);
+
+  new Chart(document.getElementById('chartBySale'), {
+    type: 'bar',
+    data: {
+      labels: saleNames,
+      datasets: [{
+        label: 'Doanh thu',
+        data: saleRevenues,
+        backgroundColor: saleRevenues.map((v, i) => {
+          const alpha = 0.45 + 0.5 * v / maxSale;
+          const hue   = 210 - i * 8;
+          return `hsla(${hue}, 65%, 38%, ${alpha})`;
+        }),
+        borderRadius: 4,
+        borderSkipped: false,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `Doanh thu: ${fmtBillion(ctx.parsed.x)} ₫ (${BY_SALE[ctx.dataIndex].contracts} HĐ)`
+          }
+        },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: '#f1f3f5' },
+          ticks: { callback: v => fmtBillion(v) },
+        },
+        y: { grid: { display: false } },
+      },
+    },
+  });
+}
+
+// ── Revenue bar trong bảng Sale ────────────────────────────────────────────
+(function fixSaleBars() {
+  const revenues = BY_SALE.map(s => s.revenue);
+  const mx = Math.max(...revenues, 1);
+  document.querySelectorAll('.revenue-bar').forEach((bar, i) => {
+    bar.style.width = (revenues[i] / mx * 100).toFixed(1) + '%';
+  });
+})();
+</script>
+{% endblock %}

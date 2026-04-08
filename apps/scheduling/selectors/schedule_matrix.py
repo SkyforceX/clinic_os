@@ -5,8 +5,8 @@ from django.contrib.auth import get_user_model
 from django.db.models import Prefetch
 
 from apps.booking.models import Appointment
-from apps.contract.models import CLOSED_STATUSES, BloodCollectionSchedule, Contract
-from apps.scheduling.models import ScheduleSlot
+from apps.core.models import SystemGeneralSetting
+from apps.scheduling.models import ContractScheduleConfig, ScheduleSlot, SlotType
 from apps.scheduling.policies import SchedulingPolicy
 
 User = get_user_model()
@@ -31,41 +31,144 @@ def _limit_count(slot):
     return slot.capacity or 0
 
 
+def _get_company_from_config(config):
+    quotation = getattr(config, "quotation", None)
+    contract_profile = getattr(config, "contract", None)
+
+    if quotation and getattr(quotation, "company", None):
+        return quotation.company
+
+    contract_obj = getattr(contract_profile, "contract", None) if contract_profile else None
+    if contract_obj and getattr(contract_obj, "company", None):
+        return contract_obj.company
+
+    return None
+
+
+def _get_company_name_from_config(config):
+    company = _get_company_from_config(config)
+    if company:
+        return company.name
+
+    quotation = getattr(config, "quotation", None)
+    if quotation:
+        return quotation.company_name or ""
+
+    contract_profile = getattr(config, "contract", None)
+    if contract_profile:
+        return contract_profile.company_name_snapshot or ""
+
+    return ""
+
+
+def _get_salesperson_from_config(config):
+    quotation = getattr(config, "quotation", None)
+    if quotation and getattr(quotation, "created_by", None):
+        return quotation.created_by
+
+    contract_profile = getattr(config, "contract", None)
+    contract_obj = getattr(contract_profile, "contract", None) if contract_profile else None
+    return getattr(contract_obj, "created_by", None)
+
+
+def _get_slots_for_config(config):
+    contract_profile = getattr(config, "contract", None)
+    if contract_profile:
+        contract_slots = list(getattr(contract_profile, "prefetched_schedule_slots", []))
+        if contract_slots:
+            return contract_slots
+
+    quotation = getattr(config, "quotation", None)
+    if quotation:
+        return list(getattr(quotation, "prefetched_schedule_slots", []))
+
+    return []
+
+
+def _get_blood_rows_for_config(config):
+    return list(getattr(config, "prefetched_blood_collection_rows", []))
+
+
+def _get_all_patients_for_config(config):
+    company = _get_company_from_config(config)
+    if company:
+        return list(company.patients.all())
+    return []
+
+
 def build_contract_schedule_matrix(*, actor, start_of_year=None):
     start_of_year = start_of_year or date.today().replace(month=1, day=1)
     days = [start_of_year + timedelta(days=i) for i in range(365)]
 
-    contract_qs = (
-        Contract.objects
-        .exclude(status__in=CLOSED_STATUSES)
-        .select_related("company", "created_by")
+    settings = SystemGeneralSetting.get_solo()
+    default_am_limit = int(settings.default_am_slot_limit or 0)
+    default_pm_limit = int(settings.default_pm_slot_limit or 0)
+
+    config_qs = (
+        ContractScheduleConfig.objects.select_related(
+            "quotation",
+            "quotation__company",
+            "quotation__created_by",
+            "contract",
+            "contract__quotation",
+            "contract__contract",
+            "contract__contract__company",
+            "contract__contract__created_by",
+            "registered_by",
+        )
         .prefetch_related(
-            "company__patients",
+            "quotation__company__patients",
+            "contract__contract__company__patients",
             Prefetch(
-                "blood_collection_schedules",
-                queryset=BloodCollectionSchedule.objects.order_by("collection_date", "id"),
+                "blood_collection_rows",
+                queryset=(
+                    getattr(ContractScheduleConfig, "blood_collection_rows")
+                    .rel.related_model.objects.order_by("collection_date", "id")
+                ),
+                to_attr="prefetched_blood_collection_rows",
             ),
             Prefetch(
-                "schedule_slots",
+                "contract__schedule_slots",
                 queryset=(
-                    ScheduleSlot.objects.order_by("date", "shift", "id").prefetch_related(
+                    ScheduleSlot.objects.filter(slot_type=SlotType.CONTRACT)
+                    .order_by("date", "shift", "id")
+                    .prefetch_related(
                         Prefetch(
                             "appointments",
                             queryset=Appointment.objects.select_related("patient").order_by("id"),
                         )
                     )
                 ),
+                to_attr="prefetched_schedule_slots",
+            ),
+            Prefetch(
+                "quotation__schedule_slots",
+                queryset=(
+                    ScheduleSlot.objects.filter(slot_type=SlotType.CONTRACT)
+                    .order_by("date", "shift", "id")
+                    .prefetch_related(
+                        Prefetch(
+                            "appointments",
+                            queryset=Appointment.objects.select_related("patient").order_by("id"),
+                        )
+                    )
+                ),
+                to_attr="prefetched_schedule_slots",
             ),
         )
-        .order_by("-created_at")
+        .order_by("-updated_at", "-id")
     )
 
-    all_contracts = list(contract_qs)
+    all_configs = list(config_qs)
 
     if SchedulingPolicy.is_manager(actor):
-        visible_contracts = all_contracts
+        visible_configs = all_configs
     else:
-        visible_contracts = [contract for contract in all_contracts if contract.created_by_id == actor.id]
+        visible_configs = [
+            config
+            for config in all_configs
+            if getattr(config.quotation, "created_by_id", None) == actor.id
+        ]
 
     day_totals = defaultdict(
         lambda: {
@@ -75,18 +178,19 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
     )
     daily_blood_totals = {day: {"people": 0, "staff": 0, "locations": 0} for day in days}
 
-    for contract in all_contracts:
-        slot_map = {(slot.date, slot.shift): slot for slot in contract.schedule_slots.all()}
+    for config in visible_configs:
+        slots = _get_slots_for_config(config)
+        slot_map = {(slot.date, slot.shift): slot for slot in slots}
 
-        for blood in contract.blood_collection_schedules.all():
+        for blood in _get_blood_rows_for_config(config):
             if blood.collection_date in daily_blood_totals:
                 daily_blood_totals[blood.collection_date]["people"] += blood.people_count or 0
                 daily_blood_totals[blood.collection_date]["staff"] += blood.staff_count or 0
                 daily_blood_totals[blood.collection_date]["locations"] += 1
 
         for day in days:
-            slot_am = slot_map.get((day, "AM"))
-            slot_pm = slot_map.get((day, "PM"))
+            slot_am = slot_map.get((day, "morning"))
+            slot_pm = slot_map.get((day, "afternoon"))
 
             if slot_am:
                 day_totals[day]["am"]["registered"] += _registered_count(slot_am)
@@ -95,9 +199,6 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
             if slot_pm:
                 day_totals[day]["pm"]["registered"] += _registered_count(slot_pm)
                 day_totals[day]["pm"]["limit"] += _limit_count(slot_pm)
-
-    default_am_limit = 100
-    default_pm_limit = 100
 
     daily_am_totals = []
     daily_pm_totals = []
@@ -108,24 +209,43 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
         daily_pm_totals.append(f"Chiều: {pm['registered']}/{pm['limit']}/{default_pm_limit}")
 
     rows = []
-    for contract in visible_contracts:
-        blood_collection_list = list(contract.blood_collection_schedules.all())
-        blood_dates = [bc.collection_date.strftime("%Y-%m-%d") for bc in blood_collection_list]
-        slot_map = {(slot.date, slot.shift): slot for slot in contract.schedule_slots.all()}
+    for config in visible_configs:
+        quotation = getattr(config, "quotation", None)
+        contract_profile = getattr(config, "contract", None)
+        contract_obj = getattr(contract_profile, "contract", None) if contract_profile else None
 
-        all_patients = list(contract.company.patients.all())
+        company_name = _get_company_name_from_config(config)
+        salesperson = _get_salesperson_from_config(config)
+        schedule_creator = getattr(config, "registered_by", None)
+
+        blood_collection_list = _get_blood_rows_for_config(config)
+        blood_dates = [bc.collection_date.strftime("%Y-%m-%d") for bc in blood_collection_list]
+
+        slots = _get_slots_for_config(config)
+        slot_map = {(slot.date, slot.shift): slot for slot in slots}
+
+        all_patients = _get_all_patients_for_config(config)
         registered_patient_ids = {
             ap.patient_id
-            for schedule in contract.schedule_slots.all()
-            for ap in schedule.appointments.all()
+            for slot in slots
+            for ap in slot.appointments.all()
         }
 
         row = {
-            "contract_id": contract.id,
-            "contract_number": contract.contract_number,
-            "company_name": contract.company.name,
-            "salesperson_name": contract.created_by.get_full_name() if contract.created_by else "",
-            "salesperson_id": contract.created_by_id or "",
+            "schedule_config_id": config.id,
+            "contract_id": contract_obj.id if contract_obj else None,
+            "contract_number": getattr(contract_obj, "contract_number", "") if contract_obj else "",
+            "company_name": company_name,
+            "salesperson_name": salesperson.get_full_name() if salesperson else "",
+            "salesperson_id": salesperson.id if salesperson else "",
+            "schedule_creator_name": schedule_creator.get_full_name() if schedule_creator else "",
+            "can_delete_schedule": (
+                (not contract_profile)
+                and SchedulingPolicy.can_manage_quote_schedule(
+                    actor,
+                    getattr(quotation, "created_by_id", None),
+                )
+            ),
             "blood_dates": blood_dates,
             "unregistered_patients": [
                 {
@@ -139,10 +259,13 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
             "schedule": [],
         }
 
+        exam_start = getattr(config, "exam_start_date", None)
+        exam_end = getattr(config, "exam_end_date", None)
+
         for day in days:
             info = next((bc for bc in blood_collection_list if bc.collection_date == day), None)
-            slot_am = slot_map.get((day, "AM"))
-            slot_pm = slot_map.get((day, "PM"))
+            slot_am = slot_map.get((day, "morning"))
+            slot_pm = slot_map.get((day, "afternoon"))
 
             cell = {
                 "date": day.strftime("%Y-%m-%d"),
@@ -150,7 +273,7 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
                 "pm": "",
                 "is_full_am": False,
                 "is_full_pm": False,
-                "in_range": bool(contract.start_date and contract.end_date and contract.start_date <= day <= contract.end_date),
+                "in_range": bool(exam_start and exam_end and exam_start <= day <= exam_end),
                 "is_blood": day.strftime("%Y-%m-%d") in blood_dates,
                 "is_sunday": day.weekday() == 6,
                 "collection_date": info.collection_date.strftime("%d-%m-%Y") if info else None,
@@ -205,4 +328,8 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
         "blood_totals_per_day": blood_totals_per_day,
         "sunday_indexes": sunday_indexes,
         "sale_team_users": sale_team_users,
+        "show_staff_filter": SchedulingPolicy.is_manager(actor),
+        "current_staff_id": str(actor.id) if getattr(actor, "id", None) else "",
+        "system_am_limit": default_am_limit,
+        "system_pm_limit": default_pm_limit,
     }

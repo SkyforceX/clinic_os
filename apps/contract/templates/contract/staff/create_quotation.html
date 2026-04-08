@@ -45,10 +45,38 @@
 .totals-bar{position:sticky;bottom:0;background:#fff;border-top:2px solid #1a5276;padding:.7rem 1rem;display:flex;gap:1.5rem;align-items:center;z-index:100;box-shadow:0 -2px 8px rgba(0,0,0,.1);flex-wrap:wrap}
 .totals-bar .label{font-size:.75rem;color:#555;margin-bottom:1px}
 .totals-bar .val{font-size:.95rem;font-weight:700;color:#1a5276}
+.sticky-col-chip{
+  display:inline-flex;flex-direction:column;justify-content:center;
+  background:#f8fbfd;border:1px solid #d6eaf8;border-radius:999px;
+  padding:.35rem .75rem;min-height:46px
+}
+.sticky-col-chip .chip-label{
+  font-size:.72rem;color:#6c757d;line-height:1.1;white-space:nowrap
+}
+.sticky-col-chip .chip-value{
+  font-size:.88rem;font-weight:700;color:#1a5276;line-height:1.2;white-space:nowrap
+}
 /* ── Quill editor ── */
 .quill-wrapper{border:1px solid #dee2e6;border-radius:6px;overflow:hidden}
 .quill-wrapper .ql-toolbar{border-bottom:1px solid #dee2e6;background:#f8f9fa}
 .quill-wrapper .ql-container{min-height:180px;font-size:.9rem}
+/* ── col ── */
+.apply-col{width:92px;text-align:center}
+.apply-actions{display:flex;align-items:center;justify-content:center;gap:6px}
+.apply-btn{
+  width:28px;height:28px;border:1px solid #d0d7de;border-radius:6px;
+  background:#fff;color:#6c757d;display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .15s ease;
+}
+.apply-btn:hover{transform:translateY(-1px)}
+.apply-btn.free:hover,.apply-btn.free.active{border-color:#198754;background:#eaf7ef;color:#198754}
+.apply-btn.gift:hover,.apply-btn.gift.active{border-color:#fd7e14;background:#fff4e8;color:#fd7e14}
+.apply-chip{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:74px;padding:3px 8px;border-radius:999px;font-size:.73rem;font-weight:700
+}
+.apply-chip.free{background:#eaf7ef;color:#198754}
+.apply-chip.gift{background:#fff4e8;color:#fd7e14}
 </style>
 {% endblock %}
 
@@ -123,6 +151,23 @@ var PKG_TEMPLATES = {{ package_templates_json|safe }};
   <input type="hidden" name="pkg_count" id="pkg_count_input" value="0">
 </div>
 
+<!-- ── sticky bar - tính giá tổng ── -->
+<div class="totals-bar" id="quotation-sticky-summary">
+  <div id="sticky-col-totals" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;flex:1 1 60%">
+    <div class="text-muted small">Chưa có dữ liệu giá</div>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:1.5rem;flex-wrap:wrap;align-items:center">
+    <div>
+      <div class="label">Tổng SL đã nhập</div>
+      <div class="val" id="sticky-total-pax">0</div>
+    </div>
+    <div>
+      <div class="label">Giá trị hợp đồng ước tính</div>
+      <div class="val" id="sticky-grand-total">0 ₫</div>
+    </div>
+  </div>
+</div>
+
 <!-- ── Nội dung bổ sung (Quill) ── -->
 <div class="qform-card">
   <label class="form-label fw-semibold mb-2">
@@ -144,6 +189,8 @@ var PKG_TEMPLATES = {{ package_templates_json|safe }};
 </div>
 </form>
 
+<!-- ── yêu cầu load trước _modal_* ── -->
+{% include "contract/staff/includes/_proposal_table_js.html" %}
 <!-- ── Modal: Chọn danh mục ── -->
 {% include "contract/staff/includes/_modal_catalog_picker.html" %}
 <!-- ── Modal: Chọn gói mẫu ── -->
@@ -171,14 +218,24 @@ var pkgList = [];   // [{id, name, columns, items: {cid→lineData}}]
 var pkgSeq  = 0;
 var currentPkgId = null;  // pkg.id đang mở modal
 
-function addPackage(name, cols, existingItems) {
-  var pid = 'pkg-' + (pkgSeq++);
-  pkgList.push({
-    id:      pid,
-    name:    name || ('Gói khám ' + pkgList.length),
-    columns: cols  || JSON.parse(JSON.stringify(DEFAULT_COLUMNS)),
-    items:   existingItems || {},
-  });
+function addPackage() {
+  pkgSeq += 1;
+
+  var newPkg = {
+    id: 'pkg_' + pkgSeq,
+    name: 'Gói khám ' + pkgSeq,
+    columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS || [
+      { key: 'male', label: 'Nam', count: 0, discount_pct: 0 },
+      { key: 'female_single', label: 'Nữ độc thân', count: 0, discount_pct: 0 },
+      { key: 'female_family', label: 'Nữ có gia đình', count: 0, discount_pct: 0 }
+    ])),
+    items: {},
+    note: ''
+  };
+
+  pkgList.push(newPkg);
+  currentPkgId = newPkg.id;
+
   renderAllPackages();
 }
 
@@ -218,7 +275,11 @@ function addItemToPkg(pid, catalogId, opts) {
   var cid = parseInt(catalogId);
   var cat = CATALOG_MAP[cid];
   if(!cat && !opts) return;
-  if(pkg.items[cid]) return;  // already added
+  if(pkg.items[cid]) return;
+
+  var inheritedPriceType = (
+    cat && (cat.price_type === 'free' || cat.price_type === 'gift')
+  ) ? cat.price_type : 'standard';
 
   var defaultLine = {
     catalog_id:  cid,
@@ -226,20 +287,30 @@ function addItemToPkg(pid, catalogId, opts) {
     description: (cat ? (cat.description||'') : ''),
     group_name:  (cat ? (cat.group||'') : ''),
     subgroup_name: (cat ? (cat.subgroup||'') : ''),
-    price_type:  (cat ? (cat.price_type||'standard') : 'standard'),
-    note:        (cat ? (cat.note||'') : ''),
+    price_type:  inheritedPriceType,
+    note:        inheritedPriceType !== 'standard'
+                  ? ((cat && cat.note) || getAppliedLabel(inheritedPriceType))
+                  : '',
     list_price:  (cat ? (cat.list_price||0) : 0),
     for_m:  cat ? !!cat.for_male : true,
     for_fs: cat ? !!cat.for_female_single : true,
     for_ff: cat ? !!cat.for_female_family : true,
-    cat_m:  cat ? (cat.price_male||0) : 0,
-    cat_fs: cat ? (cat.price_female_single||0) : 0,
-    cat_ff: cat ? (cat.price_female_family||0) : 0,
+    cat_m:  resolveBasePrice(cat, 'male'),
+    cat_fs: resolveBasePrice(cat, 'female_single'),
+    cat_ff: resolveBasePrice(cat, 'female_family'),
     checked_male: true, checked_fs: true, checked_ff: true,
     pct_male: 0, pct_fs: 0, pct_ff: 0,
     extra_prices: {},
   };
+
   if(opts){ Object.assign(defaultLine, opts); }
+
+  if (
+    (defaultLine.price_type === 'free' || defaultLine.price_type === 'gift')
+    && !defaultLine.note
+  ) {
+    defaultLine.note = getAppliedLabel(defaultLine.price_type);
+  }
   pkg.items[cid] = defaultLine;
   renderPackageTable(pid);
 }
@@ -266,11 +337,85 @@ function getGlobalPct(pid, colKey) {
   return el ? (parseFloat(el.value)||0) : 0;
 }
 
+function getAppliedLabel(priceType) {
+  if (priceType === 'free') return 'Miễn phí';
+  if (priceType === 'gift') return 'Tặng';
+  return '';
+}
+
+function resolveBasePrice(cat, key) {
+  if (!cat) return 0;
+
+  var applies = true;
+  if (key === 'male') applies = !!cat.for_male;
+  else if (key === 'female_single') applies = !!cat.for_female_single;
+  else if (key === 'female_family') applies = !!cat.for_female_family;
+
+  if (!applies) return 0;
+
+  var listPrice = parseFloat(cat.list_price || 0) || 0;
+  if (listPrice > 0) return listPrice;
+
+  if (key === 'male') return parseFloat(cat.price_male || 0) || 0;
+  if (key === 'female_single') return parseFloat(cat.price_female_single || 0) || 0;
+  if (key === 'female_family') return parseFloat(cat.price_female_family || 0) || 0;
+
+  return 0;
+}
+
+function setLineApplyType(pid, cid, newType) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; });
+  if (!pkg) return;
+  var line = pkg.items[parseInt(cid)];
+  if (!line) return;
+
+  if (line.price_type === newType) {
+    line.price_type = 'standard';
+    line.note = '';
+  } else {
+    line.price_type = newType;
+    line.note = getAppliedLabel(newType);
+  }
+
+  renderPackageTable(pid);
+}
+
 function recalcItem(pid, cid) {
   var pkg = pkgList.find(function(p){ return p.id === pid; });
   if(!pkg) return;
   var line = pkg.items[parseInt(cid)];
-  if(!line || line.price_type !== 'standard') return;
+  if(!line) return;
+
+  var appliedLabel = getAppliedLabel(line.price_type);
+
+  if (line.price_type === 'free' || line.price_type === 'gift') {
+    pkg.columns.forEach(function(col){
+      var key = col.key;
+
+      if (key === 'male') {
+        line.udai_male = 0;
+        line.price_male = 0;
+      } else if (key === 'female_single') {
+        line.udai_fs = 0;
+        line.price_fs = 0;
+      } else if (key === 'female_family') {
+        line.udai_ff = 0;
+        line.price_ff = 0;
+      } else {
+        if (!line.extra_prices) line.extra_prices = {};
+        line.extra_prices[key] = 0;
+        line.extra_prices[key + '_udai'] = 0;
+      }
+
+      var dispEl = document.getElementById('disp_' + pid + '_' + key + '_' + cid);
+      if (dispEl) {
+        dispEl.textContent = appliedLabel || 'Miễn phí';
+      }
+    });
+
+    updatePkgTotal(pid);
+    return;
+  }
 
   pkg.columns.forEach(function(col){
     var key = col.key;
@@ -279,27 +424,33 @@ function recalcItem(pid, cid) {
     var rowPct = rowPctEl ? (parseFloat(rowPctEl.value)||0) : 0;
 
     var catPrice;
-    if(key === 'male')          catPrice = line.cat_m;
+    if(key === 'male') catPrice = line.cat_m;
     else if(key === 'female_single') catPrice = line.cat_fs;
     else if(key === 'female_family') catPrice = line.cat_ff;
-    else catPrice = (line.extra_prices[key]||0);
+    else catPrice = (line.extra_prices[key + '_base'] || line.extra_prices[key] || 0);
 
     var udai  = Math.round(catPrice * (1 - gPct/100));
     var final = Math.round(udai * (1 - rowPct/100));
 
-    // store in line
-    if(key === 'male')          { line.udai_male = udai; line.price_male = final; }
-    else if(key === 'female_single') { line.udai_fs = udai; line.price_fs = final; }
-    else if(key === 'female_family') { line.udai_ff = udai; line.price_ff = final; }
-    else {
+    if(key === 'male') {
+      line.udai_male = udai;
+      line.price_male = final;
+    } else if(key === 'female_single') {
+      line.udai_fs = udai;
+      line.price_fs = final;
+    } else if(key === 'female_family') {
+      line.udai_ff = udai;
+      line.price_ff = final;
+    } else {
       if(!line.extra_prices) line.extra_prices = {};
+      line.extra_prices[key + '_udai'] = udai;
       line.extra_prices[key] = final;
     }
 
-    // update display
     var dispEl = document.getElementById('disp_' + pid + '_' + key + '_' + cid);
-    if(dispEl) dispEl.textContent = final > 0 ? fmtNum(final) : '—';
+    if(dispEl) dispEl.textContent = final > 0 ? fmtNum(final) : '0';
   });
+
   updatePkgTotal(pid);
 }
 
@@ -323,11 +474,63 @@ function updatePkgTotal(pid) {
       else if(key === 'female_family') total += (line.price_ff||0);
       else total += ((line.extra_prices||{})[key]||0);
     });
-    var el = document.getElementById('total_' + pid + '_' + key);
+        var el = document.getElementById('total_' + pid + '_' + key);
     if(el) el.textContent = total > 0 ? fmtNum(total) + ' ₫' : '—';
   });
+  renderStickySummary();
 }
 
+function renderStickySummary() {
+  var chipsEl = document.getElementById('sticky-col-totals');
+  var paxEl   = document.getElementById('sticky-total-pax');
+  var grandEl = document.getElementById('sticky-grand-total');
+  if (!chipsEl || !paxEl || !grandEl) return;
+
+  var chips = [];
+  var totalPax = 0;
+  var grandTotal = 0;
+
+  pkgList.forEach(function(pkg) {
+    pkg.columns.forEach(function(col) {
+      var key = col.key;
+      var count = parseInt(col.count) || 0;
+      var perPerson = 0;
+
+      Object.values(pkg.items || {}).forEach(function(line) {
+        if (line.price_type !== 'standard') return;
+
+        if (key === 'male') perPerson += (line.price_male || 0);
+        else if (key === 'female_single') perPerson += (line.price_fs || 0);
+        else if (key === 'female_family') perPerson += (line.price_ff || 0);
+        else perPerson += (((line.extra_prices || {})[key]) || 0);
+      });
+
+      if (perPerson > 0 || count > 0) {
+        chips.push({
+          label: (pkgList.length > 1 ? (pkg.name + ' • ') : '') + (col.label || key),
+          value: perPerson
+        });
+      }
+
+      if (count > 0 && perPerson > 0) {
+        totalPax += count;
+        grandTotal += perPerson * count;
+      }
+    });
+  });
+
+  chipsEl.innerHTML = chips.length
+    ? chips.map(function(chip) {
+        return '<div class="sticky-col-chip">'
+          + '<div class="chip-label">' + chip.label + '</div>'
+          + '<div class="chip-value">' + fmtNum(chip.value) + ' ₫/người</div>'
+          + '</div>';
+      }).join('')
+    : '<div class="text-muted small">Chưa có dữ liệu giá</div>';
+
+  paxEl.textContent = fmtNum(totalPax);
+  grandEl.textContent = fmtNum(grandTotal) + ' ₫';
+}
 // ═════════════════════════════════════════════════════════════════════════════
 // Render package table rows
 // ═════════════════════════════════════════════════════════════════════════════
@@ -352,13 +555,13 @@ function renderPackageTable(pid) {
     var gn = line.group_name || 'Khác';
     if(gn !== currentGroup){
       currentGroup = gn;
-      html += '<tr class="group-hdr"><td colspan="' + (pkg.columns.length + 4) + '">' + gn + '</td></tr>';
+      html += '<tr class="group-hdr"><td colspan="' + (pkg.columns.length + 5) + '">' + gn + '</td></tr>';
     }
     stt++;
     html += buildItemRow(pid, pkg, line, stt);
   });
   if(!html) {
-    var span = pkg.columns.length + 4;
+    var span = pkg.columns.length + 5;
     html = '<tr><td colspan="' + span + '" class="catalog-empty-state"><i class="fa fa-table"></i><p>Chưa có dịch vụ. Dùng nút <strong>Chọn danh mục</strong> hoặc <strong>Gói mẫu</strong> để thêm.</p></td></tr>';
   }
   tbody.innerHTML = html;
@@ -369,28 +572,51 @@ function renderPackageTable(pid) {
 
 function buildItemRow(pid, pkg, line, stt) {
   var cid = line.catalog_id;
-  var isFree = line.price_type === 'free', isGift = line.price_type === 'gift';
+  var isFree = line.price_type === 'free';
+  var isGift = line.price_type === 'gift';
+  var appliedLabel = line.note || getAppliedLabel(line.price_type);
   var html = '<tr class="svc-row">';
   html += '<td class="stt-col text-center">' + stt + '</td>';
   html += '<td><strong>' + (line.item_name||'') + '</strong>' + (line.description ? '<br><small class="text-muted">' + line.description + '</small>' : '') + '</td>';
-  // Giá niêm yết (lấy cột đầu tiên standard)
+
   var listP = line.list_price || line.cat_m || line.cat_fs || line.cat_ff || 0;
-  if(isFree) html += '<td class="text-center"><span class="text-muted" style="font-size:.75rem">Miễn phí</span></td>';
-  else if(isGift) html += '<td class="text-center"><span style="color:#e65100;font-size:.75rem">TẶNG</span></td>';
+  if(isFree) html += '<td class="text-center"><span class="apply-chip free">' + appliedLabel + '</span></td>';
+  else if(isGift) html += '<td class="text-center"><span class="apply-chip gift">' + appliedLabel + '</span></td>';
   else html += '<td class="text-center niemyet-cell"><span class="niemyet-display">' + (listP > 0 ? fmtNum(listP) : '—') + '</span></td>';
 
-  // % giảm global (1 input per col, merged into header) — show row-level % per col
   pkg.columns.forEach(function(col){
     var key = col.key;
-    if(isFree||isGift){
-      html += '<td class="text-center"><span style="color:#27ae60;font-size:.75rem">' + (isFree ? 'Miễn phí' : 'TẶNG') + '</span></td>';
+    if(isFree){
+      html += '<td class="text-center"><span class="apply-chip free">' + appliedLabel + '</span></td>';
+    } else if(isGift){
+      html += '<td class="text-center"><span class="apply-chip gift">' + appliedLabel + '</span></td>';
     } else {
       html += '<td class="text-center" style="white-space:nowrap">';
       html += '<div><span id="disp_' + pid + '_' + key + '_' + cid + '" style="font-size:.82rem;font-weight:600;color:#1a5276">—</span></div>';
-      html += '<input type="number" id="pct_' + pid + '_' + key + '_' + cid + '" class="row-pct-input" min="0" max="100" step="0.5" placeholder="%" style="width:50px" oninput="recalcItem(\'' + pid + '\',' + cid + ')">';
+      html += '<input type="number" id="pct_' + pid + '_' + key + '_' + cid + '" class="row-pct-input" min="0" max="100" step="0.5" placeholder="%" style="width:50px" value="' + (
+        key === 'male' ? (line.pct_male || 0)
+        : key === 'female_single' ? (line.pct_fs || 0)
+        : key === 'female_family' ? (line.pct_ff || 0)
+        : 0
+      ) + '" oninput="recalcItem(\'' + pid + '\',' + cid + ')">';
       html += '</td>';
     }
   });
+
+  html += '<td class="apply-col">';
+  if (!isFree && !isGift) {
+    html += '<div class="apply-actions">';
+    html += '<button type="button" class="apply-btn free" title="Áp dụng Miễn phí" onclick="setLineApplyType(\'' + pid + '\',' + cid + ',\'free\')"><i class="fa fa-hand-holding-heart"></i></button>';
+    html += '<button type="button" class="apply-btn gift" title="Áp dụng Tặng" onclick="setLineApplyType(\'' + pid + '\',' + cid + ',\'gift\')"><i class="fa fa-gift"></i></button>';
+    html += '</div>';
+  } else {
+    html += '<div class="apply-actions">';
+    html += '<button type="button" class="apply-btn free ' + (isFree ? 'active' : '') + '" title="Miễn phí" onclick="setLineApplyType(\'' + pid + '\',' + cid + ',\'free\')"><i class="fa fa-hand-holding-heart"></i></button>';
+    html += '<button type="button" class="apply-btn gift ' + (isGift ? 'active' : '') + '" title="Tặng" onclick="setLineApplyType(\'' + pid + '\',' + cid + ',\'gift\')"><i class="fa fa-gift"></i></button>';
+    html += '</div>';
+  }
+  html += '</td>';
+
   html += '<td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeItemFromPkg(\'' + pid + '\',' + cid + ')"><i class="fa fa-times"></i></button></td>';
   html += '</tr>';
   return html;
@@ -401,10 +627,23 @@ function buildItemRow(pid, pkg, line, stt) {
 // ═════════════════════════════════════════════════════════════════════════════
 function renderAllPackages() {
   var container = document.getElementById('packages-container');
+  if (!container) return;
+
   container.innerHTML = '';
-  pkgList.forEach(function(pkg){ container.appendChild(buildPkgBlock(pkg)); });
-  document.getElementById('pkg_count_input').value = pkgList.length;
-  // re-bind quill data on pkg re-render
+
+  pkgList.forEach(function(pkg) {
+    container.appendChild(buildPkgBlock(pkg));
+  });
+
+  pkgList.forEach(function(pkg) {
+    renderPackageTable(pkg.id);
+  });
+
+  var countInput = document.getElementById('pkg_count_input');
+  if (countInput) countInput.value = pkgList.length;
+
+  renderStickySummary();
+  calcCommissions();
 }
 
 function buildPkgBlock(pkg) {
@@ -438,10 +677,7 @@ function buildPkgBlock(pkg) {
   }).join('');
 
   var totalsRow = '<tr style="background:#fff8e1"><td colspan="3" class="text-end fw-bold" style="font-size:.8rem">Giá ưu đãi / người:</td>'
-    + pkg.columns.map(function(col){
-        return '<td class="text-center fw-bold" style="font-size:.82rem;color:#1a5276" id="total_' + pid + '_' + col.key + '">—</td>';
-      }).join('')
-    + '<td></td></tr>';
+  + pkg.columns.map(function(col){ return '<td class="text-center fw-bold" style="font-size:.82rem;color:#1a5276" id="total_' + pid + '_' + col.key + '">—</td>'; }).join('') + '<td></td><td></td></tr>';
 
   div.innerHTML = '<div class="pkg-header">'
     + '<span style="font-size:.8rem;opacity:.8;white-space:nowrap">🎁 Gói:</span>'
@@ -461,18 +697,13 @@ function buildPkgBlock(pkg) {
     + globalPctInputs
     + '</div>'
     + '<div class="table-responsive"><table class="catalog-table" id="table_' + pid + '">'
-    + '<thead><tr>'
-    + '<th class="stt-col" style="width:36px">STT</th>'
-    + '<th class="svc-col">TÊN DỊCH VỤ</th>'
-    + '<th style="min-width:100px">GIÁ NIÊM YẾT</th>'
-    + colHeaders
-    + '<th style="width:40px"></th>'
-    + '</tr></thead>'
+    + '<thead><tr><th class="stt-col">STT</th><th class="svc-col">TÊN DỊCH VỤ</th><th>GIÁ NIÊM YẾT</th>' 
+    + colHeaders 
+    + '<th class="apply-col">ÁP DỤNG</th><th></th></tr></thead>'
     + '<tbody id="tbody_' + pid + '"></tbody>'
     + '<tfoot>' + totalsRow + '</tfoot>'
     + '</table></div>';
 
-  renderPackageTable(pid);
   return div;
 }
 
@@ -489,6 +720,8 @@ function updateColLabel(pid, key, val) {
 function updateColCount(pid, key, val) {
   var pkg = pkgList.find(function(p){ return p.id === pid; }); if(!pkg) return;
   var col = pkg.columns.find(function(c){ return c.key === key; }); if(col) col.count = parseInt(val)||0;
+  renderStickySummary();
+  calcCommissions();
 }
 function updateColDiscount(pid, key, val) {
   var pkg = pkgList.find(function(p){ return p.id === pid; }); if(!pkg) return;
@@ -620,6 +853,8 @@ function prepareSubmit() {
 
     Object.values(pkg.items).forEach(function(line){
       var cid = line.catalog_id;
+      addHidden(prefix + 'price_type_' + cid, line.price_type || 'standard');
+      addHidden(prefix + 'note_' + cid, line.note || '');
       if(line.checked_male    !== false) addHidden(prefix + 'checked_male_' + cid, 'on');
       if(line.checked_fs      !== false) addHidden(prefix + 'checked_fs_'   + cid, 'on');
       if(line.checked_ff      !== false) addHidden(prefix + 'checked_ff_'   + cid, 'on');
@@ -658,24 +893,55 @@ function prepareSubmit() {
 // Quill init
 // ═════════════════════════════════════════════════════════════════════════════
 var quillEditor;
+
 document.addEventListener('DOMContentLoaded', function(){
   quillEditor = new Quill('#quill-editor', {
     theme: 'snow',
     placeholder: 'Nhập nội dung bổ sung: giới thiệu phòng khám, cam kết chất lượng, hình ảnh...',
     modules: {
       toolbar: [
-        [{ header: [1,2,3,false] }],
-        ['bold','italic','underline'],
+        // Font & size
+        [{ font: [] }],
+        [{ size: ['small', false, 'large', 'huge'] }],
+
+        // Header
+        [{ header: [1, 2, 3, 4, 5, 6, false] }],
+
+        // Basic styles
+        ['bold', 'italic', 'underline', 'strike'],
+
+        // Color
         [{ color: [] }, { background: [] }],
-        [{ list: 'ordered' }, { list: 'bullet' }],
-        ['link','image'],
-        ['clean'],
+
+        // Script (sub/super)
+        [{ script: 'sub' }, { script: 'super' }],
+
+        // List
+        [{ list: 'ordered' }, { list: 'bullet' }, { list: 'check' }],
+
+        // Indent
+        [{ indent: '-1' }, { indent: '+1' }],
+
+        // Align & direction
+        [{ align: [] }],
+        [{ direction: 'rtl' }],
+
+        // Block elements
+        ['blockquote', 'code-block'],
+
+        // Media
+        ['link', 'image', 'video'],
+
+        // Clean
+        ['clean']
       ]
     }
   });
 
-  // Init: add first package
+    // Init: add first package
   addPackage();
+  renderStickySummary();
+  calcCommissions();
 });
 </script>
 {% endblock %}

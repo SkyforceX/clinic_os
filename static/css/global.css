@@ -1,3 +1,33 @@
+:root{
+  --crm-table-header-bg: #0f4c81;
+  --crm-table-header-bg-2: #1f6aa5;
+  --crm-table-header-text: #ffffff;
+  --crm-table-group-bg: #eaf3fb;
+  --crm-table-group-text: #0f4c81;
+
+  --sidebar-width: 220px;
+  --sidebar-collapsed-width: 60px;
+  --content-offset: var(--sidebar-width);
+}
+.crm-table-head{
+  background: var(--crm-table-header-bg) !important;
+  color: var(--crm-table-header-text) !important;
+}
+.crm-table-head th{
+  background: var(--crm-table-header-bg) !important;
+  color: var(--crm-table-header-text) !important;
+  border-color: var(--crm-table-header-bg) !important;
+}
+.crm-section-title{
+  background: linear-gradient(
+    135deg,
+    var(--crm-table-header-bg) 0%,
+    var(--crm-table-header-bg-2) 100%
+  );
+  color: var(--crm-table-header-text);
+}
+/*=======================================================================*/
+
 * {
     margin: 0; padding: 0; box-sizing: border-box;
   }
@@ -102,7 +132,7 @@ table {
   }
   
   a:hover {
-    text-decoration: underline;
+    text-decoration: none !important;
   }
   .margin-auto {
     margin: 0 auto;
@@ -175,6 +205,12 @@ table {
 }
 
 /* Success */
+.alert-success {
+  background-color: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+
 .alert.success {
   background-color: #d4edda;
   color: #155724;
@@ -182,6 +218,12 @@ table {
 }
 
 /* Error */
+.alert-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border-color: #f5c6cb;
+}
+
 .alert.error {
   background-color: #f8d7da;
   color: #721c24;
@@ -196,6 +238,11 @@ table {
 }
 
 /* Warning */
+.alert-warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border-color: #ffeeba;
+}
 .alert.warning {
   background-color: #fff3cd;
   color: #856404;
@@ -885,9 +932,26 @@ input.highlight-empty {
 
 /* MAIN CONTENT responsive theo sidebar */
 .main-content {
-  /* margin-left => JS toggle */
-  transition: margin-left 0.3s ease;
+  margin-left: var(--content-offset);
+  width: calc(100% - var(--content-offset));
+  max-width: calc(100% - var(--content-offset));
+  min-width: 0;
+  transition: margin-left 0.23s ease, width 0.23s ease;
   padding: 1rem;
+  box-sizing: border-box;
+}
+
+.wrapper,
+.app-shell-wrapper {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.main-content > .wrapper {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 /* ===== responsive sidebar / topbar ===== */
@@ -914,23 +978,28 @@ input.highlight-empty {
 }
 @media (min-width: 1024px) {
   .sidebar {
-    width: 220px;
-    transition: width 0.23s;
+    width: var(--sidebar-width);
+    transition: width 0.23s ease;
   }
+
   .sidebar.collapsed {
-    width: 60px;
+    width: var(--sidebar-collapsed-width);
   }
+
+  body.sidebar-expanded {
+    --content-offset: var(--sidebar-width);
+  }
+
+  body.sidebar-collapsed {
+    --content-offset: var(--sidebar-collapsed-width);
+  }
+
   .main-content {
-    margin-left: 220px;
-    transition: margin-left 0.23s;
+    margin-left: var(--content-offset);
+    width: calc(100% - var(--content-offset));
+    max-width: calc(100% - var(--content-offset));
   }
 }
-
-/* Khi sidebar thu gọn */
-.sidebar.collapsed + .main-content {
-  margin-left: 60px; 
-}
-
 /************************ Modal Overlay + Animation CRM ********************************/
 /* Overlay mờ toàn màn hình */
 .modal-overlay {
@@ -1422,13 +1491,6 @@ input.highlight-empty {
     color: white;
 }
 
-
-/* Khi sidebar thu gọn */
-.sidebar.collapsed + .main-content {
-  margin-left: 60px; 
-}
-
-
 /**** FOOTER ****/
 /* Footer luôn nằm dưới cùng */
 .site-footer {
@@ -1819,18 +1881,19 @@ table.data-table {
     transform: translateX(0) !important;
   }
 
-  /* nếu JS có add collapsed ở mobile => hiểu là đóng */
-  .sidebar.collapsed{
-    transform: translateX(-105%) !important;
-    width: 280px !important;                  /* không thu 60px trên mobile */
-  }
+  /*!* nếu JS có add collapsed ở mobile => hiểu là đóng *!*/
+  /*.sidebar.collapsed{*/
+  /*  transform: translateX(-105%) !important;*/
+  /*  width: 280px !important;                  !* không thu 60px trên mobile *!*/
+  /*}*/
 
-  /* content đứng yên, không shift */
-  .main-content,
-  .main-content.shifted{
-    margin-left: 0 !important;
-    transition: none !important;
-  }
+.main-content,
+.main-content.shifted{
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  transition: none !important;
+}
 
   /* overlay hiện khi mở */
   body.sidebar-open .sidebar-overlay{
@@ -1890,4 +1953,19 @@ table.data-table {
 
 .menu li a.active:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+
+/* Shell fix cho các page có flex/table/board ngang */
+.main-content .row,
+.main-content .col,
+.main-content [class*="col-"],
+.main-content .container,
+.main-content .container-fluid {
+  min-width: 0;
+}
+
+.overflow-x-auto,
+.data-table-wrapper {
+  max-width: 100%;
 }

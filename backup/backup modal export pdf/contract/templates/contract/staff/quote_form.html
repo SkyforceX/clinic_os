@@ -1,0 +1,92 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block content %}
+<div class="container" style="max-width: 860px">
+  <h3 class="mb-3">Tạo báo giá hợp đồng</h3>
+
+  <form id="quoteForm" class="card card-body">
+    {% csrf_token %}
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Tên người nhận</label>
+        <input name="receiver_name" type="text" class="form-control" required placeholder="VD: Anh Nguyễn Văn A">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Tên công ty</label>
+        <input name="company_name" type="text" class="form-control" required placeholder="VD: Công ty ABC">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Địa chỉ công ty</label>
+        <input name="company_address" type="text" class="form-control" required placeholder="VD: 123 Nguyễn Trãi, Q.1, TP.HCM">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Số tiền hợp đồng</label>
+        <input name="contract_amount" type="text" class="form-control" required placeholder="VD: 150.000.000 VND">
+      </div>
+    </div>
+
+    <div class="mt-3 d-flex gap-2">
+      <button id="btnGenerate" class="btn btn-primary" type="submit">Lưu & xem PDF</button>
+      <button class="btn btn-outline-secondary" type="reset">Xoá</button>
+    </div>
+  </form>
+
+  <!-- Modal xem PDF -->
+  <div class="modal fade" id="pdfModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Xem PDF</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+        </div>
+        <div class="modal-body p-0">
+          <iframe id="pdfFrame" src="" width="100%" height="720" style="border:0;"></iframe>
+        </div>
+        <div class="modal-footer">
+          <a id="downloadPdf" class="btn btn-outline-primary" href="#" target="_blank" rel="noopener">Tải PDF</a>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const form = document.getElementById('quoteForm');
+  const btn  = document.getElementById('btnGenerate');
+  const modalEl = document.getElementById('pdfModal');
+  const pdfFrame = document.getElementById('pdfFrame');
+  const downloadBtn = document.getElementById('downloadPdf');
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    btn.disabled = true;
+
+    const formData = new FormData(form);
+
+    try {
+      const res = await fetch("{% url 'contract:quote_generate' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": formData.get('csrfmiddlewaretoken') },
+        body: formData
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Có lỗi xảy ra");
+
+      // Gán PDF vào iframe & mở modal
+      pdfFrame.src = data.pdf_url + "#view=FitH";
+      downloadBtn.href = data.pdf_url;
+
+      const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      bsModal.show();
+
+    } catch (err) {
+      alert(err.message || err);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+{% endblock %}

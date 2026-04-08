@@ -1,0 +1,198 @@
+<!--{# _proposal_js.html — included by create_quotation.html & edit_quotation.html #}-->
+
+<!--{# Import table management module trước #}-->
+{% include "contract/staff/includes/_proposal_table_js.html" %}
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function fmtVnd(n) { return Math.round(n).toLocaleString('vi-VN') + ' ₫'; }
+function fmtNum(n) { return Math.round(n).toLocaleString('vi-VN'); }
+function getGlobal(key) { return parseFloat(document.getElementById('global_pct_' + key)?.value) || 0; }
+
+// Flag: chặn ghi đè commission trong lần recalcAll đầu tiên khi load trang
+let commissionReady = false;
+
+function applyGlobalAll(val) {
+  ['m','fs','ff'].forEach(k => {
+    const el = document.getElementById('global_pct_' + k);
+    if (el) el.value = val;
+  });
+  recalcAll();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// recalcRow: tính lại giá cho một dòng trong bảng
+// ─────────────────────────────────────────────────────────────────────────────
+function recalcRow(id) {
+  const row = document.querySelector('.svc-row[data-id="' + id + '"]');
+  if (!row) return;
+
+  const type = row.dataset.type;
+  if (type === 'free' || type === 'gift') return;
+
+  const catM  = parseFloat(row.dataset.catM)  || 0;
+  const catFs = parseFloat(row.dataset.catFs) || 0;
+  const catFf = parseFloat(row.dataset.catFf) || 0;
+
+  const forM  = row.dataset.forM  === '1';
+  const forFs = row.dataset.forFs === '1';
+  const forFf = row.dataset.forFf === '1';
+
+  // Giá niêm yết
+  const displayCatalog = forM ? catM : (forFs ? catFs : catFf);
+  const niemyetEl = document.getElementById('niemyet_' + id);
+  if (niemyetEl) niemyetEl.textContent = displayCatalog > 0 ? fmtNum(displayCatalog) : '–';
+
+  const gm  = getGlobal('m');
+  const gfs = getGlobal('fs');
+  const gff = getGlobal('ff');
+
+  // Giá ưu đãi = catalog × (1 - global%/100)
+  const udaiM  = Math.round(catM  * (1 - gm  / 100));
+  const udaiFs = Math.round(catFs * (1 - gfs / 100));
+  const udaiFf = Math.round(catFf * (1 - gff / 100));
+
+  // % giảm từng dòng
+  const rowM  = parseFloat(document.getElementById('pct_m_'  + id)?.value) || 0;
+  const rowFs = parseFloat(document.getElementById('pct_fs_' + id)?.value) || 0;
+  const rowFf = parseFloat(document.getElementById('pct_ff_' + id)?.value) || 0;
+
+  // Giá cuối
+  const finalM  = Math.round(udaiM  * (1 - rowM  / 100));
+  const finalFs = Math.round(udaiFs * (1 - rowFs / 100));
+  const finalFf = Math.round(udaiFf * (1 - rowFf / 100));
+
+  // Hiển thị giá ưu đãi
+  const displayUdai = forM ? udaiM : (forFs ? udaiFs : udaiFf);
+  const udaiDisplay = document.getElementById('udai_' + id);
+  if (udaiDisplay) udaiDisplay.textContent = displayUdai > 0 ? fmtNum(displayUdai) : '–';
+
+  // Hidden inputs
+  function setH(hid, val) { const el = document.getElementById(hid); if (el) el.value = val; }
+  setH('h_udai_m_'  + id, forM  ? udaiM  : 0);
+  setH('h_udai_fs_' + id, forFs ? udaiFs : 0);
+  setH('h_udai_ff_' + id, forFf ? udaiFf : 0);
+  setH('h_pm_'      + id, forM  ? finalM  : 0);
+  setH('h_pfs_'     + id, forFs ? finalFs : 0);
+  setH('h_pff_'     + id, forFf ? finalFf : 0);
+
+  calcTotals();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// recalcAll: tính lại toàn bộ dòng trong bảng
+// ─────────────────────────────────────────────────────────────────────────────
+function recalcAll() {
+  document.querySelectorAll('.svc-row').forEach(row => recalcRow(row.dataset.id));
+  calcTotals();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// calcTotals: tính tổng từ các dòng ĐANG CÓ trong bảng (tất cả đều đã chọn)
+// ─────────────────────────────────────────────────────────────────────────────
+function calcTotals() {
+  let tm = 0, tfs = 0, tff = 0;
+  document.querySelectorAll('.svc-row').forEach(row => {
+    const id = row.dataset.id;
+    if (document.querySelector('input[name="checked_male_' + id + '"]:checked'))
+      tm  += parseInt(document.getElementById('h_pm_'  + id)?.value) || 0;
+    if (document.querySelector('input[name="checked_fs_'   + id + '"]:checked'))
+      tfs += parseInt(document.getElementById('h_pfs_' + id)?.value) || 0;
+    if (document.querySelector('input[name="checked_ff_'   + id + '"]:checked'))
+      tff += parseInt(document.getElementById('h_pff_' + id)?.value) || 0;
+  });
+  document.getElementById('bar_total_m').textContent  = fmtVnd(tm);
+  document.getElementById('bar_total_fs').textContent = fmtVnd(tfs);
+  document.getElementById('bar_total_ff').textContent = fmtVnd(tff);
+  calcGrand(tm, tfs, tff);
+}
+
+function calcGrand(tm, tfs, tff) {
+  if (tm === undefined) {
+    tm  = parseInt(document.getElementById('bar_total_m').textContent.replace(/\D/g,''))  || 0;
+    tfs = parseInt(document.getElementById('bar_total_fs').textContent.replace(/\D/g,'')) || 0;
+    tff = parseInt(document.getElementById('bar_total_ff').textContent.replace(/\D/g,'')) || 0;
+  }
+  const mc  = parseInt(document.getElementById('male_count_input').value)  || 0;
+  const fsc = parseInt(document.getElementById('fs_count_input').value)    || 0;
+  const ffc = parseInt(document.getElementById('ff_count_input').value)    || 0;
+  const grand = tm*mc + tfs*fsc + tff*ffc;
+  document.getElementById('bar_grand').textContent = fmtVnd(grand);
+  calcCommissions(grand);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hoa hồng nội bộ
+// ─────────────────────────────────────────────────────────────────────────────
+function calcCommissions(grand) {
+  if (!commissionReady) return;
+  if (grand === undefined) {
+    const raw = document.getElementById('bar_grand')?.textContent || '';
+    grand = parseInt(raw.replace(/\D/g,'')) || 0;
+  }
+  const salePct = parseFloat(document.getElementById('commission_sale_pct')?.value) || 0;
+  const coPct   = parseFloat(document.getElementById('commission_co_pct')?.value)   || 0;
+  const saleAmt = Math.round(grand * salePct / 100);
+  const coAmt   = Math.round(grand * coPct   / 100);
+
+  const saleEl = document.getElementById('commission_sale_amount_display');
+  const coEl   = document.getElementById('commission_co_amount_display');
+  if (saleEl) saleEl.textContent = (grand > 0 && saleAmt > 0) ? fmtVnd(saleAmt) : (grand > 0 ? '0 ₫' : '—');
+  if (coEl)   coEl.textContent   = (grand > 0 && coAmt   > 0) ? fmtVnd(coAmt)   : (grand > 0 ? '0 ₫' : '—');
+
+  const hSale = document.getElementById('h_commission_sale_amount');
+  const hCo   = document.getElementById('h_commission_co_amount');
+  if (grand > 0) {
+    if (hSale) hSale.value = saleAmt || '';
+    if (hCo)   hCo.value   = coAmt   || '';
+  }
+}
+
+function onRowCheck(cb) { calcTotals(); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Validate & submit với field-level error hiển thị gần bảng
+// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById('qform').addEventListener('submit', function(e) {
+  const rowCount = document.querySelectorAll('.svc-row').length;
+  if (rowCount === 0) {
+    e.preventDefault();
+
+    const oldErr = document.getElementById('catalogErrorMsg');
+    if (oldErr) oldErr.remove();
+
+    const toolbar = document.querySelector('.discount-toolbar');
+    const anchor  = toolbar || document.querySelector('#catalogBody')?.closest('.qform-card');
+    if (anchor) {
+      const errDiv = document.createElement('div');
+      errDiv.id = 'catalogErrorMsg';
+      errDiv.className = 'alert alert-danger d-flex align-items-center gap-2 py-2 px-3 mb-0';
+      errDiv.style.cssText = 'border-radius:0;font-size:.84rem;border-left:none;border-right:none;border-top:none';
+      errDiv.innerHTML = '<i class="fa fa-triangle-exclamation"></i> Vui lòng chọn ít nhất một dịch vụ trước khi lưu.';
+      anchor.parentNode.insertBefore(errDiv, anchor.nextSibling);
+      errDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  } else {
+    const oldErr = document.getElementById('catalogErrorMsg');
+    if (oldErr) oldErr.remove();
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Init on DOMContentLoaded
+// ─────────────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  // Edit mode: prefill từ snapshot đã lưu
+  if (typeof prefillExistingLines === 'function') {
+    prefillExistingLines();
+  } else if (typeof initDefaultItems === 'function') {
+    // Create mode: thêm các mục mặc định (free items)
+    initDefaultItems();
+  }
+
+  recalcAll();
+  commissionReady = true;
+});
+</script>

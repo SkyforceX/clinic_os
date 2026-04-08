@@ -1,0 +1,72 @@
+{#
+  Include này hiển thị nút "Nộp phê duyệt" / badge trạng thái.
+
+  Yêu cầu context:
+    document       -- QuotationDraft hoặc Contract instance
+    submit_url     -- URL POST để submit (e.g. {% url 'approvals:submit_quotation' q.pk %})
+    pending_ar     -- ApprovalRequest đang PENDING (hoặc None)
+    can_submit     -- bool
+#}
+
+{% if document.status == "DRAFT" and can_submit %}
+  <button type="button"
+          class="btn btn-sm btn-outline-primary"
+          data-bs-toggle="modal"
+          data-bs-target="#modalSubmitApproval">
+    <i class="fa fa-paper-plane"></i> Nộp phê duyệt
+  </button>
+
+  <div class="modal fade" id="modalSubmitApproval" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa fa-paper-plane"></i> Nộp phê duyệt</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{{ submit_url }}">
+          {% csrf_token %}
+          <div class="modal-body">
+            <p>Nộp tài liệu này để quản lý phê duyệt?</p>
+            <p class="fw-semibold">{{ document }}</p>
+            <p class="text-muted small">Sau khi nộp, tài liệu sẽ bị khóa sửa cho đến khi được duyệt hoặc bị từ chối.</p>
+            <div>
+              <label class="form-label small">Ghi chú (tuỳ chọn)</label>
+              <textarea name="requester_note" class="form-control form-control-sm" rows="2"
+                        placeholder="Thông tin bổ sung cho người duyệt..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Huỷ</button>
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="fa fa-paper-plane"></i> Nộp
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+{% elif document.status == "SUBMITTED" %}
+  <span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-size:.8rem">
+    ⏳ Đang chờ duyệt
+  </span>
+  {% if pending_ar %}
+    <a href="{% url 'approvals:detail' pending_ar.pk %}"
+       class="btn btn-xs btn-outline-secondary ms-1">
+      <i class="fa fa-eye"></i> Xem yêu cầu
+    </a>
+  {% endif %}
+
+{% elif document.status == "APPROVED" %}
+  <span class="badge" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;font-size:.8rem">
+    ✅ Đã duyệt
+  </span>
+
+{% elif document.status == "REJECTED" %}
+  <span class="badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;font-size:.8rem">
+    ❌ Từ chối
+  </span>
+  {% if can_submit %}
+    <span class="text-muted small ms-1">— Chỉnh sửa rồi nộp lại.</span>
+  {% endif %}
+{% endif %}

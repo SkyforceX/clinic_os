@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
@@ -70,15 +70,15 @@ class ScheduleSlot(models.Model):
         verbose_name_plural = _("Slot lịch khám")
         constraints = [
             models.CheckConstraint(
-                check=models.Q(capacity__gte=0),
+                condition=models.Q(capacity__gte=0),
                 name="ck_schedule_slot_capacity_gte_0",
             ),
             models.CheckConstraint(
-                check=models.Q(booked_count__gte=0),
+                condition=models.Q(booked_count__gte=0),
                 name="ck_schedule_slot_booked_count_gte_0",
             ),
             models.CheckConstraint(
-                check=models.Q(booked_count__lte=models.F("capacity")),
+                condition=models.Q(booked_count__lte=models.F("capacity")),
                 name="ck_schedule_slot_booked_not_exceed_capacity",
             ),
             models.UniqueConstraint(

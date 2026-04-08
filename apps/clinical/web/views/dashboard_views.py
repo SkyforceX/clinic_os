@@ -10,4 +10,4 @@ def clinical_dashboard(request):
     context = build_dashboard_context(request=request)
     if not ClinicalPolicy.can_view_dashboard(request.user):
         context["staff"] = None
-    return render(request, "clinic/staff/dashboard.html", context)
+    return render(request, "clinical/staff/dashboard.html", context)

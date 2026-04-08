@@ -1,7 +1,12 @@
 from django.db.models import Count
+from django.utils import timezone
 
 from apps.organizations.models import Company
 from apps.organizations.policies import OrganizationPolicy
+
+
+def current_company_visible_year():
+    return timezone.localdate().year
 
 
 def company_base_queryset():
@@ -14,7 +19,11 @@ def list_companies_for_actor(user):
     if OrganizationPolicy.is_manager(user):
         return qs.order_by("-id")
 
-    return qs.filter(created_by=user).order_by("-id")
+    visible_year = current_company_visible_year()
+    return qs.filter(
+        created_by=user,
+        created_at__year=visible_year,
+    ).order_by("-id")
 
 
 def list_companies_with_patient_count_for_actor(user):

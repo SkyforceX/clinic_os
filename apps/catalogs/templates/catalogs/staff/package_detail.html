@@ -1,0 +1,141 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% load core_tags %}
+
+{% block title %}Chi tiết Gói khám mẫu{% endblock %}
+
+{% block content %}
+<style>
+.info-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#f8fafc;
+  color:#334155;
+  font-size:.82rem;
+  border:1px solid #e2e8f0;
+}
+.group-card{
+  border:1px solid #e9ecef;
+  border-radius:14px;
+  overflow:hidden;
+}
+.group-card .card-header{
+  background:#f8fafc;
+  border-bottom:1px solid #e9ecef;
+}
+.subgroup-title{
+  font-weight:600;
+  color:#475569;
+  margin-top:14px;
+  margin-bottom:8px;
+}
+.item-list{
+  margin:0;
+  padding-left:18px;
+}
+.item-list li{
+  margin-bottom:6px;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <div>
+    <h5 class="mb-1">📦 {{ package.name }}</h5>
+    <div class="text-muted" style="font-size:.9rem">
+      Chi tiết gói khám mẫu và các danh mục đang được chọn.
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap">
+    {% if can_edit %}
+      <a href="{% url 'catalogs:package_edit' package.id %}" class="btn btn-outline-warning btn-sm">
+        <i class="fa fa-pen"></i> Sửa
+      </a>
+    {% endif %}
+    {% if can_delete %}
+      <form method="post" action="{% url 'catalogs:package_delete' package.id %}" onsubmit="return confirm('Xóa gói khám {{ package.name }}?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+          <i class="fa fa-trash"></i> Xóa
+        </button>
+      </form>
+    {% endif %}
+    <a href="{% url 'catalogs:package_list' %}" class="btn btn-light border btn-sm">
+      <i class="fa fa-arrow-left"></i> Quay lại
+    </a>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex gap-2 flex-wrap mb-3">
+      <span class="info-chip">
+        <i class="fa fa-user"></i>
+        Người tạo:
+        {% if package.created_by %}
+          {{ package.created_by.get_full_name|default:package.created_by.username }}
+        {% else %}
+          –
+        {% endif %}
+      </span>
+
+      <span class="info-chip">
+        <i class="fa fa-list"></i> Tổng mục: {{ package.items.count }}
+      </span>
+
+      <span class="info-chip">
+        <i class="fa fa-money-bill-wave"></i> Tổng niêm yết: {{ package.total_list_price|vnd }}
+      </span>
+
+      <span class="info-chip">
+        <i class="fa fa-toggle-on"></i>
+        {% if package.is_active %}Đang dùng{% else %}Tạm ẩn{% endif %}
+      </span>
+    </div>
+
+    <div>
+      <strong>Mô tả:</strong>
+      <div class="text-muted mt-1">{{ package.description|default:"–" }}</div>
+    </div>
+  </div>
+</div>
+
+{% for group in grouped_categories %}
+<div class="card group-card mb-3">
+  <div class="card-header">
+    <strong>{{ group.group_name }}</strong>
+  </div>
+  <div class="card-body">
+    {% if group.items %}
+      <ul class="item-list">
+        {% for item in group.items %}
+        <li>
+          <strong>{{ item.item_name }}</strong> — {{ item.list_price|vnd }}
+        </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% for subgroup_name, subgroup_items in group.subgroups.items %}
+      <div class="subgroup-title">{{ subgroup_name }}</div>
+      <ul class="item-list">
+        {% for item in subgroup_items %}
+        <li>
+          <strong>{{ item.item_name }}</strong> — {{ item.list_price|vnd }}
+        </li>
+        {% endfor %}
+      </ul>
+    {% endfor %}
+  </div>
+</div>
+{% empty %}
+<div class="card">
+  <div class="card-body text-muted text-center py-4">
+    Gói khám này chưa có danh mục nào.
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

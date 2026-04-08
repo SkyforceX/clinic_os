@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Biên bản họp – {{ session.title }}</title>
+<style>
+  body { font-family: "Times New Roman", Times, serif; font-size: 12pt; color: #000; margin: 0; padding: 20mm; }
+  .header { text-align: center; margin-bottom: 20px; }
+  .header h2 { font-size: 14pt; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 4px; }
+  .header p { font-size: 11pt; margin: 2px 0; color: #444; }
+  h3 { font-size: 12pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 4px; margin-top: 20px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 11pt; }
+  th, td { border: 1px solid #888; padding: 5px 8px; vertical-align: top; }
+  th { background: #f0f0f0; font-weight: bold; text-align: left; }
+  .info-table td:first-child { width: 35%; font-weight: bold; background: #f9f9f9; }
+  .status-open { color: #1a5276; }
+  .status-done { color: #1e8449; text-decoration: line-through; }
+  .status-cancelled { color: #c0392b; }
+  .overdue { color: #c0392b; font-weight: bold; }
+  .sig-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 30px; }
+  .sig-box { border: 1px solid #999; padding: 12px; text-align: center; min-height: 100px; }
+  .sig-name { font-weight: bold; margin-bottom: 4px; font-size: 11pt; }
+  .sig-role { font-size: 10pt; color: #555; margin-bottom: 8px; }
+  .sig-time { font-size: 9pt; color: #777; margin-top: 12px; border-top: 1px dashed #ccc; padding-top: 4px; }
+  .sig-hash { font-size: 7pt; color: #999; font-family: monospace; word-break: break-all; }
+  .footer { text-align: center; margin-top: 40px; font-size: 9pt; color: #777; border-top: 1px solid #ccc; padding-top: 8px; }
+  @media print {
+    body { padding: 15mm; }
+    @page { size: A4; margin: 15mm; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="font-size:11pt;text-transform:uppercase;font-weight:bold;margin-bottom:6px">
+    Vietmedi Healthcare Center
+  </div>
+  <h2>Biên bản cuộc họp triển khai</h2>
+  <p>{{ session.title }}</p>
+  <p>Ngày: {{ session.meeting_date|date:"d/m/Y" }}{% if session.meeting_time %} – {{ session.meeting_time|time:"H:i" }}{% endif %}{% if session.location %} | {{ session.location }}{% endif %}</p>
+</div>
+
+<h3>I. Thông tin buổi họp</h3>
+<table class="info-table">
+  <tr><td>Tiêu đề</td><td>{{ session.title }}</td></tr>
+  <tr><td>Ngày họp</td><td>{{ session.meeting_date|date:"d/m/Y" }}</td></tr>
+  {% if session.company %}<tr><td>Doanh nghiệp</td><td>{{ session.company.name }}</td></tr>{% endif %}
+  {% if session.contract %}<tr><td>Hợp đồng</td><td>{{ session.contract.contract_number|default:"–" }}</td></tr>{% endif %}
+  <tr><td>Người triệu tập</td><td>{{ session.created_by.get_full_name|default:session.created_by.username }}</td></tr>
+  <tr><td>Trạng thái</td><td>{{ session.status }}</td></tr>
+</table>
+
+<h3>II. Thành phần tham dự</h3>
+<table>
+  <thead>
+    <tr><th>#</th><th>Họ tên</th><th>Phòng ban</th><th>Vai trò</th></tr>
+  </thead>
+  <tbody>
+    {% for p in session.participants.all %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ p.user.get_full_name|default:p.user.username }}</td>
+      <td>{{ p.get_department_display|default:"–" }}</td>
+      <td>{% if p.role == 'LEAD' %}Chủ trì{% else %}Thành viên{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h3>III. Phân công nhân sự</h3>
+{% for da in dept_assignments %}
+<p><strong>{{ da.get_department_display }}{% if da.confirmed %} – Đã xác nhận{% endif %}</strong></p>
+{% if da.staff_shifts.all %}
+<table>
+  <thead><tr><th>Nhân viên</th><th>Vai trò</th><th>Ca</th><th>Giờ</th></tr></thead>
+  <tbody>
+    {% for sh in da.staff_shifts.all %}
+    <tr>
+      <td>{{ sh.user.get_full_name|default:sh.user.username }}</td>
+      <td>{{ sh.role_in_day|default:"–" }}</td>
+      <td>{{ sh.get_shift_display }}</td>
+      <td>{% if sh.time_from and sh.time_to %}{{ sh.time_from|time:"H:i" }} – {{ sh.time_to|time:"H:i" }}{% else %}–{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% empty %}
+<p><em>Không có phân công phòng ban.</em></p>
+{% endfor %}
+
+<h3>IV. Cam kết & Giao việc</h3>
+<table>
+  <thead>
+    <tr><th>#</th><th>Nội dung cam kết</th><th>Phòng ban</th><th>Người thực hiện</th><th>Deadline</th><th>Trạng thái</th></tr>
+  </thead>
+  <tbody>
+    {% for c in commitments %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td class="status-{{ c.status }}">{{ c.title }}</td>
+      <td>{{ c.dept_assignment.get_department_display|default:"–" }}</td>
+      <td>{{ c.assignee.get_full_name|default:"–" }}</td>
+      <td {% if c.is_overdue %}class="overdue"{% endif %}>{{ c.deadline|date:"d/m/Y"|default:"–" }}</td>
+      <td>
+        {% if c.status == 'OPEN' %}Chưa xong
+        {% elif c.status == 'DONE' %}✓ Xong
+        {% else %}Đã hủy{% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" style="text-align:center;font-style:italic">Không có cam kết nào.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if session.note %}
+<h3>V. Ghi chú & Agenda</h3>
+<p style="white-space:pre-line">{{ session.note }}</p>
+{% endif %}
+
+<h3>VI. Chữ ký xác nhận</h3>
+{% if signatures %}
+<div class="sig-section">
+  {% for sig in signatures %}
+  <div class="sig-box">
+    <div class="sig-name">{{ sig.user.get_full_name|default:sig.user.username }}</div>
+    <div class="sig-role">{{ sig.role_label|default:"Người tham dự" }}</div>
+    <div style="height:40px;border-bottom:1px solid #999;margin:10px 0"></div>
+    <div class="sig-time">Ký lúc: {{ sig.signed_at|date:"d/m/Y H:i" }}</div>
+    <div class="sig-hash">SHA: {{ sig.doc_hash|slice:":32" }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p><em>Chưa có chữ ký.</em></p>
+{% endif %}
+
+<div class="footer">
+  Biên bản này được tạo tự động bởi hệ thống ClinicOS · {{ session.updated_at|date:"d/m/Y H:i" }}
+</div>
+
+</body>
+</html>

@@ -1,0 +1,527 @@
+'''
+
+*** Cách chạy
+Audit toàn bộ
+python manage.py audit_contract_data_consistency
+Audit 1 quotation
+python manage.py audit_contract_data_consistency --quotation-id 123
+Audit 1 contract
+python manage.py audit_contract_data_consistency --contract-id 45
+Giới hạn số dòng in ra mỗi nhóm lỗi
+python manage.py audit_contract_data_consistency --limit 50
+
+
+*** Command này sẽ liệt kê các lỗi:
+
+quotation_locked_without_contract
+Báo giá bị khóa nhưng không còn contract thật
+quotation_unlocked_with_existing_contract
+Báo giá đã có contract nhưng chưa bị khóa
+orphan_profile_without_contract
+Có CorporateContractProfile nhưng contract mất
+company_mismatch_quotation_vs_contract
+quotation.company_id khác contract.company_id
+company_mismatch_profile_vs_contract
+profile.company_id khác contract.company_id
+contract_without_corporate_profile
+Contract không có profile doanh nghiệp
+contract_has_unlocked_quotation
+Contract có quotation nhưng quotation chưa locked
+approved_or_locked_contract_without_quotation
+Contract đã chốt/duyệt nhưng mất quotation gốc
+multiple_implementation_plans_per_contract
+Một contract có nhiều implementation plan
+multiple_schedule_configs_per_contract
+Một contract có nhiều schedule config
+schedule_slots_without_schedule_config
+Có slot nhưng không có config lịch
+blood_collection_without_schedule_config
+Có lịch/lần lấy máu nhưng không có config
+fully_orphan_corporate_profile
+Profile mồ côi hoàn toàn
+profile_has_quotation_but_missing_contract
+Profile còn quotation nhưng contract mất
+profile_has_contract_but_missing_quotation
+Profile có contract nhưng quotation mất
+'''
+
+from collections import defaultdict
+
+from django.apps import apps
+from django.core.management.base import BaseCommand
+
+from apps.contract.models import Contract, QuotationDraft
+
+
+def _safe_model(app_label: str, model_name: str):
+    try:
+        return apps.get_model(app_label, model_name)
+    except LookupError:
+        return None
+
+
+def _yesno(value):
+    return "YES" if value else "NO"
+
+
+class Command(BaseCommand):
+    help = (
+        "Audit/check only: rà soát dữ liệu lệch giữa quotation, "
+        "corporate_profile, contract, implementation_plan, schedule."
+    )
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--quotation-id",
+            type=int,
+            default=None,
+            help="Chỉ audit 1 quotation theo ID.",
+        )
+        parser.add_argument(
+            "--contract-id",
+            type=int,
+            default=None,
+            help="Chỉ audit 1 contract theo ID.",
+        )
+        parser.add_argument(
+            "--limit",
+            type=int,
+            default=200,
+            help="Giới hạn số dòng lỗi in ra cho mỗi nhóm.",
+        )
+
+    def handle(self, *args, **options):
+        quotation_id = options.get("quotation_id")
+        contract_id = options.get("contract_id")
+        limit = options.get("limit") or 200
+
+        CorporateContractProfile = _safe_model("contract", "CorporateContractProfile")
+        ImplementationPlan = _safe_model("contract", "ImplementationPlan")
+        ContractScheduleConfig = _safe_model("scheduling", "ContractScheduleConfig")
+        ScheduleSlot = _safe_model("scheduling", "ScheduleSlot")
+        BloodCollectionSchedule = _safe_model("scheduling", "BloodCollectionSchedule")
+
+        issues = defaultdict(list)
+
+        self.stdout.write(self.style.MIGRATE_HEADING("=== AUDIT CONTRACT DATA CONSISTENCY ==="))
+        self.stdout.write("Chế độ: CHECK ONLY (không ghi DB)")
+        self.stdout.write("")
+
+        # =========================================================
+        # A. AUDIT QUOTATION <-> CORPORATE PROFILE <-> CONTRACT
+        # =========================================================
+        quotation_qs = (
+            QuotationDraft.objects
+            .select_related("locked_by")
+            .order_by("id")
+        )
+        if quotation_id:
+            quotation_qs = quotation_qs.filter(pk=quotation_id)
+
+        total_quotations = 0
+
+        for quotation in quotation_qs:
+            total_quotations += 1
+
+            profile = getattr(quotation, "corporate_contract_profile", None)
+            contract = getattr(profile, "contract", None) if profile else None
+
+            has_profile = profile is not None
+            has_contract = contract is not None
+
+            # 1) Bị khóa nhưng không có contract thực tế
+            if quotation.is_locked and not has_contract:
+                issues["quotation_locked_without_contract"].append(
+                    self._fmt_quotation_issue(
+                        quotation,
+                        profile=profile,
+                        contract=contract,
+                        note="Quotation is locked but no real contract exists.",
+                    )
+                )
+
+            # 2) Có contract nhưng quotation lại không locked
+            if has_contract and not quotation.is_locked:
+                issues["quotation_unlocked_with_existing_contract"].append(
+                    self._fmt_quotation_issue(
+                        quotation,
+                        profile=profile,
+                        contract=contract,
+                        note="Quotation has contract but is not locked.",
+                    )
+                )
+
+            # 3) Có profile nhưng profile không có contract
+            if has_profile and not has_contract:
+                issues["orphan_profile_without_contract"].append(
+                    self._fmt_quotation_issue(
+                        quotation,
+                        profile=profile,
+                        contract=None,
+                        note="Corporate profile exists but contract is missing.",
+                    )
+                )
+
+            # 4) Có contract nhưng contract.company lệch với quotation/company profile nếu có
+            if has_contract:
+                q_company_id = getattr(quotation, "company_id", None)
+                c_company_id = getattr(contract, "company_id", None)
+                p_company_id = getattr(profile, "company_id", None) if profile else None
+
+                if q_company_id and c_company_id and q_company_id != c_company_id:
+                    issues["company_mismatch_quotation_vs_contract"].append(
+                        self._fmt_quotation_issue(
+                            quotation,
+                            profile=profile,
+                            contract=contract,
+                            note=f"Company mismatch: quotation.company_id={q_company_id}, contract.company_id={c_company_id}",
+                        )
+                    )
+
+                if has_profile and p_company_id and c_company_id and p_company_id != c_company_id:
+                    issues["company_mismatch_profile_vs_contract"].append(
+                        self._fmt_quotation_issue(
+                            quotation,
+                            profile=profile,
+                            contract=contract,
+                            note=f"Company mismatch: profile.company_id={p_company_id}, contract.company_id={c_company_id}",
+                        )
+                    )
+
+                # 5) Contract bị xóa mềm / trạng thái bất thường nhưng quotation vẫn locked
+                # Chỉ check generic fields nếu có
+                is_deleted = getattr(contract, "is_deleted", None)
+                if is_deleted is True:
+                    issues["quotation_linked_to_soft_deleted_contract"].append(
+                        self._fmt_quotation_issue(
+                            quotation,
+                            profile=profile,
+                            contract=contract,
+                            note="Quotation still linked to a soft-deleted contract.",
+                        )
+                    )
+
+        # =========================================================
+        # B. AUDIT CONTRACT DIRECT
+        # =========================================================
+        contract_qs = (
+            Contract.objects
+            .select_related("company", "created_by")
+            .order_by("id")
+        )
+        if contract_id:
+            contract_qs = contract_qs.filter(pk=contract_id)
+
+        total_contracts = 0
+
+        for contract in contract_qs:
+            total_contracts += 1
+
+            profile = getattr(contract, "corporate_profile", None)
+            quotation = getattr(profile, "quotation", None) if profile else None
+
+            has_profile = profile is not None
+            has_quotation = quotation is not None
+
+            # 6) Contract không có corporate profile
+            if not has_profile:
+                issues["contract_without_corporate_profile"].append(
+                    self._fmt_contract_issue(
+                        contract,
+                        profile=None,
+                        quotation=None,
+                        note="Contract has no corporate profile.",
+                    )
+                )
+            else:
+                # 7) Profile có contract khác với contract hiện tại
+                linked_contract_id = getattr(profile, "contract_id", None)
+                if linked_contract_id and linked_contract_id != contract.id:
+                    issues["profile_points_to_another_contract"].append(
+                        self._fmt_contract_issue(
+                            contract,
+                            profile=profile,
+                            quotation=quotation,
+                            note=f"Profile.contract_id={linked_contract_id} != current contract.id={contract.id}",
+                        )
+                    )
+
+            # 8) Contract có quotation nhưng quotation không locked
+            if has_quotation and not quotation.is_locked:
+                issues["contract_has_unlocked_quotation"].append(
+                    self._fmt_contract_issue(
+                        contract,
+                        profile=profile,
+                        quotation=quotation,
+                        note="Contract exists but linked quotation is not locked.",
+                    )
+                )
+
+            # 9) Contract đã approved/locked nhưng mất quotation gốc
+            if (getattr(contract, "is_approved", False) or getattr(contract, "is_locked", False)) and not has_quotation:
+                issues["approved_or_locked_contract_without_quotation"].append(
+                    self._fmt_contract_issue(
+                        contract,
+                        profile=profile,
+                        quotation=None,
+                        note="Approved/locked contract has no linked quotation.",
+                    )
+                )
+
+            # =====================================================
+            # C. IMPLEMENTATION PLAN
+            # =====================================================
+            if ImplementationPlan:
+                plan_qs = self._find_related_queryset(
+                    model=ImplementationPlan,
+                    contract_id=contract.id,
+                    quotation_id=getattr(quotation, "id", None),
+                )
+                plan_count = plan_qs.count() if plan_qs is not None else 0
+
+                # 10) Có hơn 1 implementation plan cho 1 contract
+                if plan_count > 1:
+                    issues["multiple_implementation_plans_per_contract"].append(
+                        self._fmt_contract_issue(
+                            contract,
+                            profile=profile,
+                            quotation=quotation,
+                            note=f"Found {plan_count} implementation plans linked to this contract.",
+                        )
+                    )
+
+                # 11) Có implementation plan nhưng contract/profile không đầy đủ
+                if plan_count > 0 and not has_profile:
+                    issues["implementation_plan_without_profile_context"].append(
+                        self._fmt_contract_issue(
+                            contract,
+                            profile=profile,
+                            quotation=quotation,
+                            note="Implementation plan exists but contract has no corporate profile.",
+                        )
+                    )
+
+            # =====================================================
+            # D. SCHEDULE / CONFIG / SLOT / BLOOD
+            # =====================================================
+            if ContractScheduleConfig:
+                cfg_qs = self._find_related_queryset(
+                    model=ContractScheduleConfig,
+                    contract_id=contract.id,
+                    quotation_id=getattr(quotation, "id", None),
+                )
+                cfg_count = cfg_qs.count() if cfg_qs is not None else 0
+
+                # 12) Nhiều config lịch cho 1 contract
+                if cfg_count > 1:
+                    issues["multiple_schedule_configs_per_contract"].append(
+                        self._fmt_contract_issue(
+                            contract,
+                            profile=profile,
+                            quotation=quotation,
+                            note=f"Found {cfg_count} schedule configs linked to this contract.",
+                        )
+                    )
+
+                # 13) Có schedule config dù contract không có profile
+                if cfg_count > 0 and not has_profile:
+                    issues["schedule_config_without_profile_context"].append(
+                        self._fmt_contract_issue(
+                            contract,
+                            profile=profile,
+                            quotation=quotation,
+                            note="Schedule config exists but contract has no corporate profile.",
+                        )
+                    )
+
+            if ScheduleSlot:
+                slot_qs = self._find_related_queryset(
+                    model=ScheduleSlot,
+                    contract_id=contract.id,
+                    quotation_id=getattr(quotation, "id", None),
+                )
+                slot_count = slot_qs.count() if slot_qs is not None else 0
+
+                # 14) Có slot nhưng không có schedule config
+                cfg_count_for_slot = 0
+                if ContractScheduleConfig:
+                    cfg_tmp = self._find_related_queryset(
+                        model=ContractScheduleConfig,
+                        contract_id=contract.id,
+                        quotation_id=getattr(quotation, "id", None),
+                    )
+                    cfg_count_for_slot = cfg_tmp.count() if cfg_tmp is not None else 0
+
+                if slot_count > 0 and cfg_count_for_slot == 0:
+                    issues["schedule_slots_without_schedule_config"].append(
+                        self._fmt_contract_issue(
+                            contract,
+                            profile=profile,
+                            quotation=quotation,
+                            note=f"Found {slot_count} schedule slots but no schedule config.",
+                        )
+                    )
+
+            if BloodCollectionSchedule:
+                blood_qs = self._find_related_queryset(
+                    model=BloodCollectionSchedule,
+                    contract_id=contract.id,
+                    quotation_id=getattr(quotation, "id", None),
+                )
+                blood_count = blood_qs.count() if blood_qs is not None else 0
+
+                # 15) Có blood collection rows/schedules nhưng không có schedule config
+                cfg_count_for_blood = 0
+                if ContractScheduleConfig:
+                    cfg_tmp = self._find_related_queryset(
+                        model=ContractScheduleConfig,
+                        contract_id=contract.id,
+                        quotation_id=getattr(quotation, "id", None),
+                    )
+                    cfg_count_for_blood = cfg_tmp.count() if cfg_tmp is not None else 0
+
+                if blood_count > 0 and cfg_count_for_blood == 0:
+                    issues["blood_collection_without_schedule_config"].append(
+                        self._fmt_contract_issue(
+                            contract,
+                            profile=profile,
+                            quotation=quotation,
+                            note=f"Found {blood_count} blood collection schedules but no schedule config.",
+                        )
+                    )
+
+        # =========================================================
+        # E. ORPHAN DATA SCAN BY RELATED TABLES
+        # =========================================================
+        if CorporateContractProfile:
+            profile_qs = CorporateContractProfile.objects.select_related("quotation", "contract").order_by("id")
+            if quotation_id:
+                profile_qs = profile_qs.filter(quotation_id=quotation_id)
+            if contract_id:
+                profile_qs = profile_qs.filter(contract_id=contract_id)
+
+            for profile in profile_qs:
+                quotation = getattr(profile, "quotation", None)
+                contract = getattr(profile, "contract", None)
+
+                # 16) profile mồ côi: không quotation, không contract
+                if quotation is None and contract is None:
+                    issues["fully_orphan_corporate_profile"].append(
+                        self._fmt_profile_issue(
+                            profile=profile,
+                            quotation=quotation,
+                            contract=contract,
+                            note="Corporate profile is fully orphan (no quotation, no contract).",
+                        )
+                    )
+
+                # 17) profile có quotation nhưng contract mất
+                if quotation is not None and contract is None:
+                    issues["profile_has_quotation_but_missing_contract"].append(
+                        self._fmt_profile_issue(
+                            profile=profile,
+                            quotation=quotation,
+                            contract=contract,
+                            note="Corporate profile still points to quotation but contract is missing.",
+                        )
+                    )
+
+                # 18) profile có contract nhưng quotation mất
+                if quotation is None and contract is not None:
+                    issues["profile_has_contract_but_missing_quotation"].append(
+                        self._fmt_profile_issue(
+                            profile=profile,
+                            quotation=quotation,
+                            contract=contract,
+                            note="Corporate profile points to contract but quotation is missing.",
+                        )
+                    )
+
+        # =========================================================
+        # OUTPUT
+        # =========================================================
+        self.stdout.write(self.style.MIGRATE_HEADING("=== SUMMARY ==="))
+        self.stdout.write(f"Total quotations scanned: {total_quotations}")
+        self.stdout.write(f"Total contracts scanned:  {total_contracts}")
+        self.stdout.write("")
+
+        if not issues:
+            self.stdout.write(self.style.SUCCESS("Không phát hiện dữ liệu lệch."))
+            return
+
+        total_issue_rows = sum(len(rows) for rows in issues.values())
+        self.stdout.write(self.style.WARNING(f"Phát hiện {total_issue_rows} dòng vấn đề trong {len(issues)} nhóm lỗi."))
+        self.stdout.write("")
+
+        for group_name, rows in issues.items():
+            self.stdout.write(self.style.ERROR(f"[{group_name}] count={len(rows)}"))
+            for row in rows[:limit]:
+                self.stdout.write(f"  - {row}")
+            if len(rows) > limit:
+                self.stdout.write(f"  ... truncated {len(rows) - limit} more rows")
+            self.stdout.write("")
+
+    # =============================================================
+    # HELPERS
+    # =============================================================
+    def _find_related_queryset(self, model, contract_id=None, quotation_id=None):
+        """
+        Tìm queryset liên quan bằng cách thử các field phổ biến trong codebase refactor:
+        - contract_id / contract
+        - quotation_id / quotation
+        - corporate_contract_profile_id / corporate_profile_id
+        """
+        if model is None:
+            return None
+
+        field_names = {f.name for f in model._meta.get_fields()}
+
+        qs = model.objects.all()
+
+        # Ưu tiên contract trước
+        if contract_id is not None:
+            if "contract" in field_names:
+                return qs.filter(contract_id=contract_id)
+            if "contract_profile" in field_names:
+                # Không resolve được contract_profile_id generic ở đây -> để fallback quotation
+                pass
+            if "corporate_profile" in field_names:
+                pass
+
+        if quotation_id is not None:
+            if "quotation" in field_names:
+                return qs.filter(quotation_id=quotation_id)
+
+        # Nếu không tìm được field quen thuộc, trả empty qs để không crash
+        return model.objects.none()
+
+    def _fmt_quotation_issue(self, quotation, profile=None, contract=None, note=""):
+        return (
+            f"quotation_id={quotation.id}, "
+            f"company_id={getattr(quotation, 'company_id', None)}, "
+            f"is_locked={_yesno(getattr(quotation, 'is_locked', False))}, "
+            f"profile_id={getattr(profile, 'id', None)}, "
+            f"contract_id={getattr(contract, 'id', None)}, "
+            f"note={note}"
+        )
+
+    def _fmt_contract_issue(self, contract, profile=None, quotation=None, note=""):
+        return (
+            f"contract_id={contract.id}, "
+            f"contract_no={getattr(contract, 'contract_number', None)!r}, "
+            f"company_id={getattr(contract, 'company_id', None)}, "
+            f"profile_id={getattr(profile, 'id', None)}, "
+            f"quotation_id={getattr(quotation, 'id', None)}, "
+            f"is_locked={_yesno(getattr(contract, 'is_locked', False))}, "
+            f"is_approved={_yesno(getattr(contract, 'is_approved', False))}, "
+            f"note={note}"
+        )
+
+    def _fmt_profile_issue(self, profile, quotation=None, contract=None, note=""):
+        return (
+            f"profile_id={profile.id}, "
+            f"company_id={getattr(profile, 'company_id', None)}, "
+            f"quotation_id={getattr(quotation, 'id', None)}, "
+            f"contract_id={getattr(contract, 'id', None)}, "
+            f"note={note}"
+        )

@@ -10,13 +10,23 @@ from rest_framework.permissions import IsAdminUser
 urlpatterns = [
     path("admin93/", admin.site.urls),
 
-    # refactor apps
-    path("org/", include("apps.organizations.urls")),
-    path("patients/", include("apps.patients.urls")),
+    path("dashboard/", include("apps.dashboard.urls", namespace="dashboard")),
+    path("approvals/", include("apps.approvals.urls", namespace="approvals")),
+    path("org/", include("apps.organizations.urls", namespace="organizations")),
+    path("patients/", include("apps.patients.urls", namespace="patients")),
     path("patients-api/", include("apps.patients.api.urls")),
+    path("catalogs/", include("apps.catalogs.urls", namespace="catalogs")),
     path("contract/", include("apps.contract.urls", namespace="contract")),
-    path("scheduling/", include("apps.scheduling.urls")),
-    path("clinical/", include("apps.clinical.urls")),
+    path("scheduling/", include("apps.scheduling.urls", namespace="scheduling")),
+    path("clinical/", include("apps.clinical.urls", namespace="clinical")),
+    path("notifications/", include("apps.notifications.urls", namespace="notifications")),
+    path("hrm/", include("apps.hrm.urls", namespace="hrm")),
+    path("analytics/", include("apps.analytics.urls", namespace="analytics")),
+    path("targets/", include("apps.targets.urls", namespace="targets")),
+    path("retention/", include("apps.retention.urls", namespace="retention")),
+    path("meeting/", include("apps.meeting.urls", namespace="meeting")),
+    path("tasks/", include("apps.tasks.urls", namespace="tasks")),
+    path("engagement/", include("apps.engagement.urls", namespace="engagement")),
 
     # legacy / transitional apps
     path("booking/", include("apps.booking.urls", namespace="booking")),

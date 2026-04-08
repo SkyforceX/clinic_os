@@ -1,0 +1,104 @@
+{% extends "base_admin.html" %}
+{% load hrm_tags %}
+
+{% block title %}Danh sách nhân viên{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">👥 Danh sách nhân viên
+    <span class="badge bg-secondary ms-2">{{ total_count }}</span>
+  </h4>
+  {% if request.user|in_group:"HR Admin" or request.user.is_superuser %}
+    <a href="{% url 'hrm:employee_create' %}" class="btn btn-primary btn-sm">
+      + Thêm nhân viên
+    </a>
+  {% endif %}
+</div>
+
+{# ── Filter ── #}
+<form method="get" class="row g-2 mb-4">
+  <div class="col-md-4">
+    <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm"
+           placeholder="Tìm theo tên, mã NV, SĐT...">
+  </div>
+  <div class="col-md-3">
+    <select name="department_id" class="form-select form-select-sm">
+      <option value="">— Tất cả phòng ban —</option>
+      {% for d in departments %}
+        <option value="{{ d.pk }}" {% if department_id == d.pk|stringformat:"s" %}selected{% endif %}>
+          {{ d.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <select name="status" class="form-select form-select-sm">
+      <option value="">— Tất cả trạng thái —</option>
+      {% for val, label in status_choices %}
+        <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-sm btn-outline-primary">Lọc</button>
+    <a href="{% url 'hrm:employee_list' %}" class="btn btn-sm btn-outline-secondary ms-1">Xóa lọc</a>
+  </div>
+</form>
+
+{# ── Table ── #}
+{% if employees %}
+<div class="table-responsive">
+  <table class="table table-sm table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Mã NV</th>
+        <th>Họ và tên</th>
+        <th>Phòng ban</th>
+        <th>Chức vụ</th>
+        <th>SĐT</th>
+        <th>Trạng thái</th>
+        <th>Ngày vào làm</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for emp in employees %}
+      <tr>
+        <td><code>{{ emp.employee_code }}</code></td>
+        <td>
+          <a href="{% url 'hrm:employee_detail' emp.pk %}">{{ emp.full_name }}</a>
+          {% if emp.user %}<span class="badge bg-light text-muted ms-1" title="Có tài khoản hệ thống">🔑</span>{% endif %}
+        </td>
+        <td>{{ emp.department.name|default:"—" }}</td>
+        <td>{{ emp.position.name|default:"—" }}</td>
+        <td>{{ emp.phone|default:"—" }}</td>
+        <td>
+          {% if emp.status == "ACTIVE" %}
+            <span class="badge bg-success">Đang làm việc</span>
+          {% elif emp.status == "PROBATION" %}
+            <span class="badge bg-warning text-dark">Thử việc</span>
+          {% elif emp.status == "ON_LEAVE" %}
+            <span class="badge bg-info">Nghỉ phép dài</span>
+          {% elif emp.status == "RESIGNED" %}
+            <span class="badge bg-secondary">Đã nghỉ</span>
+          {% elif emp.status == "TERMINATED" %}
+            <span class="badge bg-danger">Chấm dứt HĐ</span>
+          {% endif %}
+        </td>
+        <td>{{ emp.hire_date|date:"d/m/Y"|default:"—" }}</td>
+        <td class="text-end">
+          <a href="{% url 'hrm:employee_detail' emp.pk %}" class="btn btn-xs btn-outline-secondary">
+            Xem
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+  <div class="text-center text-muted py-5">
+    <p>Không tìm thấy nhân viên nào.</p>
+  </div>
+{% endif %}
+{% endblock %}

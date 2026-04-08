@@ -96,6 +96,116 @@
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
+
+  /* ── Extra content (Quill HTML) ── */
+  .extra-content-wrap {
+    margin-top: 14pt;
+    margin-bottom: 10pt;
+    page-break-inside: avoid;
+  }
+  .extra-content-title {
+    font-size: 9pt;
+    font-weight: 700;
+    color: #1a5276;
+    margin-bottom: 4pt;
+    text-transform: uppercase;
+  }
+  .extra-content-block {
+    border: 1px solid #d5e8f0;
+    border-radius: 4pt;
+    padding: 8pt 10pt;
+    background: #f8fbfd;
+    font-size: 8pt;
+    line-height: 1.65;
+    color: #222;
+  }
+  .extra-content-block p,
+  .extra-content-block div {
+    margin: 0 0 5pt 0;
+  }
+  .extra-content-block p:last-child,
+  .extra-content-block div:last-child {
+    margin-bottom: 0;
+  }
+  .extra-content-block h1,
+  .extra-content-block h2,
+  .extra-content-block h3,
+  .extra-content-block h4,
+  .extra-content-block h5,
+  .extra-content-block h6 {
+    margin: 7pt 0 4pt;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #1a5276;
+  }
+  .extra-content-block h1 { font-size: 12pt; }
+  .extra-content-block h2 { font-size: 11pt; }
+  .extra-content-block h3 { font-size: 10pt; }
+  .extra-content-block h4 { font-size: 9pt; }
+  .extra-content-block h5 { font-size: 8.5pt; }
+  .extra-content-block h6 { font-size: 8pt; }
+
+  .extra-content-block ul,
+  .extra-content-block ol {
+    margin: 3pt 0 6pt 0;
+    padding-left: 16pt;
+  }
+  .extra-content-block li {
+    margin: 2pt 0;
+  }
+  .extra-content-block blockquote {
+    margin: 6pt 0;
+    padding: 4pt 8pt;
+    border-left: 3pt solid #bcd7ea;
+    background: #f4f9fc;
+    color: #4b5b67;
+    font-style: italic;
+  }
+  .extra-content-block a {
+    color: #0d6efd;
+    text-decoration: underline;
+  }
+  .extra-content-block strong { font-weight: 700; }
+  .extra-content-block em { font-style: italic; }
+  .extra-content-block u { text-decoration: underline; }
+  .extra-content-block s { text-decoration: line-through; }
+  .extra-content-block img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 4pt 0;
+  }
+
+  .extra-content-block .ql-align-center { text-align: center; }
+  .extra-content-block .ql-align-right { text-align: right; }
+  .extra-content-block .ql-align-justify { text-align: justify; }
+
+  .extra-content-block .ql-color-red { color: #e60000; }
+  .extra-content-block .ql-color-orange { color: #f90; }
+  .extra-content-block .ql-color-yellow { color: #ff0; }
+  .extra-content-block .ql-color-green { color: #008a00; }
+  .extra-content-block .ql-color-blue { color: #06c; }
+  .extra-content-block .ql-color-purple { color: #93f; }
+
+  .extra-content-block .ql-background-red { background-color: #e60000; }
+  .extra-content-block .ql-background-orange { background-color: #f90; }
+  .extra-content-block .ql-background-yellow { background-color: #ff0; }
+  .extra-content-block .ql-background-green { background-color: #008a00; }
+  .extra-content-block .ql-background-blue { background-color: #06c; }
+  .extra-content-block .ql-background-purple { background-color: #93f; }
+
+  .extra-content-block .ql-size-small { font-size: 7pt; }
+  .extra-content-block .ql-size-large { font-size: 9.5pt; }
+  .extra-content-block .ql-size-huge { font-size: 11pt; }
+
+  .extra-content-block .ql-indent-1 { padding-left: 12pt; }
+  .extra-content-block .ql-indent-2 { padding-left: 24pt; }
+  .extra-content-block .ql-indent-3 { padding-left: 36pt; }
+  .extra-content-block .ql-indent-4 { padding-left: 48pt; }
+  .extra-content-block .ql-indent-5 { padding-left: 60pt; }
+  .extra-content-block .ql-indent-6 { padding-left: 72pt; }
+  .extra-content-block .ql-indent-7 { padding-left: 84pt; }
+  .extra-content-block .ql-indent-8 { padding-left: 96pt; }
 </style>
 </head>
 <body>
@@ -181,9 +291,9 @@
       </td>
       <td class="price-cell">
         {% if line.price_type == "free" %}
-          <span class="free-txt">Miễn phí</span>
+          <span class="free-txt">{{ line.note|default:"Miễn phí" }}</span>
         {% elif line.price_type == "gift" %}
-          <span class="gift-txt">TẶNG – Miễn phí</span>
+          <span class="gift-txt">{{ line.note|default:"Tặng" }}</span>
         {% else %}
           {% if line.checked_male and line.udai_price_male %}{{ line.udai_price_male|vnd }}
           {% elif line.checked_female_single and line.udai_price_fs %}{{ line.udai_price_fs|vnd }}
@@ -194,20 +304,35 @@
       </td>
       <td class="check-cell">
         {% if line.checked_male %}
-          {% if line.price_type == "free" or line.price_type == "gift" %}<span class="free-txt">Miễn phí</span>
-          {% else %}✓{% if line.discount_male_pct %}<br><span style="font-size:6.5pt;color:#777">(–{{ line.discount_male_pct|floatformat:"-2" }}%)</span>{% endif %}{% endif %}
+          {% if line.price_type == "free" %}
+            <span class="free-txt">{{ line.note|default:"Miễn phí" }}</span>
+          {% elif line.price_type == "gift" %}
+            <span class="gift-txt">{{ line.note|default:"Tặng" }}</span>
+          {% else %}
+            ✓{% if line.discount_male_pct %}<br><span style="font-size:6.5pt;color:#777">(–{{ line.discount_male_pct|floatformat:"-2" }}%)</span>{% endif %}
+          {% endif %}
         {% else %}<span class="na-txt">–</span>{% endif %}
       </td>
       <td class="check-cell">
         {% if line.checked_female_single %}
-          {% if line.price_type == "free" or line.price_type == "gift" %}<span class="free-txt">Miễn phí</span>
-          {% else %}✓{% if line.discount_fs_pct %}<br><span style="font-size:6.5pt;color:#777">(–{{ line.discount_fs_pct|floatformat:"-2" }}%)</span>{% endif %}{% endif %}
+          {% if line.price_type == "free" %}
+            <span class="free-txt">{{ line.note|default:"Miễn phí" }}</span>
+          {% elif line.price_type == "gift" %}
+            <span class="gift-txt">{{ line.note|default:"Tặng" }}</span>
+          {% else %}
+            ✓{% if line.discount_fs_pct %}<br><span style="font-size:6.5pt;color:#777">(–{{ line.discount_fs_pct|floatformat:"-2" }}%)</span>{% endif %}
+          {% endif %}
         {% else %}<span class="na-txt">–</span>{% endif %}
       </td>
       <td class="check-cell">
         {% if line.checked_female_family %}
-          {% if line.price_type == "free" or line.price_type == "gift" %}<span class="free-txt">Miễn phí</span>
-          {% else %}✓{% if line.discount_ff_pct %}<br><span style="font-size:6.5pt;color:#777">(–{{ line.discount_ff_pct|floatformat:"-2" }}%)</span>{% endif %}{% endif %}
+          {% if line.price_type == "free" %}
+            <span class="free-txt">{{ line.note|default:"Miễn phí" }}</span>
+          {% elif line.price_type == "gift" %}
+            <span class="gift-txt">{{ line.note|default:"Tặng" }}</span>
+          {% else %}
+            ✓{% if line.discount_ff_pct %}<br><span style="font-size:6.5pt;color:#777">(–{{ line.discount_ff_pct|floatformat:"-2" }}%)</span>{% endif %}
+          {% endif %}
         {% else %}<span class="na-txt">–</span>{% endif %}
       </td>
     </tr>
@@ -225,8 +350,10 @@
         {% if line.description %}<span class="svc-desc">{{ line.description }}</span>{% endif %}
       </td>
       <td class="price-cell">
-        {% if line.price_type == "free" %}<span class="free-txt">Miễn phí</span>
-        {% elif line.price_type == "gift" %}<span class="gift-txt">TẶNG</span>
+        {% if line.price_type == "free" %}
+          <span class="free-txt">{{ line.note|default:"Miễn phí" }}</span>
+        {% elif line.price_type == "gift" %}
+          <span class="gift-txt">{{ line.note|default:"Tặng" }}</span>
         {% else %}
           {% if line.checked_male and line.udai_price_male %}{{ line.udai_price_male|vnd }}
           {% elif line.checked_female_single and line.udai_price_fs %}{{ line.udai_price_fs|vnd }}
@@ -236,13 +363,37 @@
         {% endif %}
       </td>
       <td class="check-cell">
-        {% if line.checked_male %}✓{% if line.discount_male_pct %}<br><span style="font-size:6.5pt;color:#777">(–{{ line.discount_male_pct|floatformat:"-2" }}%)</span>{% endif %}{% else %}<span class="na-txt">–</span>{% endif %}
+        {% if line.checked_male %}
+          {% if line.price_type == "free" %}
+            <span class="free-txt">{{ line.note|default:"Miễn phí" }}</span>
+          {% elif line.price_type == "gift" %}
+            <span class="gift-txt">{{ line.note|default:"Tặng" }}</span>
+          {% else %}
+            ✓{% if line.discount_male_pct %}<br><span style="font-size:6.5pt;color:#777">(–{{ line.discount_male_pct|floatformat:"-2" }}%)</span>{% endif %}
+          {% endif %}
+        {% else %}<span class="na-txt">–</span>{% endif %}
       </td>
       <td class="check-cell">
-        {% if line.checked_female_single %}✓{% if line.discount_fs_pct %}<br><span style="font-size:6.5pt;color:#777">(–{{ line.discount_fs_pct|floatformat:"-2" }}%)</span>{% endif %}{% else %}<span class="na-txt">–</span>{% endif %}
+        {% if line.checked_female_single %}
+          {% if line.price_type == "free" %}
+            <span class="free-txt">{{ line.note|default:"Miễn phí" }}</span>
+          {% elif line.price_type == "gift" %}
+            <span class="gift-txt">{{ line.note|default:"Tặng" }}</span>
+          {% else %}
+            ✓{% if line.discount_fs_pct %}<br><span style="font-size:6.5pt;color:#777">(–{{ line.discount_fs_pct|floatformat:"-2" }}%)</span>{% endif %}
+          {% endif %}
+        {% else %}<span class="na-txt">–</span>{% endif %}
       </td>
       <td class="check-cell">
-        {% if line.checked_female_family %}✓{% if line.discount_ff_pct %}<br><span style="font-size:6.5pt;color:#777">(–{{ line.discount_ff_pct|floatformat:"-2" }}%)</span>{% endif %}{% else %}<span class="na-txt">–</span>{% endif %}
+        {% if line.checked_female_family %}
+          {% if line.price_type == "free" %}
+            <span class="free-txt">{{ line.note|default:"Miễn phí" }}</span>
+          {% elif line.price_type == "gift" %}
+            <span class="gift-txt">{{ line.note|default:"Tặng" }}</span>
+          {% else %}
+            ✓{% if line.discount_ff_pct %}<br><span style="font-size:6.5pt;color:#777">(–{{ line.discount_ff_pct|floatformat:"-2" }}%)</span>{% endif %}
+          {% endif %}
+        {% else %}<span class="na-txt">–</span>{% endif %}
       </td>
     </tr>
     {% endfor %}
@@ -250,31 +401,49 @@
   {% endfor %}
 
   <!-- ── Niêm yết ── -->
-  <tr class="total-row">
+    <tr class="total-row">
     <td colspan="3" style="text-align:right;font-size:7.5pt">
       Giá trị Gói khám theo giá niêm yết tại Phòng khám (VND/người):
     </td>
-    <td class="price-cell">{% if total_male %}{{ total_male|vnd }}{% else %}–{% endif %}</td>
-    <td class="price-cell">{% if total_female_single %}{{ total_female_single|vnd }}{% else %}–{% endif %}</td>
-    <td class="price-cell">{% if total_female_family %}{{ total_female_family|vnd }}{% else %}–{% endif %}</td>
+    <td class="price-cell">{% if base_total_male %}{{ base_total_male|vnd }}{% else %}–{% endif %}</td>
+    <td class="price-cell">{% if base_total_female_single %}{{ base_total_female_single|vnd }}{% else %}–{% endif %}</td>
+    <td class="price-cell">{% if base_total_female_family %}{{ base_total_female_family|vnd }}{% else %}–{% endif %}</td>
   </tr>
-  <!-- ── Tổng GIÁ TRỊ GÓI KHÁM ── -->
-  <tr class="grand-row">
-    <td colspan="3" style="text-align:right">TỔNG GIÁ TRỊ GÓI KHÁM (VNĐ):</td>
-    <td class="price-cell">{% if total_male %}{{ total_male|vnd }}{% else %}–{% endif %}</td>
-    <td class="price-cell">{% if total_female_single %}{{ total_female_single|vnd }}{% else %}–{% endif %}</td>
-    <td class="price-cell">{% if total_female_family %}{{ total_female_family|vnd }}{% else %}–{% endif %}</td>
-  </tr>
-  {% if quotation.male_count or quotation.female_single_count or quotation.female_family_count %}
-  <tr class="grand-row">
-    <td colspan="3" style="text-align:right">TỔNG GIÁ TRỊ HỢP ĐỒNG DỰ KIẾN:</td>
-    <td colspan="3" class="price-cell" style="font-size:9.5pt;color:#c0392b">
-      {{ grand_total|vnd }} ₫
+
+  <tr class="grand-row" style="background:#fff35a;color:#000;">
+    <td colspan="3" style="text-align:right;font-weight:700">
+      GIÁ ƯU ĐÃI DÀNH CHO QUÝ CTY (VND)
+    </td>
+    <td class="price-cell" style="font-weight:700;color:#000">
+      {% if discounted_total_male %}{{ discounted_total_male|vnd }}{% else %}–{% endif %}
+    </td>
+    <td class="price-cell" style="font-weight:700;color:#000">
+      {% if discounted_total_female_single %}{{ discounted_total_female_single|vnd }}{% else %}–{% endif %}
+    </td>
+    <td class="price-cell" style="font-weight:700;color:#000">
+      {% if discounted_total_female_family %}{{ discounted_total_female_family|vnd }}{% else %}–{% endif %}
     </td>
   </tr>
-  {% endif %}
+
+<!--  {% if quotation.male_count or quotation.female_single_count or quotation.female_family_count %}-->
+<!--  <tr class="grand-row">-->
+<!--    <td colspan="3" style="text-align:right">TỔNG GIÁ TRỊ HỢP ĐỒNG DỰ KIẾN:</td>-->
+<!--    <td colspan="3" class="price-cell" style="font-size:9.5pt;color:#c0392b">-->
+<!--      {{ grand_total|vnd }} ₫-->
+<!--    </td>-->
+<!--  </tr>-->
+<!--  {% endif %}-->
   </tbody>
 </table>
+
+{% if quotation.extra_content %}
+<div class="extra-content-wrap">
+  <div class="extra-content-title">Nội dung bổ sung</div>
+  <div class="extra-content-block">
+    {{ quotation.extra_content|safe }}
+  </div>
+</div>
+{% endif %}
 
 <!-- ── Footer notes ── -->
 <ul class="footer-notes">

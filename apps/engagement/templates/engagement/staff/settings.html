@@ -1,0 +1,196 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}Cài đặt Chăm sóc KH{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h5 class="mb-0"><i class="fa fa-gear me-2" style="color:#1a5276"></i>Cài đặt Chăm sóc Khách hàng</h5>
+  <a href="{% url 'engagement:inbox' %}" class="btn btn-sm btn-outline-secondary">← Inbox</a>
+</div>
+
+<div class="row g-3">
+  {# ── Stats ── #}
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-3" style="color:#1a5276;font-size:.88rem"><i class="fa fa-chart-bar me-1"></i>Tổng quan 30 ngày qua</div>
+        <div class="row g-2 text-center">
+          <div class="col-6 col-md-3"><div class="p-3 bg-light rounded"><div style="font-size:1.4rem;font-weight:700;color:#1a5276">{{ stats.total_conversations }}</div><div style="font-size:.74rem;color:#6c757d">Tổng hội thoại</div></div></div>
+          <div class="col-6 col-md-3"><div class="p-3 bg-light rounded"><div style="font-size:1.4rem;font-weight:700;color:#27ae60">{{ stats.open_conversations }}</div><div style="font-size:.74rem;color:#6c757d">Đang mở</div></div></div>
+          <div class="col-6 col-md-3"><div class="p-3 bg-light rounded"><div style="font-size:1.4rem;font-weight:700;color:#17a2b8">{% if stats.avg_first_reply_min %}{{ stats.avg_first_reply_min }}p{% else %}–{% endif %}</div><div style="font-size:.74rem;color:#6c757d">Phản hồi TB</div></div></div>
+          <div class="col-6 col-md-3"><div class="p-3 bg-light rounded"><div style="font-size:1.4rem;font-weight:700;color:#fd7e14">{% if stats.csat_avg %}{{ stats.csat_avg }}/5{% else %}–{% endif %}</div><div style="font-size:.74rem;color:#6c757d">CSAT</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Channels ── #}
+  <div class="col-12 col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex align-items-center justify-content-between bg-white border-bottom py-2">
+        <span class="fw-semibold" style="color:#1a5276;font-size:.88rem"><i class="fa fa-plug me-1"></i>Kênh tích hợp</span>
+        <a href="{% url 'engagement:channel_create' %}" class="btn btn-sm btn-primary">
+          <i class="fa fa-plus me-1"></i>Thêm kênh
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% if channels %}
+        <table class="table table-sm mb-0" style="font-size:.83rem">
+          <thead class="table-light">
+            <tr><th>Kênh</th><th>Loại</th><th>Trạng thái</th><th>Webhook URL</th><th></th></tr>
+          </thead>
+          <tbody>
+          {% for ch in channels %}
+          <tr>
+            <td class="fw-semibold">{{ ch.name }}</td>
+            <td>
+              {% if ch.channel_type == 'ZALO' %}<span class="badge" style="background:#0068ff">🟦 Zalo OA</span>
+              {% elif ch.channel_type == 'MESSENGER' %}<span class="badge bg-secondary">🟣 Messenger</span>
+              {% elif ch.channel_type == 'WEBCHAT' %}<span class="badge bg-success">🟢 WebChat</span>
+              {% else %}<span class="badge bg-warning text-dark">📧 Email</span>{% endif %}
+            </td>
+            <td>
+              <span class="badge {% if ch.status == 'ACTIVE' %}bg-success{% elif ch.status == 'ERROR' %}bg-danger{% else %}bg-secondary{% endif %}">
+                {{ ch.get_status_display }}
+              </span>
+            </td>
+            <td style="font-size:.75rem">
+              {% if ch.channel_type != 'WEBCHAT' %}
+              <code>{{ request.scheme }}://{{ request.get_host }}{{ ch.webhook_url_path }}</code>
+              {% else %}
+              <button class="btn btn-xs btn-outline-secondary" style="font-size:.72rem;padding:1px 6px"
+                      onclick="showEmbed(`{{ ch.embed_script|escapejs }}`)">
+                &lt;/&gt; Embed Code
+              </button>
+              {% endif %}
+            </td>
+            <td style="white-space:nowrap">
+              <a href="{% url 'engagement:channel_edit' ch.id %}" class="btn btn-xs btn-outline-warning" style="font-size:.72rem;padding:2px 6px">Sửa</a>
+              <form method="post" action="{% url 'engagement:channel_delete' ch.id %}" class="d-inline" onsubmit="return confirm('Xóa kênh {{ ch.name }}?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-xs btn-outline-danger" style="font-size:.72rem;padding:2px 6px">Xóa</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-muted text-center py-5" style="font-size:.85rem">
+          <i class="fa fa-plug fa-2x mb-2 d-block" style="opacity:.3"></i>
+          Chưa có kênh nào. <a href="{% url 'engagement:channel_create' %}">Thêm kênh đầu tiên →</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Canned Responses ── #}
+  <div class="col-12 col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex align-items-center justify-content-between bg-white border-bottom py-2">
+        <span class="fw-semibold" style="color:#1a5276;font-size:.88rem"><i class="fa fa-bolt me-1"></i>Mẫu phản hồi nhanh</span>
+        <button class="btn btn-sm btn-outline-primary" onclick="openCannedModal(null)">+ Thêm</button>
+      </div>
+      <div class="card-body p-0" style="max-height:300px;overflow-y:auto">
+        {% for c in canned %}
+        <div class="d-flex align-items-center px-3 py-2 border-bottom">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.8rem;font-weight:600">/{{ c.shortcut }} – {{ c.title }}</div>
+            <div style="font-size:.74rem;color:#6c757d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.content|truncatechars:50 }}</div>
+          </div>
+          <div class="d-flex gap-1 flex-shrink-0">
+            <button class="btn btn-xs btn-outline-secondary" style="font-size:.7rem;padding:1px 5px" onclick="openCannedModal({{ c.id }},'{{ c.shortcut|escapejs }}','{{ c.title|escapejs }}',`{{ c.content|escapejs }}`)">✏</button>
+            <button class="btn btn-xs btn-outline-danger" style="font-size:.7rem;padding:1px 5px" onclick="deleteCanned({{ c.id }})">🗑</button>
+          </div>
+        </div>
+        {% empty %}
+        <div class="text-muted text-center py-4" style="font-size:.83rem">Chưa có mẫu nào.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Embed modal ── #}
+<div class="modal fade" id="embedModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h6 class="modal-title">Mã nhúng WebChat</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <p style="font-size:.83rem">Dán đoạn mã này vào thẻ <code>&lt;body&gt;</code> của website:</p>
+      <textarea class="form-control" id="embedCode" rows="3" style="font-size:.8rem;font-family:monospace" readonly></textarea>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-sm btn-primary" onclick="document.getElementById('embedCode').select();document.execCommand('copy')">📋 Copy</button>
+      <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Đóng</button>
+    </div>
+  </div></div>
+</div>
+
+{# ── Canned modal ── #}
+<div class="modal fade" id="cannedModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h6 class="modal-title">Mẫu phản hồi nhanh</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="cannedId">
+      <div class="mb-2">
+        <label class="form-label fw-semibold" style="font-size:.82rem">Phím tắt (không có dấu cách)</label>
+        <input type="text" class="form-control form-control-sm" id="cannedShortcut" placeholder="VD: xinchao">
+      </div>
+      <div class="mb-2">
+        <label class="form-label fw-semibold" style="font-size:.82rem">Tiêu đề</label>
+        <input type="text" class="form-control form-control-sm" id="cannedTitle" placeholder="Chào hỏi">
+      </div>
+      <div>
+        <label class="form-label fw-semibold" style="font-size:.82rem">Nội dung</label>
+        <textarea class="form-control form-control-sm" id="cannedContent" rows="3" placeholder="Xin chào! Cảm ơn bạn đã liên hệ với chúng tôi..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="saveCanned()">Lưu</button>
+    </div>
+  </div></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const CSRF = '{{ csrf_token }}';
+
+function showEmbed(code){
+  document.getElementById('embedCode').value = code;
+  new bootstrap.Modal(document.getElementById('embedModal')).show();
+}
+
+function openCannedModal(id, shortcut='', title='', content=''){
+  document.getElementById('cannedId').value = id||'';
+  document.getElementById('cannedShortcut').value = shortcut;
+  document.getElementById('cannedTitle').value = title;
+  document.getElementById('cannedContent').value = content;
+  new bootstrap.Modal(document.getElementById('cannedModal')).show();
+}
+
+async function saveCanned(){
+  const res = await fetch('{% url "engagement:canned_save" %}',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+    body:JSON.stringify({
+      id:       document.getElementById('cannedId').value || null,
+      shortcut: document.getElementById('cannedShortcut').value,
+      title:    document.getElementById('cannedTitle').value,
+      content:  document.getElementById('cannedContent').value,
+    }),
+  });
+  const d = await res.json();
+  if(d.ok){ bootstrap.Modal.getInstance(document.getElementById('cannedModal')).hide(); location.reload(); }
+}
+
+async function deleteCanned(id){
+  if(!confirm('Xóa mẫu này?')) return;
+  const res = await fetch(`/engagement/settings/canned/${id}/delete/`,{method:'POST',headers:{'X-CSRFToken':CSRF}});
+  const d = await res.json();
+  if(d.ok) location.reload();
+}
+</script>
+{% endblock %}

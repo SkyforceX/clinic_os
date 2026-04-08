@@ -1,0 +1,161 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}Tạo buổi họp mới{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h5 class="mb-0"><i class="fa fa-plus-circle me-2" style="color:#1a5276"></i>Tạo buổi họp triển khai</h5>
+  <a href="{% url 'meeting:session_list' %}" class="btn btn-sm btn-outline-secondary">← Danh sách</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <form method="post">
+          {% csrf_token %}
+          <div class="row g-3">
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Tiêu đề buổi họp <span class="text-danger">*</span></label>
+              <input type="text" name="title" class="form-control" required autofocus
+                     value="{{ form_data.title|default:'' }}"
+                     placeholder="VD: Họp triển khai KSK Công ty ABC – Tháng 7/2025">
+            </div>
+
+            <div class="col-12 col-md-5">
+              <label class="form-label fw-semibold">Ngày họp <span class="text-danger">*</span></label>
+              <input type="date" name="meeting_date" class="form-control" required
+                     value="{{ form_data.meeting_date|default:'' }}">
+            </div>
+
+            <div class="col-6 col-md-3">
+              <label class="form-label fw-semibold">Giờ bắt đầu</label>
+              <input type="time" name="meeting_time" class="form-control"
+                     value="{{ form_data.meeting_time|default:'' }}">
+            </div>
+
+            <div class="col-6 col-md-4">
+              <label class="form-label fw-semibold">Địa điểm</label>
+              <input type="text" name="location" class="form-control"
+                     value="{{ form_data.location|default:'' }}"
+                     placeholder="Phòng họp A / Online…">
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Hợp đồng liên kết</label>
+              <select name="contract_id" class="form-select" id="contractSelect">
+                <option value="">— Không liên kết —</option>
+                {% for c in contracts %}
+                <option value="{{ c.id }}"
+                  {% if form_data.contract_id == c.id|stringformat:"s" %}selected{% endif %}>
+                  {{ c.contract_number|default:"#"|add:c.id|stringformat:"s" }} – {{ c.company.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Doanh nghiệp</label>
+              <select name="company_id" class="form-select" id="companySelect">
+                <option value="">— Chọn hoặc để tự điền từ HĐ —</option>
+                {% for co in companies %}
+                <option value="{{ co.id }}"
+                  {% if form_data.company_id == co.id|stringformat:"s" %}selected{% endif %}>
+                  {{ co.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Ghi chú / Agenda</label>
+              <textarea name="note" class="form-control" rows="3"
+                        placeholder="Nội dung chương trình họp, lưu ý…">{{ form_data.note|default:'' }}</textarea>
+            </div>
+
+            <div class="col-12">
+              <hr class="my-1">
+              <label class="form-label fw-semibold">Phòng ban tham gia</label>
+              <div class="row g-2">
+                {% for code, label in department_choices %}
+                <div class="col-6 col-md-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox"
+                           name="department_codes" value="{{ code }}"
+                           id="dept_{{ code }}"
+                           {% if code in form_data.getlist.department_codes|default:'' %}checked{% endif %}>
+                    <label class="form-check-label" for="dept_{{ code }}" style="font-size:.84rem">
+                      {{ label }}
+                    </label>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Thêm người tham dự</label>
+              <div style="max-height:180px;overflow-y:auto;border:1px solid #dee2e6;border-radius:8px;padding:8px">
+                {% for u in all_users %}
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox"
+                         name="participant_user_ids" value="{{ u.id }}"
+                         id="user_{{ u.id }}">
+                  <label class="form-check-label" for="user_{{ u.id }}" style="font-size:.82rem">
+                    {{ u.get_full_name|default:u.username }}
+                    {% if u.employee_profile.department %}
+                    <span class="text-muted">({{ u.employee_profile.department.name }})</span>
+                    {% endif %}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+              <div class="form-text">Bạn (người tạo) tự động được thêm với vai trò Chủ trì.</div>
+            </div>
+
+          </div>
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">
+              <i class="fa fa-calendar-plus me-1"></i>Tạo buổi họp
+            </button>
+            <a href="{% url 'meeting:session_list' %}" class="btn btn-outline-secondary">Hủy</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-2" style="color:#1a5276;font-size:.85rem">
+          <i class="fa fa-list-check me-1"></i>Quy trình 5 bước
+        </div>
+        {% load meeting_tags %}
+        {% for step_num, step_label in meeting_steps %}
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <div style="width:22px;height:22px;border-radius:50%;background:#e9ecef;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#6c757d;flex-shrink:0">
+            {{ step_num }}
+          </div>
+          <div style="font-size:.8rem;color:#495057">{{ step_label }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Auto-fill company khi chọn contract
+document.getElementById('contractSelect')?.addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  // Nếu contract chứa data-company-id thì auto-fill
+  const coid = opt.dataset.companyId;
+  if (coid) document.getElementById('companySelect').value = coid;
+});
+</script>
+{% endblock %}

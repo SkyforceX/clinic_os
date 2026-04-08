@@ -1,4 +1,5 @@
 {% load static %}
+{% load notifications_tags %}
 <div class="topbar topbar-admin">
     <div class="topbar-left">
         {% if request.user.is_authenticated and request.user.is_staff %}
@@ -11,6 +12,21 @@
         {% endif %}
     </div>
     <div class="topbar-right">
+        {% if request.user.is_authenticated %}
+            {# ── Bell notification icon ── #}
+            {% unread_notification_count as bell_cnt %}
+            <a href="{% url 'approvals:my_requests' %}"
+               class="notif-bell-btn"
+               title="Thông báo{% if bell_cnt %} ({{ bell_cnt }} chưa đọc){% endif %}">
+                <i class="fa fa-bell" style="font-size:17px"></i>
+                <span id="notif-badge"
+                      class="notif-badge"
+                      style="display:{% if bell_cnt %}inline-flex{% else %}none{% endif %}">
+                    {{ bell_cnt|default:0 }}
+                </span>
+            </a>
+        {% endif %}
+
         {% if request.session.patient_id %}
             <a href="{% url 'authentication:staff_logout' %}" class="topbar-exit-btn">Thoát</a>
         {% endif %}

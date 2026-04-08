@@ -1,0 +1,286 @@
+{% extends "base_admin.html" %}
+{% load static %}
+
+{% block title %}Yêu cầu phê duyệt #{{ ar.pk }}{% endblock %}
+
+{% block content %}
+<style>
+.badge-pending  { background:#fff3cd; color:#856404; border:1px solid #ffc107; }
+.badge-approved { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+.badge-rejected { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+.badge-recalled { background:#e5e7eb; color:#374151; border:1px solid #9ca3af; }
+.timeline { border-left:2px solid #dee2e6; padding-left:1.25rem; }
+.timeline-item { position:relative; margin-bottom:1rem; }
+.timeline-item::before {
+  content:'';
+  position:absolute;
+  left:-1.45rem;
+  top:.3rem;
+  width:.6rem;
+  height:.6rem;
+  border-radius:50%;
+  background:#6c757d;
+}
+.timeline-item.submitted::before { background:#0d6efd; }
+.timeline-item.approved::before  { background:#198754; }
+.timeline-item.rejected::before  { background:#dc3545; }
+.timeline-item.recalled::before  { background:#6c757d; }
+</style>
+
+{# ── Breadcrumb ── #}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb" style="font-size:.85rem">
+    <li class="breadcrumb-item"><a href="{% url 'approvals:inbox' %}">Inbox phê duyệt</a></li>
+    <li class="breadcrumb-item active">Yêu cầu #{{ ar.pk }}</li>
+  </ol>
+</nav>
+
+{% if messages %}
+  {% for m in messages %}
+    <div class="alert alert-{{ m.tags|default:'info' }} alert-dismissible fade show py-2">
+      {{ m }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="row g-3">
+
+  {# ── Cột trái: thông tin yêu cầu ── #}
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">
+          <i class="fa fa-file-alt"></i>
+          Yêu cầu phê duyệt #{{ ar.pk }}
+          <span class="badge bg-secondary ms-1" style="font-size:.72rem">
+            {{ ar.get_request_type_display }}
+          </span>
+        </span>
+        {% if ar.status == "PENDING" %}
+          <span class="badge badge-pending">⏳ Chờ duyệt</span>
+        {% elif ar.status == "APPROVED" %}
+          <span class="badge badge-approved">✅ Đã duyệt</span>
+        {% elif ar.status == "REJECTED" %}
+          <span class="badge badge-rejected">❌ Từ chối</span>
+        {% elif ar.status == "RECALLED" %}
+          <span class="badge badge-recalled">↩ Thu hồi</span>
+        {% endif %}
+      </div>
+
+      <div class="card-body" style="font-size:.88rem">
+        <table class="table table-borderless mb-0" style="font-size:.88rem">
+          <tr>
+            <th style="width:38%;color:#6c757d">Tài liệu</th>
+            <td><strong>{{ ar.document_label }}</strong></td>
+          </tr>
+          <tr>
+            <th style="color:#6c757d">Người nộp</th>
+            <td>
+              {% if ar.requested_by %}
+                {{ ar.requested_by.get_full_name|default:ar.requested_by.username }}
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th style="color:#6c757d">Thời gian nộp</th>
+            <td>{{ ar.requested_at|date:"d/m/Y H:i" }}</td>
+          </tr>
+          {% if ar.requester_note %}
+          <tr>
+            <th style="color:#6c757d">Ghi chú người nộp</th>
+            <td>{{ ar.requester_note }}</td>
+          </tr>
+          {% endif %}
+          {% if ar.reviewed_by %}
+          <tr>
+            <th style="color:#6c757d">Người duyệt</th>
+            <td>{{ ar.reviewed_by.get_full_name|default:ar.reviewed_by.username }}</td>
+          </tr>
+          <tr>
+            <th style="color:#6c757d">Thời gian duyệt</th>
+            <td>{{ ar.reviewed_at|date:"d/m/Y H:i" }}</td>
+          </tr>
+          {% endif %}
+          {% if ar.reviewer_note %}
+          <tr>
+            <th style="color:#6c757d">Ghi chú phản hồi</th>
+            <td>
+              {% if ar.status == "REJECTED" %}
+                <span class="text-danger">{{ ar.reviewer_note }}</span>
+              {% else %}
+                {{ ar.reviewer_note }}
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
+        </table>
+      </div>
+
+      {# ── Action buttons ── #}
+      {% if can_approve or can_reject or can_recall %}
+      <div class="card-footer d-flex gap-2">
+        {% if can_approve %}
+          <button class="btn btn-success btn-sm"
+                  data-bs-toggle="modal" data-bs-target="#modalApprove">
+            <i class="fa fa-check"></i> Phê duyệt
+          </button>
+        {% endif %}
+        {% if can_reject %}
+          <button class="btn btn-danger btn-sm"
+                  data-bs-toggle="modal" data-bs-target="#modalReject">
+            <i class="fa fa-times"></i> Từ chối
+          </button>
+        {% endif %}
+        {% if can_recall %}
+          <button class="btn btn-outline-warning btn-sm"
+                  data-bs-toggle="modal" data-bs-target="#modalRecall">
+            <i class="fa fa-undo"></i> Thu hồi
+          </button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Cột phải: timeline log ── #}
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header fw-semibold">
+        <i class="fa fa-history"></i> Lịch sử thao tác
+      </div>
+      <div class="card-body">
+        {% if logs %}
+          <div class="timeline">
+            {% for log in logs %}
+            <div class="timeline-item {{ log.action|lower }}">
+              <div class="d-flex justify-content-between">
+                <strong style="font-size:.84rem">
+                  {% if log.action == "SUBMITTED" %}🔵 Nộp phê duyệt
+                  {% elif log.action == "APPROVED" %}🟢 Phê duyệt
+                  {% elif log.action == "REJECTED" %}🔴 Từ chối
+                  {% elif log.action == "RECALLED" %}⚪ Thu hồi
+                  {% else %}{{ log.get_action_display }}
+                  {% endif %}
+                </strong>
+                <span class="text-muted" style="font-size:.78rem">
+                  {{ log.created_at|date:"d/m H:i" }}
+                </span>
+              </div>
+              <div class="text-muted" style="font-size:.8rem">
+                {{ log.actor.get_full_name|default:log.actor.username|default:"—" }}
+              </div>
+              {% if log.note %}
+                <div class="mt-1 p-2 rounded" style="background:#f8f9fa;font-size:.8rem">
+                  {{ log.note }}
+                </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted small">Chưa có thao tác nào.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>{# end row #}
+
+{# ════════════════ Modals ════════════════ #}
+
+{% if can_approve %}
+<div class="modal fade" id="modalApprove" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-success"><i class="fa fa-check-circle"></i> Xác nhận phê duyệt</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'approvals:approve' ar.pk %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p>Phê duyệt yêu cầu <strong>#{{ ar.pk }}</strong>?</p>
+          <p class="fw-semibold text-muted" style="font-size:.88rem">{{ ar.document_label }}</p>
+          <div>
+            <label class="form-label small">Ghi chú (tuỳ chọn)</label>
+            <textarea name="reviewer_note" class="form-control form-control-sm" rows="2"
+                      placeholder="Ví dụ: Đã kiểm tra và xác nhận..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Huỷ</button>
+          <button type="submit" class="btn btn-success btn-sm">
+            <i class="fa fa-check"></i> Phê duyệt
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if can_reject %}
+<div class="modal fade" id="modalReject" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger"><i class="fa fa-times-circle"></i> Từ chối yêu cầu</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'approvals:reject' ar.pk %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p>Từ chối yêu cầu <strong>#{{ ar.pk }}</strong>?</p>
+          <p class="text-muted small">Tài liệu sẽ trả về Nháp để người nộp chỉnh sửa lại.</p>
+          <div>
+            <label class="form-label small">
+              Lý do từ chối <span class="text-danger">*</span>
+            </label>
+            <textarea name="reviewer_note" class="form-control form-control-sm" rows="3"
+                      required placeholder="Bắt buộc nhập lý do..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Huỷ</button>
+          <button type="submit" class="btn btn-danger btn-sm">
+            <i class="fa fa-times"></i> Từ chối
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if can_recall %}
+<div class="modal fade" id="modalRecall" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa fa-undo"></i> Thu hồi yêu cầu</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'approvals:recall' ar.pk %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p>Thu hồi yêu cầu <strong>#{{ ar.pk }}</strong>?</p>
+          <p class="text-muted small">Tài liệu sẽ trả về Nháp để bạn chỉnh sửa và nộp lại.</p>
+          <div>
+            <label class="form-label small">Lý do thu hồi (tuỳ chọn)</label>
+            <input name="note" type="text" class="form-control form-control-sm"
+                   placeholder="Cần bổ sung thông tin...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Huỷ</button>
+          <button type="submit" class="btn btn-warning btn-sm">
+            <i class="fa fa-undo"></i> Thu hồi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

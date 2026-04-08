@@ -13,56 +13,24 @@
   <div class="row justify-content-center">
     <div class="col-12 col-md-10 col-lg-10">
     <div class="text-center mb-4">
-      <h2 class="fw-bold">Danh sách công ty</h2>
+      <h2 class="fw-bold">Danh sách khách hàng</h2>
     </div>
 
     <!-- Tab Navigation -->
-<ul class="nav nav-tabs mt-4" id="companyTab" role="tablist">
-  <li class="nav-item" role="presentation">
-    <button class="nav-link active" id="add-company-tab" data-bs-toggle="tab" data-bs-target="#add-company" type="button" role="tab">
-      ➕ Thêm Công Ty
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" id="upload-patient-tab" data-bs-toggle="tab" data-bs-target="#upload-patient" type="button" role="tab">
-      📤 Upload Danh Sách Bệnh Nhân
-    </button>
-  </li>
-</ul>
+    <ul class="nav nav-tabs mt-4" id="companyTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="upload-patient-tab" data-bs-toggle="tab" data-bs-target="#upload-patient" type="button" role="tab">
+          📤 Upload Danh Sách Bệnh Nhân
+        </button>
+      </li>
+    </ul>
   
   <!-- Tab Content -->
   <div class="tab-content border border-top-0 p-4 bg-white rounded-bottom shadow-sm" id="companyTabContent">
   
-    <!-- Tab 1: Thêm Công Ty -->
-    <div class="tab-pane fade show active" id="add-company" role="tabpanel">
-      <form method="post" class="row g-3" action="{% url 'organizations:company_list' %}">
-        {% csrf_token %}
-        <input type="hidden" name="add_company" value="1">
-        <div class="col-12">
-          <label class="form-label">Tên công ty</label>
-          <input type="text" name="company_name" class="form-control" required>
-        </div>
-        <div class="col-sm-12 col-md-9 col-lg-9">
-          <label class="form-label">Địa chỉ</label>
-          <input type="text" name="company_address" class="form-control">
-        </div>
-{#        <div class="col-md-4">#}
-{#          <label class="form-label">MST</label>#}
-{#          <input type="text" name="tax_code" class="form-control">#}
-{#        </div>#}
-        <div class="col-sm-12 col-md-3 col-lg-3">
-          <label class="form-label">Số điện thoại</label>
-          <input type="text" name="company_phone" class="form-control">
-        </div>
-        <div class="col-12 mt-2">
-          <button type="submit" class="btn btn-success">Thêm công ty</button>
-        </div>
-      </form>
-    </div>
-  
-    <!-- Tab 2: Upload bệnh nhân -->
-    <div class="tab-pane fade" id="upload-patient" role="tabpanel">
-      <form method="post" enctype="multipart/form-data" class="row g-3" action="{% url 'organizations:company_list' %}">
+    <!-- Tab 1: Upload bệnh nhân -->
+    <div class="tab-pane fade show active" id="upload-patient" role="tabpanel">
+      <form method="post" enctype="multipart/form-data" class="row g-3" id="uploadPatientForm">
         {% csrf_token %}
         <input type="hidden" name="upload_excel" value="1">
         <div class="col-md-6">
@@ -80,10 +48,14 @@
         </div>
         <div class="col-12 mt-2">
           <input type="checkbox" name="force_update" value="1" id="force_update">
-          <label for="force_update">Ghi đè nếu trùng mã BN nhưng thông tin khác</label>
+          <label for="force_update">Cho phép ghi đè khi trùng mã BN</label>
+
+        </div>
+        <div class="col-12">
           <button type="submit" class="btn btn-primary">Tải lên</button>
         </div>
       </form>
+      <div id="uploadPatientResult" class="mt-3"></div>
   
       {% if error_rows %}
         <div class="mt-4 p-3 border border-danger rounded bg-light">
@@ -119,7 +91,7 @@
     <!-- Lọc theo công ty -->
     <form method="get" class="mb-4">
         <div class="input-group">
-            <label class="input-group-text">Xem danh sách bệnh nhân:</label>
+            <label class="input-group-text">Xem danh sách khách hàng:</label>
             <select name="company_id" class="form-select" onchange="this.form.submit()">
                 <option value="">-- Chọn công ty --</option>
                 {% for c in companies %}
@@ -312,6 +284,81 @@
     getAllPatientsUrl: "{% url 'patients:get_all_patients' %}",
     getPatientsByCompanyUrl: "{% url 'patients:get_patients_by_company' 0 %}",
   };
+</script>
+<script>
+  (function () {
+    const form = document.getElementById("uploadPatientForm");
+    const resultBox = document.getElementById("uploadPatientResult");
+    if (!form || !resultBox) return;
+
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      resultBox.innerHTML = '<div class="alert alert-info py-2">Đang tải file...</div>';
+
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch("{% url 'patients_api:upload_list_patient' %}", {
+          method: "POST",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest"
+          },
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          let html = `<div class="alert alert-success py-2">${data.message}</div>`;
+
+          if (data.warning_rows && data.warning_rows.length) {
+            html += `
+              <div class="table-responsive mt-3">
+                <table class="table table-bordered table-sm">
+                  <thead class="table-warning">
+                    <tr>
+                      <th>Dòng</th>
+                      <th>Mã BN</th>
+                      <th>Họ tên</th>
+                      <th>Lỗi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${data.warning_rows.map(row => `
+                      <tr>
+                        <td>${row.row ?? ""}</td>
+                        <td>${row.ma_bn ?? ""}</td>
+                        <td>${row.ho_ten ?? ""}</td>
+                        <td>${row.missing ?? ""}</td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+            `;
+          }
+
+          resultBox.innerHTML = html;
+          form.reset();
+        } else {
+          let html = `<div class="alert alert-danger py-2">${data.error || "Import thất bại."}</div>`;
+
+          if (data.details && Array.isArray(data.details)) {
+            html += `
+              <div class="mt-2">
+                <pre class="p-2 bg-light border rounded small mb-0" style="white-space:pre-wrap">${data.details.join("\n")}</pre>
+              </div>
+            `;
+          }
+
+          resultBox.innerHTML = html;
+        }
+      } catch (err) {
+        resultBox.innerHTML = `<div class="alert alert-danger py-2">Lỗi kết nối: ${err}</div>`;
+      }
+    });
+  })();
 </script>
 <script src="{% static 'clinical/js/clinic.js' %}"></script>
 {% endblock %}

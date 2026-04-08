@@ -1,3 +1,5 @@
+# ==== dùng cho template - đăng ký lịch khám cho báo giá ====
+
 from dataclasses import dataclass, field
 
 from django.db import IntegrityError, transaction
@@ -9,7 +11,14 @@ from apps.contract.domain.exceptions import (
 from apps.contract.models import BloodCollectionSchedule, Contract
 from apps.contract.models.contract import ContractStatus
 from apps.contract.policies import ContractPolicy
-from apps.contract.services.common import get_next_contract_number, parse_date, parse_int
+from apps.contract.services.common import (
+    money_to_vietnamese_words,
+    parse_date,
+    parse_datetime_local,
+    parse_int,
+    parse_money,
+    reserve_next_contract_number,
+)
 from apps.organizations.models import Company
 from apps.organizations.selectors.company_selectors import get_company_for_actor
 
@@ -134,7 +143,7 @@ def execute(cmd: CreateContractCommand):
     try:
         contract = Contract.objects.create(
             company=legacy_company,
-            contract_number=get_next_contract_number(),
+            contract_number=reserve_next_contract_number(),
             contact_person=payload["contact_person"],
             representative_title=payload["representative_title"],
             employee_count=payload["employee_count"],

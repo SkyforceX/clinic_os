@@ -58,7 +58,7 @@ def _run_office_convert(office_bin: str, docx_file: Path, out_dir: Path) -> byte
 
         completed = subprocess.run(
             cmd,
-            check=False,
+            condition=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             timeout=120,

@@ -5,179 +5,115 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="81ba889d-c020-410a-9d56-7eb0c3056848" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/apps/authentication/templates/authentication-backup/login_form.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/catalogs/urls.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/contract/templates/contract/staff/corporate_contract_preview.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/contract/templates/contract/staff/create_quotation.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps-1.zip" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps-2.zip" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps.zip" beforeDir="false" afterPath="$PROJECT_DIR$/apps.zip" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/api_his/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/api_his/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/migrations/0001_initial.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/selectors/patient_auth_selectors.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/selectors/patient_auth_selectors.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/templates/authentication/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/templates/authentication-backup/base.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/templates/authentication/login_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/templates/authentication/login_form.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/templates/authentication/patient_dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/templates/authentication/patient_dashboard.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/templates/authentication/staff_login_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/templates/authentication-backup/staff_login_form.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/web/views/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/web/views/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/web/views/password_reset_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/web/views/password_reset_views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/web/views/patient_auth_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/web/views/patient_auth_views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/authentication/web/views/staff_auth_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/web/views/staff_auth_views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/migrations/0001_initial.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/tasks.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/tasks.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/templates/booking/appointment_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/templates/booking/staff/appointment_form.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/templates/booking/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/templates/booking/base-backup.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/templates/booking/contract_list.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/templates/booking/edit_appointment.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/templates/booking/staff/edit_appointment.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/templates/booking/manage_schedule_calendar.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/templates/booking/staff/manage_schedule_calendar.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/templates/booking/manage_schedule_limits.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/templates/booking/staff/manage_schedule_limits.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/templates/booking/schedule_table.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/templates/booking/staff/schedule_table.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/templates/booking/schedule_year.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/templates/booking/staff/schedule_year.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/booking/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/booking/templates/booking/staff/schedule_table.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/templates/booking/staff/schedule_table.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/catalogs/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/catalogs/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/clinical.zip" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/clinical/migrations/0001_initial.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/clinical/web/views/assistant_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/web/views/assistant_views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/contract.zip" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/catalogs/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/catalogs/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/catalogs/policies.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/catalogs/policies.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/catalogs/web/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/catalogs/web/forms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/catalogs/web/urls.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/catalogs/web/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/catalogs/web/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/clinical/web/views/dashboard_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/web/views/dashboard_views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/contract/migrations/0001_initial.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/api/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/api/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/api/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/api/views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/models/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/models/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/models/contract.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/models/contract.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/models/corporate.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/models/corporate.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/models/document.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/models/document.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/models/lines.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/models/lines.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/models/quotation.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/models/quotation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/contract/selectors/checkup_overview.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/policies.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/policies.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/selectors/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/selectors/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/selectors/contract_selectors.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/selectors/contract_selectors.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/contract/services/approve_contract.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/services/approve_contract.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/services/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/services/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/services/common.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/services/common.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/contract/services/corporate_catalog.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/services/corporate_catalog.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/services/corporate_contracts.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/services/corporate_contracts.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/services/create_contract.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/services/create_contract.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/services/delete_contract.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/services/delete_contract.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/contract/services/update_contract.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/services/update_contract.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/services/document_payloads.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/services/document_payloads.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/services/docx_renderer.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/services/docx_renderer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/services/pdf_converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/services/pdf_converter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/services/quotation_documents.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/services/quotation_documents.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/static/contract/css/corporate_contract.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/static/contract/css/corporate_contract.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/contract_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/templates/contract/staff/contract_list.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/corporate_contract_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/templates/contract/staff/corporate_contract_list.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/corporate_contract_print.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/corporate_quote_print.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/create_contract.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/templates/contract/staff/create_contract.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/create_corporate_contract.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/templates/contract/staff/create_corporate_contract.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/create_proposal.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/edit_contract.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/templates/contract/staff/edit_corporate_contract.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/edit_proposal.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/templates/contract/staff/edit_quotation.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/includes/_proposal_js.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/includes/_proposal_row.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/templates/contract/staff/includes/_proposal_row.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/proposal_pdf.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/templates/contract/staff/quotation_pdf.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/proposal_preview.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/templates/contract/staff/quotation_preview.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templates/contract/staff/quotation_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/templates/contract/staff/quotation_list.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/templatetags/contract_tags.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/templatetags/contract_tags.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/contract/web/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/web/forms.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/contract/web/views/catalog_views.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/web/views/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/web/views/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/contract/web/views/contract_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/web/views/contract_views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/web/views/corporate_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/web/views/corporate_views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/contract/web/views/quotation_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/contract/web/views/quotation_views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/organizations.zip" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/organizations/migrations/0001_initial.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/core/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/core/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/core/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/core/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/organizations/selectors/company_selectors.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/organizations/selectors/company_selectors.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/organizations/services/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/organizations/services/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/organizations/services/company_commands.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/organizations/services/company_commands.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/organizations/templates/organizations/staff/company_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/organizations/templates/organizations/staff/company_list.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/organizations/web/views/company_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/organizations/web/views/company_views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/patients.zip" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/patients/migrations/0001_initial.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/patients/selectors/patient_selectors.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/patients/selectors/patient_selectors.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/patients/services/patient_commands.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/patients/services/patient_commands.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/patients/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/patients/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/patients/web/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/patients/web/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/patients/web/views/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/patients/web/views/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/patients/web/views/patient_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/patients/web/views/patient_views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/quality/migrations/0001_initial.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/quality/migrations/0002_remove_incidentreport_title_and_more.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/quality/migrations/0003_alter_incidentreport_incident_name.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/quality/migrations/0004_incidentattachment.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/quality/migrations/0005_remove_medicalrecordaudit_q10_physical_exam_and_more.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/scheduling.zip" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/scheduling/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/admin.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/scheduling/models/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/models/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/scheduling/models/schedule.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/models/schedule.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/scheduling/policies.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/policies.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/scheduling/selectors/schedule_matrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/selectors/schedule_matrix.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/scheduling/selectors/schedule_selectors.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/selectors/schedule_selectors.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/scheduling/services/allocate_slots.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/services/allocate_slots.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/scheduling/services/appointment_commands.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/services/appointment_commands.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/scheduling/services/contract_lifecycle.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/services/contract_lifecycle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/scheduling/web/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/web/forms.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/scheduling/web/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/web/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/scheduling/web/views/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/web/views/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/scheduling/web/views/contract_schedule_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/web/views/contract_schedule_views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/scheduling/web/views/public_booking_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/web/views/public_booking_views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/scheduling/web/views/schedule_admin_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/scheduling/web/views/schedule_admin_views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/asgi.py" beforeDir="false" afterPath="$PROJECT_DIR$/config/asgi.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/config/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/account/css/profile.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/account/static/account/css/profile.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/api_his/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/api_his/static/api_his/css/style.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/api_his/js/test_his_appointments_api.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/api_his/static/api_his/js/test_his_appointments_api.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/authentication/css/login.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/static/authentication/css/login.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/authentication/css/login_v2.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/static/authentication/css/login_v2.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/authentication/css/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/static/authentication/css/styles.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/authentication/js/scripts.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/static/authentication/js/scripts.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/booking/css/login.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/static/booking/css/login.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/booking/css/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/static/booking/css/styles.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/booking/img/bg_admin.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/static/booking/img/bg_admin.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/booking/js/contract_list.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/static/booking/js/contract_list.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/booking/js/modal.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/booking/static/booking/js/modal.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/clinic/css/dental_form.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/static/clinical/css/dental_form.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/clinic/css/paps.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/static/clinical/css/paps.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/clinic/css/print.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/static/clinical/css/print.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/clinic/css/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/static/clinical/css/styles.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/clinic/css/sum_assistant.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/static/clinical/css/sum_assistant.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/clinic/fixtures/sum_assistant_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/static/clinical/fixtures/sum_assistant_data.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/clinic/fixtures/tooth_notations.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/static/clinical/fixtures/tooth_notations.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/clinic/js/clinic.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/static/clinical/js/clinic.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/clinic/js/dental_form.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/static/clinical/js/dental_form.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/clinic/js/sum_assistant.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/static/clinical/js/sum_assistant.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/clinic/signature/bs_hoat.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/static/clinical/signature/bs_hoat.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/clinic/signature/bs_hoat.png" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/static/clinical/signature/bs_hoat.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/config/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/static/css/global.css" beforeDir="false" afterPath="$PROJECT_DIR$/static/css/global.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/quality/css/incident.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/quality/static/quality/css/incident.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/quality/css/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/quality/static/quality/css/styles.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/quality/js/incident_report_form.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/quality/static/quality/js/incident_report_form.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/sum_report/css/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/sum_report/static/sum_report/css/styles.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/sum_report/css/sum_report.css" beforeDir="false" afterPath="$PROJECT_DIR$/apps/sum_report/static/sum_report/css/sum_report.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/sync_patient/css/styles.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/sync_patient/js/manual_sync.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/account/change_password.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/account-backup/change_password.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/account/profile.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/account-backup/profile.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/authentication/forgot_password.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/templates/authentication-backup/forgot_password.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/authentication/login_form.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/authentication/login_form_v2.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/templates/authentication/login_form_v2.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/authentication/patient_dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/templates/authentication-backup/patient_dashboard.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/authentication/reset_password.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/templates/authentication-backup/reset_password.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/authentication/staff/staff_login_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/templates/authentication/staff/staff_login_form.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/authentication/verify_otp.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/authentication/templates/authentication-backup/verify_otp.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/appointment_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/appointment_form.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/edit_appointment.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/edit_appointment.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/errors/404.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/errors/404.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/errors/500.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/errors/500.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/errors/502.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/errors/502.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/includes/individual_booking_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/includes/individual_booking_form.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/includes/modal_list_patient.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/includes/modal_list_patient.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/includes/modal_popup.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/includes/modal_popup.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/show_thank_you.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/show_thank_you.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/staff/contract_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/staff/contract_list.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/staff/manage_schedule_calendar.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/staff/manage_schedule_calendar.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/staff/manage_schedule_limits.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/staff/manage_schedule_limits.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/staff/register_schedule.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/staff/register_schedule.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/booking/staff/schedule_table.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/booking-backup/staff/schedule_table.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/clinic/includes/global_js_remove.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/templates/clinical/includes/global_js_remove.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/clinic/includes/list_patient.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/templates/clinical/includes/list_patient.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/clinic/includes/menu_remove.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/templates/clinical/includes/menu_remove.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/clinic/includes/printing_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/templates/clinical/includes/printing_form.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/clinic/staff/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/templates/clinical/staff/dashboard.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/clinic/staff/dental_exam_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/templates/clinical/staff/dental_exam_form.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/clinic/staff/list_company.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/organizations/templates/organizations/staff/company_list.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/clinic/staff/paps_result.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/templates/clinical/staff/paps_result.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/clinic/staff/pathology.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/templates/clinical/staff/pathology.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/clinic/staff/pathology_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/templates/clinical/staff/pathology_detail.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/clinic/staff/sum_assistant.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/clinical/templates/clinical/staff/sum_assistant.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/core/403.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/core-backup/403.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/core/403_csrf.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/core-backup/403_csrf.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/core/404.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/core-backup/404.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/core/500.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/core-backup/500.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/health_record/main.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/health_record-backup/main.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/health_record/patient_list_api_vnpt.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/health_record-backup/patient_list_api_vnpt.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/health_record/patient_report.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/health_record-backup/patient_report.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/health_record/staff/upload_patient_document.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/health_record-backup/staff/upload_patient_document.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/js/global.js" beforeDir="false" afterPath="$PROJECT_DIR$/static/js/global.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/account-backup/change_password.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/account-backup/profile.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/base_admin.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/base_admin.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/appointment_form.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/edit_appointment.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/errors/404.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/errors/500.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/errors/502.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/includes/individual_booking_form.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/includes/modal_list_patient.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/includes/modal_popup.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/show_thank_you.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/staff/contract_list.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/staff/manage_schedule_calendar.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/staff/manage_schedule_limits.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/staff/register_schedule.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/booking-backup/staff/schedule_table.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/core-backup/403.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/core-backup/403_csrf.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/core-backup/404.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/core-backup/500.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/health_record-backup/main.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/health_record-backup/patient_list_api_vnpt.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/health_record-backup/patient_report.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/health_record-backup/staff/upload_patient_document.html" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/includes/staff/menu.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/includes/staff/menu.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/quality/_incident_report_form_body.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/quality/templates/quality/_incident_report_form_body.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/quality/incident_report_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/quality/templates/quality/incident_report_form.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/quality/incident_report_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/quality/templates/quality/incident_report_list.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/quality/incident_report_public_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/quality/templates/quality/incident_report_public_form.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/quality/incident_report_thanks.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/quality/templates/quality/incident_report_thanks.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/quality/medical_record_audit_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/quality/templates/quality/medical_record_audit_form.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/quality/medical_record_audit_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/quality/templates/quality/medical_record_audit_list.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/sum_report/upload.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/sum_report-backup/upload.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/sync_patient/manual_sync.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/sync_patient-backup/manual_sync.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/sync_patient/patient_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/sync_patient-backup/patient_list.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/includes/staff/topbar_admin.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/includes/staff/topbar_admin.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/sum_report-backup/upload.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/sync_patient-backup/manual_sync.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/sync_patient-backup/patient_list.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/templates.zip" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -212,43 +148,43 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "DefaultHtmlFileTemplate": "HTML File",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "main",
-    "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "D:/Code/Project/Django_project/clinic_os/apps/scheduling",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "show.migrate.to.gradle.popup": "false",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Code/Project/Django_project/clinic_os/apps/contract/templates/contract/staff/includes&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;show.migrate.to.gradle.popup&quot;: &quot;false&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="D:\Code\Project\Django_project\clinic_os\apps\scheduling" />
-      <recent name="D:\Code\Project\Django_project\clinic_os\apps\contract" />
-      <recent name="D:\Code\Project\Django_project\clinic_os\apps" />
-      <recent name="D:\Code\Project\Django_project\clinic_os\apps\contract\templates\contract\includes" />
+      <recent name="D:\Code\Project\Django_project\clinic_os\apps\contract\templates\contract\staff\includes" />
       <recent name="D:\Code\Project\Django_project\clinic_os\apps\contract\templates\contract\staff" />
+      <recent name="D:\Code\Project\Django_project\clinic_os\apps\contract\services" />
+      <recent name="D:\Code\Project\Django_project\clinic_os\apps\contract\web\views" />
+      <recent name="D:\Code\Project\Django_project\clinic_os\apps\contract\models" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\Code\Project\Django_project\clinic_os\apps\contract\models" />
+      <recent name="D:\Code\Project\Django_project\clinic_os\apps\catalogs" />
+      <recent name="D:\Code\Project\Django_project\clinic_os\apps\catalogs\static\catalogs" />
+      <recent name="D:\Code\Project\Django_project\clinic_os\apps\catalogs\static\data" />
       <recent name="D:\Code\Project\Django_project\clinic_os\apps\contract\templates\contract\staff\includes" />
-      <recent name="D:\Code\Project\Django_project\clinic_os\apps\booking\templates\booking\staff" />
-      <recent name="D:\Code\Project\Django_project\clinic_os\apps\patients\static\patients" />
-      <recent name="D:\Code\Project\Django_project\clinic_os\apps\organizations\templates\organizations\staff" />
-      <recent name="D:\Code\Project\Django_project\clinic_os\apps\sum_report\static" />
     </key>
   </component>
   <component name="SharedIndexes">
@@ -267,7 +203,13 @@
       <option name="presentableId" value="Default" />
       <updated>1773983113455</updated>
       <workItem from="1773983115245" duration="359000" />
-      <workItem from="1773983593986" duration="84739000" />
+      <workItem from="1773983593986" duration="85035000" />
+      <workItem from="1774576996730" duration="1679000" />
+      <workItem from="1774599924662" duration="94384000" />
+      <workItem from="1775019780463" duration="58126000" />
+      <workItem from="1775271337835" duration="35784000" />
+      <workItem from="1775448728335" duration="237000" />
+      <workItem from="1775452709166" duration="8000" />
     </task>
     <servers />
   </component>

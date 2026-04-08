@@ -1,0 +1,34 @@
+{% extends "base_admin.html" %}
+{% block title %}Phòng ban{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">🏢 Danh sách phòng ban</h4>
+  <a href="{% url 'hrm:department_create' %}" class="btn btn-sm btn-primary">+ Thêm phòng ban</a>
+</div>
+
+<table class="table table-sm table-hover">
+  <thead class="table-light">
+    <tr><th>Tên</th><th>Mã</th><th>Trực thuộc</th><th>Số NV</th><th>Thứ tự</th><th>Trạng thái</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for d in departments %}
+    <tr>
+      <td><strong>{{ d.name }}</strong></td>
+      <td><code>{{ d.code }}</code></td>
+      <td>{{ d.parent.name|default:"—" }}</td>
+      <td>{{ d.employees.count }}</td>
+      <td>{{ d.display_order }}</td>
+      <td>
+        {% if d.is_active %}<span class="badge bg-success">Hoạt động</span>
+        {% else %}<span class="badge bg-secondary">Dừng</span>{% endif %}
+      </td>
+      <td class="text-end">
+        <a href="{% url 'hrm:department_edit' d.pk %}" class="btn btn-xs btn-outline-secondary">Sửa</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" class="text-center text-muted">Chưa có phòng ban nào.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

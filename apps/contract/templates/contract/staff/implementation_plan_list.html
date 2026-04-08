@@ -1,0 +1,313 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% load contract_tags %}
+
+{% block title %}Danh sách triển khai{% endblock %}
+
+{% block content %}
+<style>
+.impl-list-shell{
+  display:grid;
+  gap:16px;
+}
+.impl-list-hero{
+  background:linear-gradient(135deg,var(--crm-table-header-bg,#0f4c81) 0%,var(--crm-table-header-bg-2,#1f6aa5) 100%);
+  color:#fff;
+  border-radius:16px;
+  padding:18px 20px;
+  box-shadow:0 12px 28px rgba(15,76,129,.18);
+}
+.impl-list-hero__title{
+  font-size:1.2rem;
+  font-weight:700;
+  margin-bottom:4px;
+}
+.impl-list-hero__sub{
+  opacity:.92;
+  font-size:.94rem;
+}
+.impl-list-card{
+  border:1px solid #d9e2ec;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 8px 24px rgba(15,23,42,.05);
+}
+.impl-toolbar{
+  display:flex;
+  gap:12px;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  padding:16px 18px 0;
+}
+.impl-search{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.impl-search input{
+  min-width:320px;
+  border:1px solid #cfd8e3;
+  border-radius:10px;
+  padding:10px 12px;
+}
+.impl-summary{
+  color:#5b6778;
+  font-size:.92rem;
+}
+.impl-table-wrap{
+  padding:16px 18px 18px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.impl-table-wrap .table-responsive{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.impl-table{
+  width: auto;
+  border-collapse:separate;
+  border-spacing:0;
+  font-size:.93rem;
+}
+.impl-table thead th{
+  background:var(--crm-table-header-bg,#0f4c81);
+  color:#fff;
+  padding:12px 10px;
+  text-align:center;
+  border:none;
+  font-size:.88rem;
+  white-space:nowrap;
+}
+.impl-table thead th:first-child{border-top-left-radius:12px;}
+.impl-table thead th:last-child{border-top-right-radius:12px;}
+.impl-table tbody td{
+  border-bottom:1px solid #e8edf3;
+  padding:12px 10px;
+  vertical-align:middle;
+}
+.impl-table tbody tr:hover{
+  background:#f8fbff;
+}
+.impl-actions{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.impl-code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:.83rem;
+  padding:3px 8px;
+  border-radius:999px;
+  background:#f1f5f9;
+  display:inline-block;
+}
+.impl-company{
+  min-width:320px;
+  white-space:normal;
+  word-break:break-word;
+}
+.impl-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:.75rem;
+  font-weight:700;
+}
+.impl-badge--locked{
+  background:#dcfce7;
+  color:#166534;
+}
+.impl-badge--created{
+  background:#dbeafe;
+  color:#1d4ed8;
+}
+.impl-empty{
+  text-align:center;
+  color:#6b7280;
+  padding:48px 20px;
+}
+
+@media (max-width: 992px){
+  .impl-search{
+    width:100%;
+  }
+  .impl-search input{
+    min-width:220px;
+    width:100%;
+  }
+}
+
+@media (max-width: 576px){
+  .impl-list-hero{
+    padding:14px 16px;
+    border-radius:14px;
+  }
+  .impl-toolbar{
+    padding:14px 14px 0;
+  }
+  .impl-table-wrap{
+    padding:14px;
+  }
+  .impl-table{
+    min-width:760px;
+    font-size:.89rem;
+  }
+  .impl-mobile-hide{
+    display:none !important;
+  }
+  .impl-actions{
+    justify-content:flex-start;
+  }
+}
+</style>
+
+<div class="impl-list-shell">
+  <div class="impl-list-hero">
+    <div class="impl-list-hero__title">
+      <i class="fa fa-clipboard-list"></i> Danh sách triển khai khám doanh nghiệp
+    </div>
+    <div class="impl-list-hero__sub">
+      Kế hoạch triển khai phát sinh từ hợp đồng doanh nghiệp đã chốt.
+    </div>
+  </div>
+
+  <div class="impl-list-card">
+    <form method="get" class="impl-toolbar">
+      <div class="impl-search">
+        <input
+          type="text"
+          name="q"
+          value="{{ query }}"
+          placeholder="Tìm theo số hợp đồng, tên công ty, người liên hệ..."
+        >
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="fa fa-search"></i> Tìm kiếm
+        </button>
+        {% if query %}
+        <a href="{% url 'contract:implementation_plan_list' %}" class="btn btn-outline-secondary btn-sm">
+          Xóa lọc
+        </a>
+        {% endif %}
+      </div>
+
+      <div class="impl-summary">
+        Tổng số: <strong>{{ total_items }}</strong> kế hoạch
+      </div>
+    </form>
+
+    <div class="impl-table-wrap">
+      {% if items %}
+      <div class="table-responsive">
+        <table class="impl-table">
+          <thead>
+            <tr>
+              <th class="impl-mobile-hide" style="width:70px;">STT</th>
+              <th style="width:180px;">Số<br>hợp đồng</th>
+              <th style="min-width:320px; width:320px;">Công ty</th>
+              <th class="impl-mobile-hide" style="width:160px;">Người tạo</th>
+              <th class="impl-mobile-hide" style="width:140px;">Số lượng</th>
+              <th class="impl-mobile-hide" style="min-width:180px;">Ngày<br>lấy máu</th>
+              <th class="impl-mobile-hide" style="width:160px;">Thời gian<br>khám</th>
+              <th class="impl-mobile-hide" style="width:170px;">Cập nhật<br>kế hoạch</th>
+              <th style="width:220px;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            {% with c=item.contract %}
+            <tr>
+              <td class="text-center impl-mobile-hide">{{ forloop.counter }}</td>
+              <td>
+                <div class="impl-code">{{ c.contract_number|default:"-" }}</div>
+                <div class="mt-1 impl-mobile-hide">
+                  <span class="impl-badge impl-badge--locked">Đã chốt</span>
+                  {% if item.plan %}
+                  <span class="impl-badge impl-badge--created">Đã tạo KH</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="impl-company">
+                <div class="fw-semibold">{{ c.company.name }}</div>
+                {% if c.contact_person %}
+                <div class="text-muted small mt-1 impl-mobile-hide">Liên hệ: {{ c.contact_person }}</div>
+                {% endif %}
+              </td>
+              <td class="impl-mobile-hide">
+                {{ c.created_by.get_full_name|default:c.created_by.username|default:"-" }}
+              </td>
+              <td class="text-center impl-mobile-hide">
+                {{ c.employee_count|default:c.corporate_profile.male_count|add:c.corporate_profile.female_single_count|add:c.corporate_profile.female_family_count }}
+              </td>
+              <td class="impl-mobile-hide">
+                {% with rows=c.blood_collection_schedules.all %}
+                  {% if rows %}
+                    {% for row in rows %}
+                      <div>
+                        {{ row.collection_date|date:"d/m/Y" }}
+                      </div>
+                    {% endfor %}
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                {% endwith %}
+              </td>
+              <td class="text-center impl-mobile-hide">
+                {% if c.start_date %}
+                  {{ c.start_date|date:"d/m/Y" }}
+                  {% if c.end_date %}
+                    <br>– {{ c.end_date|date:"d/m/Y" }}
+                  {% endif %}
+                {% else %}
+                  –
+                {% endif %}
+              </td>
+              <td class="text-center impl-mobile-hide">
+                {% if item.plan %}
+                  {{ item.plan.updated_at|date:"d/m/Y H:i" }}
+                {% else %}
+                  –
+                {% endif %}
+              </td>
+              <td>
+                <div class="impl-actions">
+                  <a href="{% url 'contract:implementation_plan_detail' c.id %}"
+                     class="btn btn-sm btn-outline-primary"
+                     title="Mở kế hoạch triển khai">
+                    <i class="fa fa-clipboard-list"></i>
+                  </a>
+
+                  <a href="{% url 'contract:implementation_plan_export_excel' c.id %}"
+                     class="btn btn-sm btn-outline-success impl-mobile-hide"
+                     title="Xuất Excel">
+                    <i class="fa fa-file-excel"></i>
+                  </a>
+
+                  {% if item.can_view_contract_link %}
+                  <a href="{% url 'contract:corporate_contract_print' c.id %}"
+                     class="btn btn-sm btn-outline-secondary impl-mobile-hide"
+                     title="Về hợp đồng">
+                    <i class="fa fa-file-contract"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="impl-empty">
+        <i class="fa fa-clipboard-list fa-3x mb-3 d-block"></i>
+        Chưa có kế hoạch triển khai nào từ hợp đồng đã chốt.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

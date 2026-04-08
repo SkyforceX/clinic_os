@@ -1,4 +1,23 @@
-import os
+"""
+quotation_documents.py
+----------------------
+Phát hành (issue) tài liệu báo giá dưới dạng docx + pdf.
+
+Thay đổi so với phiên bản cũ:
+- Không raise RuntimeError nếu PDF thất bại → cho phép lưu docx-only
+- Transaction chỉ bao quanh phần DB write, không bao quanh I/O render
+- Trả IssuedDocument kể cả khi pdf_file = None
+  (view sẽ phân biệt qua issued.pdf_file để hiện warning hoặc success)
+
+Fix bug (v5→v6):
+- tmp_docx_path KHÔNG bị xóa trước khi LibreOffice dùng nó
+  (finally của Phase 1 cũ xóa file trước Phase 2 → LibreOffice báo "Docx không tồn tại")
+- Dọn cả 2 tmp file trong finally của Phase 2 sau khi convert xong
+"""
+
+from __future__ import annotations
+
+import logging
 import uuid
 from datetime import date
 from pathlib import Path
@@ -20,6 +39,12 @@ from apps.contract.services.document_payloads import (
 from apps.contract.services.pdf_converter import build_pdf_bytes
 from apps.contract.services.template_registry import get_active_document_template
 
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def get_latest_issued_quotation_document(quotation: QuotationDraft):
     return quotation.issued_documents.order_by("-version", "-issued_at", "-id").first()
@@ -33,7 +58,10 @@ def _next_issued_version(quotation: QuotationDraft) -> int:
 
 
 def _build_filenames(quotation: QuotationDraft, version: int) -> tuple[str, str]:
-    slug = slugify(quotation.company_name or f"quotation-{quotation.pk}") or f"quotation-{quotation.pk}"
+    slug = (
+        slugify(quotation.company_name or f"quotation-{quotation.pk}")
+        or f"quotation-{quotation.pk}"
+    )
     base = f"{slug}-quotation-{quotation.pk}-v{version}"
     return f"{base}.docx", f"{base}.pdf"
 
@@ -45,33 +73,65 @@ def _issued_tmp_dir() -> Path:
 
 
 def _tmp_work_paths(quotation: QuotationDraft, version: int) -> tuple[Path, Path]:
-    base_slug = slugify(quotation.company_name or f"quotation-{quotation.pk}") or f"quotation-{quotation.pk}"
+    base_slug = (
+        slugify(quotation.company_name or f"quotation-{quotation.pk}")
+        or f"quotation-{quotation.pk}"
+    )
     unique = uuid.uuid4().hex[:12]
     base_name = f"{base_slug}-quotation-{quotation.pk}-v{version}-{unique}"
     tmp_dir = _issued_tmp_dir()
     return tmp_dir / f"{base_name}.docx", tmp_dir / f"{base_name}.pdf"
 
 
-@transaction.atomic
-def issue_quotation_document(*, quotation: QuotationDraft, actor=None, request=None):
+def _safe_unlink(*paths: Path) -> None:
+    """Xóa file an toàn, bỏ qua nếu không tồn tại."""
+    for p in paths:
+        if p.exists():
+            try:
+                p.unlink()
+            except OSError:
+                pass
+
+
+# ---------------------------------------------------------------------------
+# Main service
+# ---------------------------------------------------------------------------
+
+def issue_quotation_document(
+    *,
+    quotation: QuotationDraft,
+    actor=None,
+    request=None,
+) -> IssuedDocument:
+    """
+    Render docx, thử convert sang PDF, rồi lưu IssuedDocument.
+
+    - Nếu PDF thành công  → issued.pdf_file có giá trị
+    - Nếu PDF thất bại    → issued.pdf_file = None, chỉ có docx
+      (view dùng issued.pdf_file để quyết định hiện success hay warning)
+
+    Raise exception chỉ khi không thể render ra docx (lỗi template / I/O nghiêm trọng).
+    """
     payload = build_quotation_document_payload(quotation)
     preview_context = build_quotation_preview_context(quotation)
 
     template = get_active_document_template(DocumentTemplate.DOC_TYPE_QUOTATION)
     version = _next_issued_version(quotation)
 
-    IssuedDocument.objects.filter(
-        quotation=quotation,
-        doc_type=IssuedDocument.DOC_TYPE_QUOTATION,
-        status=IssuedDocument.STATUS_ISSUED,
-    ).update(status=IssuedDocument.STATUS_SUPERSEDED)
-
     tmp_docx_path, tmp_pdf_path = _tmp_work_paths(quotation, version)
-    docx_bytes = None
-    pdf_bytes = None
 
+    docx_bytes: bytes | None = None
+    pdf_bytes: bytes | None = None
+
+    # ── Phase 1: Render docx ──────────────────────────────────────────────────
+    # QUAN TRỌNG: KHÔNG xóa tmp_docx_path ở đây.
+    # Phase 2 cần file vật lý này để LibreOffice đọc và convert sang PDF.
     try:
-        template_path = template.docx_file.path if template and template.docx_file else None
+        template_path = (
+            template.docx_file.path
+            if template and template.docx_file
+            else None
+        )
 
         render_quotation_docx(
             payload=payload,
@@ -80,12 +140,23 @@ def issue_quotation_document(*, quotation: QuotationDraft, actor=None, request=N
         )
 
         docx_bytes = tmp_docx_path.read_bytes()
+        if not docx_bytes:
+            raise RuntimeError("Render docx thành công nhưng file rỗng.")
 
+    except Exception:
+        # Nếu render docx thất bại hoàn toàn → dọn file rồi re-raise
+        _safe_unlink(tmp_docx_path, tmp_pdf_path)
+        raise
+
+    # ── Phase 2: Convert sang PDF ─────────────────────────────────────────────
+    # tmp_docx_path vẫn còn trên disk ở đây để LibreOffice đọc.
+    # Dọn cả 2 tmp file trong finally SAU KHI convert xong.
+    try:
         html_context = dict(preview_context)
         html_context["quotation"] = quotation
         html_context["today"] = date.today()
         fallback_html = render_to_string(
-            "contract/staff/proposal_pdf.html",
+            "contract/staff/quotation_pdf.html",
             html_context,
             request=request,
         )
@@ -95,40 +166,56 @@ def issue_quotation_document(*, quotation: QuotationDraft, actor=None, request=N
             docx_path=str(tmp_docx_path),
             fallback_html=fallback_html,
             base_url=base_url,
+            prefer_html=True,
         )
 
         if not pdf_bytes:
-            raise RuntimeError(
-                "Không tạo được PDF. Kiểm tra LibreOffice/WeasyPrint, quyền ghi MEDIA_ROOT, và tài khoản chạy service."
+            logger.warning(
+                "Không tạo được PDF cho quotation #%s v%s. "
+                "Chỉ lưu docx. Kiểm tra LibreOffice hoặc cài WeasyPrint.",
+                quotation.pk,
+                version,
             )
 
+    except Exception as exc:
+        logger.warning(
+            "Lỗi khi chuyển đổi PDF quotation #%s: %s",
+            quotation.pk,
+            exc,
+        )
+        pdf_bytes = None
+
     finally:
-        if tmp_docx_path.exists():
-            try:
-                tmp_docx_path.unlink()
-            except OSError:
-                pass
+        # Dọn cả 2 tmp file SAU KHI LibreOffice đã convert xong
+        _safe_unlink(tmp_docx_path, tmp_pdf_path)
 
-        if tmp_pdf_path.exists():
-            try:
-                tmp_pdf_path.unlink()
-            except OSError:
-                pass
+    # ── Phase 3: Ghi DB (trong transaction) ──────────────────────────────────
+    with transaction.atomic():
+        IssuedDocument.objects.filter(
+            quotation=quotation,
+            doc_type=IssuedDocument.DOC_TYPE_QUOTATION,
+            status=IssuedDocument.STATUS_ISSUED,
+        ).update(status=IssuedDocument.STATUS_SUPERSEDED)
 
-    docx_name, pdf_name = _build_filenames(quotation, version)
+        docx_name, pdf_name = _build_filenames(quotation, version)
 
-    issued = IssuedDocument(
-        doc_type=IssuedDocument.DOC_TYPE_QUOTATION,
-        status=IssuedDocument.STATUS_ISSUED,
-        quotation=quotation,
-        template=template,
-        version=version,
-        payload_json=payload,
-        issued_at=timezone.now(),
-        created_by=actor if getattr(actor, "is_authenticated", False) else None,
-    )
-    issued.docx_file.save(docx_name, ContentFile(docx_bytes), save=False)
-    issued.pdf_file.save(pdf_name, ContentFile(pdf_bytes), save=False)
-    issued.save()
+        issued = IssuedDocument(
+            doc_type=IssuedDocument.DOC_TYPE_QUOTATION,
+            status=IssuedDocument.STATUS_ISSUED,
+            quotation=quotation,
+            template=template,
+            version=version,
+            payload_json=payload,
+            issued_at=timezone.now(),
+            created_by=actor if getattr(actor, "is_authenticated", False) else None,
+        )
+
+        issued.docx_file.save(docx_name, ContentFile(docx_bytes), save=False)
+
+        if pdf_bytes:
+            issued.pdf_file.save(pdf_name, ContentFile(pdf_bytes), save=False)
+        # pdf_file sẽ là None/blank nếu không có pdf_bytes
+
+        issued.save()
 
     return issued

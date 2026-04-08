@@ -14,7 +14,7 @@ class AuthenticationPolicy:
             if user.groups.filter(name=group_name).exists():
                 return route_name
 
-        return "clinical:clinical_dashboard"
+        return "dashboard:overview"
 
     @classmethod
     def can_access_patient_session(cls, request):

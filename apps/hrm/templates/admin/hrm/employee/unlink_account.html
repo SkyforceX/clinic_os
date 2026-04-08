@@ -1,0 +1,38 @@
+{% extends "admin/base_site.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Trang chủ</a> ›
+  <a href="{% url 'admin:hrm_employee_changelist' %}">Nhân viên</a> ›
+  <a href="{% url 'admin:hrm_employee_change' employee.pk %}">{{ employee.full_name }}</a> ›
+  Hủy liên kết tài khoản
+</div>
+{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<div style="max-width:480px">
+  <div style="background:#ffebee;border:1px solid #ef9a9a;border-radius:6px;padding:16px;margin-bottom:20px">
+    <strong>⚠ Xác nhận hủy liên kết</strong><br><br>
+    Nhân viên <strong>{{ employee.full_name }}</strong> ({{ employee.employee_code }})
+    đang liên kết với tài khoản <strong>{{ employee.user.username }}</strong>.<br><br>
+    Sau khi hủy liên kết, nhân viên sẽ không thể đăng nhập hệ thống.
+    Các nhóm quyền của tài khoản <em>không bị thay đổi</em>.
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <div style="margin-bottom:14px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" name="deactivate" value="1">
+        <span>Đồng thời <strong>khóa tài khoản</strong> (is_active = False)</span>
+      </label>
+    </div>
+    <div style="display:flex;gap:10px">
+      <input type="submit" value="🔓 Xác nhận hủy liên kết"
+             class="button default"
+             style="background:#c62828;border-color:#b71c1c;color:#fff">
+      <a href="{% url 'admin:hrm_employee_change' employee.pk %}"
+         class="button cancel-link">Hủy</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,61 +1,99 @@
 from django.contrib import admin
 
-from apps.scheduling.models import ScheduleSlot
-from apps.booking.models import Appointment
+from apps.scheduling.models import ContractScheduleConfig, ScheduleSlot
 
 
-def register_if_not_registered(model, admin_class):
-    if model not in admin.site._registry:
-        admin.site.register(model, admin_class)
-
-
-class ScheduleSlotAdmin(admin.ModelAdmin):
+@admin.register(ContractScheduleConfig)
+class ContractScheduleConfigAdmin(admin.ModelAdmin):
     list_display = (
         "id",
+        "quotation",
         "contract",
-        "date",
-        "shift",
-        "slot_type",
-        "capacity",
-        "booked_count",
-        "status",
-        "created_at",
+        "exam_start_date",
+        "exam_end_date",
+        "planned_employee_count",
+        "am_capacity_limit",
+        "pm_capacity_limit",
+        "registered_by",
+        "updated_at",
     )
-    list_filter = (
-        "shift",
-        "slot_type",
-        "status",
-        "date",
-        "created_at",
-    )
+    list_select_related = ("quotation", "contract", "registered_by")
     search_fields = (
-        "contract__contract_number",
-        "contract__company__name",
-    )
-    ordering = ("date", "shift", "id")
-
-
-class AppointmentAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "patient",
-        "schedule_slot",
-        "assigned_staff",
-        "status",
-        "created_at",
+        "quotation__id",
+        "contract__id",
+        "quotation__company__name",
+        "quotation__company__company_name",
+        "registered_by__username",
+        "registered_by__first_name",
+        "registered_by__last_name",
     )
     list_filter = (
-        "status",
+        "exam_start_date",
+        "exam_end_date",
         "created_at",
         "updated_at",
     )
-    search_fields = (
-        "patient__ma_bn",
-        "patient__ho_ten",
-        "schedule_slot__contract__contract_number",
-        "schedule_slot__contract__company__name",
-    )
-    ordering = ("-created_at",)
+    autocomplete_fields = ("quotation", "registered_by")
 
-register_if_not_registered(ScheduleSlot, ScheduleSlotAdmin)
-register_if_not_registered(Appointment, AppointmentAdmin)
+
+@admin.register(ScheduleSlot)
+class ScheduleSlotAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "date",
+        "shift",
+        "slot_type",
+        "contract",
+        "quotation",
+        "capacity",
+        "booked_count",
+        "remaining_capacity_display",
+        "updated_at",
+    )
+    list_select_related = ("contract", "quotation")
+    search_fields = (
+        "contract__id",
+        "quotation__id",
+        "quotation__company__name",
+        "quotation__company__company_name",
+    )
+    list_filter = (
+        "slot_type",
+        "shift",
+        "date",
+        "created_at",
+        "updated_at",
+    )
+    autocomplete_fields = ("quotation",)
+    readonly_fields = ("remaining_capacity_display", "created_at", "updated_at")
+
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "contract",
+                    "quotation",
+                    "date",
+                    "shift",
+                    "slot_type",
+                    "capacity",
+                    "booked_count",
+                    "remaining_capacity_display",
+                )
+            },
+        ),
+        (
+            "Timestamps",
+            {
+                "fields": (
+                    "created_at",
+                    "updated_at",
+                )
+            },
+        ),
+    )
+
+    @admin.display(description="Còn lại")
+    def remaining_capacity_display(self, obj):
+        return obj.remaining_capacity

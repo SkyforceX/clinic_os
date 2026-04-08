@@ -87,17 +87,28 @@ INSTALLED_APPS = [
     "apps.quality",
 
     # refactor apps
+    "apps.dashboard",
+    "apps.approvals",
     "apps.organizations",
     "apps.patients",
     "apps.contract",
     "apps.scheduling",
     "apps.clinical",
     "apps.catalogs",
+    "apps.notifications",
+    "apps.hrm",
+    "apps.analytics",
+    "apps.targets",
+    "apps.retention",
+    "apps.meeting",
+    "apps.tasks",
+    "apps.engagement",
 
     # DRF
     "rest_framework",
     "rest_framework.authtoken",
     "drf_spectacular",
+    "channels",
 
     # API app
     "apps.api_his",
@@ -205,6 +216,11 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 CELERY_TIMEZONE = "Asia/Ho_Chi_Minh"
+
+# =====================================
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
+CHANNEL_LAYERS = { "default": { "BACKEND": "channels_redis.core.RedisChannelLayer", "CONFIG": {"hosts": [REDIS_URL]} } }
+# =====================================
 
 # Zalo API settings - đưa sang env
 ZALO_ACCESS_TOKEN = env("ZALO_ACCESS_TOKEN", default="")

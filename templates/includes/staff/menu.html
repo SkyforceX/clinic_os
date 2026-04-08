@@ -1,23 +1,48 @@
 {% load user_tags %}
+{% load notifications_tags %}
 <div id="sidebar-overlay" class="sidebar-overlay" aria-hidden="true"></div>
 <div class="sidebar" id="sidebar">
   <button class="toggle-btn" style="color: white;" onclick="toggleSidebar()">☰</button>
   <ul class="menu">
 
-    {% if request.user|in_group:"Sales Team" or request.user|in_group:"Managers" %}
+    {% if request.user|in_group:"Sales Team" or request.user|in_group:"Managers" or request.user.is_superuser %}
+
+      {# ── Báo giá ── #}
+      <li class="menu-section-label">💰 Báo giá</li>
+      <li>
+        <a href="{% url 'contract:create_proposal' %}"
+           class="{% if request.resolver_match.url_name == 'create_proposal' %}active{% endif %}">
+          Tạo báo giá
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'contract:quotation_list' %}"
+           class="{% if request.resolver_match.url_name == 'quotation_list' or request.resolver_match.url_name == 'quotation_preview' %}active{% endif %}">
+          Danh sách báo giá
+        </a>
+      </li>
+
+      {# ── Hợp đồng doanh nghiệp ── #}
+      <li class="menu-section-label">📑 Hợp đồng DN</li>
+      <li>
+        <a href="{% url 'contract:create_corporate_contract' %}"
+           class="{% if request.resolver_match.url_name == 'create_corporate_contract' %}active{% endif %}">
+          Tạo hợp đồng
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'contract:corporate_contract_list' %}"
+           class="{% if request.resolver_match.url_name == 'corporate_contract_list' %}active{% endif %}">
+          Danh sách HĐ
+        </a>
+      </li>
 
       {# ── Lịch KSK ── #}
       <li class="menu-section-label">📋 Lịch KSK</li>
       <li>
-        <a href="{% url 'organizations:company_list' %}"
-           class="{% if 'organizations' in request.resolver_match.app_name %}active{% endif %}">
-          Danh sách Công ty
-        </a>
-      </li>
-      <li>
         <a href="{% url 'contract:create_contract' %}"
            class="{% if request.resolver_match.url_name == 'create_contract' %}active{% endif %}">
-          Tạo lịch KSK
+          Đăng ký lịch KSK
         </a>
       </li>
       <li>
@@ -33,41 +58,44 @@
         </a>
       </li>
 
-      {# ── Báo giá ── #}
-      <li class="menu-section-label">💰 Báo giá</li>
+      {# ── Công cụ ── #}
+      <li class="menu-section-label">📋 Công cụ</li>
       <li>
-        <a href="{% url 'contract:create_proposal' %}"
-           class="{% if request.resolver_match.url_name == 'create_proposal' %}active{% endif %}">
-          Tạo báo giá
-        </a>
-      </li>
-      <li>
-        <a href="{% url 'contract:quotation_list' %}"
-           class="{% if request.resolver_match.url_name == 'quotation_list' or request.resolver_match.url_name == 'proposal_preview' %}active{% endif %}">
-          Danh sách báo giá
+        <a href="{% url 'organizations:company_list' %}"
+           class="{% if 'organizations' in request.resolver_match.app_name %}active{% endif %}">
+          Danh sách Khách hàng
         </a>
       </li>
 
-      {# ── Hợp đồng doanh nghiệp ── #}
-      <li class="menu-section-label">📑 Hợp đồng DN</li>
+      {# ── Phê duyệt ── #}
+      <li class="menu-section-label">✅ Phê duyệt</li>
       <li>
-        <a href="{% url 'contract:create_corporate_contract' %}"
-           class="{% if request.resolver_match.url_name == 'create_corporate_contract' %}active{% endif %}">
-          Tạo hợp đồng DN
+        <a href="{% url 'approvals:my_requests' %}"
+           class="{% if request.resolver_match.url_name == 'my_requests' %}active{% endif %}">
+          Yêu cầu của tôi
         </a>
       </li>
-      <li>
-        <a href="{% url 'contract:corporate_contract_list' %}"
-           class="{% if request.resolver_match.url_name == 'corporate_contract_list' %}active{% endif %}">
-          Danh sách HĐ DN
-        </a>
-      </li>
+      {% if request.user|in_group:"Managers" or request.user.is_superuser %}
+        {% unread_notification_count as inbox_cnt %}
+        <li>
+          <a href="{% url 'approvals:inbox' %}"
+             class="{% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'detail' and request.resolver_match.app_name == 'approvals' %}active{% endif %}">
+            Inbox phê duyệt
+            {% if inbox_cnt %}
+              <span style="
+                background:#e24b4a;color:#fff;
+                border-radius:8px;font-size:.65rem;
+                padding:1px 6px;margin-left:4px;font-weight:600
+              ">{{ inbox_cnt }}</span>
+            {% endif %}
+          </a>
+        </li>
+      {% endif %}
 
     {% endif %}
 
-    {% if request.user|in_group:"Doctor" or request.user|in_group:"Managers" %}
+    {% if request.user|in_group:"Doctor" or request.user|in_group:"Managers" or request.user.is_superuser %}
       <li class="menu-section-label">🩺 Lâm sàng</li>
-<!--    <li><a href="{% url 'clinical:dental_exam_form' %}">Khám răng</a></li> -->
       <li>
         <a href="{% url 'clinical:sum_assistant' %}"
            class="{% if request.resolver_match.url_name == 'sum_assistant' %}active{% endif %}">
@@ -76,7 +104,7 @@
       </li>
     {% endif %}
 
-    {% if request.user|in_group:"Managers" %}
+    {% if request.user|in_group:"Managers" or request.user.is_superuser %}
       <li class="menu-section-label">📊 Quản lý</li>
       <li>
         <a href="{% url 'quality:medical_record_audit_list' %}"

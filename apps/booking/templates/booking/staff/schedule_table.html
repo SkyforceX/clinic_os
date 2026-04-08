@@ -21,15 +21,19 @@
 <div class="row justify-content-center mb-3">
   <div class="col-auto">
     <div class="d-flex flex-wrap align-items-end gap-2">
+      {% if show_staff_filter %}
       <div>
         <label for="staff-filter" class="form-label mb-1">Sales Team:</label>
         <select id="staff-filter" class="form-control form-select form-select-sm">
           <option value="">-- Tất cả --</option>
           {% for user in sale_team_users %}
-            <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+            <option value="{{ user.id }}" {% if current_staff_id == user.id|stringformat:"s" %}selected{% endif %}>
+              {{ user.get_full_name|default:user.username }}
+            </option>
           {% endfor %}
         </select>
       </div>
+      {% endif %}
       <div>
         <label for="start-date" class="form-label mb-1">Từ ngày:</label>
         <input type="date" id="start-date" class="form-control" style="width: 140px;">
@@ -119,9 +123,33 @@
           <tr class="blood-row" data-staff-id="{{ row.salesperson_id }}">
             <th rowspan="3">
               {{ row.company_name }}<br>
-              {% if row.salesperson_name %}
-                <small class="text-muted">({{ row.salesperson_name }})</small>
+
+              {% if row.contract_number %}
+                <small class="text-muted d-block">HĐ: {{ row.contract_number }}</small>
+              {% else %}
+                <small class="text-muted d-block">Theo báo giá</small>
               {% endif %}
+
+              {% if row.salesperson_name %}
+                <small class="text-muted d-block">Sales: {{ row.salesperson_name }}</small>
+              {% endif %}
+
+              {% if row.schedule_creator_name %}
+                <small class="text-muted d-block">Tạo lịch: {{ row.schedule_creator_name }}</small>
+              {% endif %}
+
+              <div class="mt-2 d-flex flex-column gap-1">
+                {% if row.can_delete_schedule %}
+                  <form method="post"
+                        action="{% url 'contract:delete_contract' row.schedule_config_id %}"
+                        onsubmit="return confirm('Bạn chắc chắn muốn xóa lịch đăng ký khám này?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                      Xóa lịch
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
 
               <!-- {% if row.unregistered_patients %}
                 <span class="unreg-toggle" onclick="toggleUnreg(this)">
@@ -237,12 +265,12 @@ function toggleUnreg(el) {
 // lọc theo nhân viên Sales Team
 document.addEventListener('DOMContentLoaded', function() {
   const filter = document.getElementById('staff-filter');
+  if (!filter) return;
+
   filter.addEventListener('change', function() {
     const value = filter.value;
-    // Lọc theo data-staff-id của các dòng am-row, pm-row, blood-row
     document.querySelectorAll('tr.am-row, tr.pm-row, tr.blood-row').forEach(tr => {
       const staffId = tr.getAttribute('data-staff-id');
-      // Hiển thị nếu trùng staff hoặc đang chọn "Tất cả"
       if (!value || staffId === value) {
         tr.style.display = '';
       } else {
