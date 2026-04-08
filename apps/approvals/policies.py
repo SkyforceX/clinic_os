@@ -50,6 +50,6 @@ class ApprovalPolicy:
 
     @classmethod
     def can_view_request(cls, user, ar) -> bool:
-        if ContractPolicy.is_manager(user):
+        if ContractPolicy.is_executive(user):
             return True
         return ar.requested_by_id == user.id
