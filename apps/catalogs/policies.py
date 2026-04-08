@@ -1,5 +1,5 @@
 class CatalogPolicy:
-    MANAGER_GROUP_NAMES = {"Manager", "Managers"}
+    MANAGER_GROUP_NAMES = {"Executive", "IT Admin"}
     SALES_GROUP_NAMES = {"Sales Team"}
 
     @classmethod
@@ -26,15 +26,15 @@ class CatalogPolicy:
 
     @classmethod
     def can_manage_categories(cls, user):
-        return cls.is_manager(user) or cls.is_sales(user)
+        return cls.is_it_admin(user) or cls.is_sales(user)
 
     @classmethod
     def can_view_packages(cls, user):
-        return cls.is_manager(user) or cls.is_sales(user)
+        return cls.is_executive(user) or cls.is_sales(user)
 
     @classmethod
     def can_create_package(cls, user):
-        return cls.is_manager(user) or cls.is_sales(user)
+        return cls.is_it_admin(user) or cls.is_sales(user)
 
     @classmethod
     def can_edit_package(cls, user, package):
