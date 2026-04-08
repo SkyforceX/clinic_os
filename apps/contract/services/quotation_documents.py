@@ -45,6 +45,14 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+def _resolve_base_url(request=None) -> str | None:
+    if request is not None:
+        try:
+            return request.build_absolute_uri("/")
+        except Exception:
+            pass
+    return getattr(settings, "PUBLIC_BASE_URL", None)
+
 
 def get_latest_issued_quotation_document(quotation: QuotationDraft):
     return quotation.issued_documents.order_by("-version", "-issued_at", "-id").first()
@@ -161,7 +169,7 @@ def issue_quotation_document(
             request=request,
         )
 
-        base_url = request.build_absolute_uri("/") if request else None
+        base_url = _resolve_base_url(request)
         pdf_bytes = build_pdf_bytes(
             docx_path=str(tmp_docx_path),
             fallback_html=fallback_html,

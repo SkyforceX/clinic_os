@@ -1,11 +1,20 @@
-đọc repo của app scheduling trong clinic_os
+đọc repo của app contract trong clinic_os
 
 Lỗi:
-- ImportError: cannot import name 'ContractScheduleConfig' from 'apps.scheduling.models.schedule' (D:\Code\Project\Django_project\clinic_os\apps\scheduling\models\schedule.py)
-- Khi xóa lịch chi tiết cũng bị báo lỗi liên quan ContractScheduleConfig
+- Khi xuất PDF báo giá thì có lỗi:
+WeasyPrint could not import some external libraries. Please carefully follow the installation steps before reporting an issue:
+https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#installation
+https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#troubleshooting 
+
+-----
+
+Lỗi khi chuyển đổi PDF quotation #13: cannot load library 'C:\Program Files\Tesseract-OCR\libgobject-2.0-0.dll': error 0x7e
+HTTP 302 response started for ['127.0.0.1', 52309]
+HTTP close for ['127.0.0.1', 52309]
+HTTP response complete for ['127.0.0.1', 52309]
 
 Yêu cầu:
-- sửa / bổ sung code cho lỗi trên theo đúng logic hệ thống đang có
+- tìm code bị lỗi trong app contract, .env. settings.py và các file liên quan để sửa lỗi
 
 Output:
 - tạo code sửa và chỗ sửa

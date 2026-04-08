@@ -66,8 +66,6 @@ QUALITY_AUDIT_TEMPLATE = BASE_DIR / "templates" / "word" / "medical_record_audit
 QUALITY_DOCX_TMP_DIR = BASE_DIR / "tmp_docs"
 QUALITY_DOCX_TMP_DIR.mkdir(exist_ok=True)
 
-LIBREOFFICE_PATH = r"C:\Program Files\LibreOffice\program\soffice.exe"
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -207,6 +205,20 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "authentication:patient_login"
 
 CSRF_FAILURE_VIEW = "apps.core.views.custom_csrf_failure"
+
+
+# ==== PDF / DOCUMENT SETTINGS ==== #
+LIBREOFFICE_PATH = r"C:\Program Files\LibreOffice\program\soffice.exe"
+PDF_ENGINE = env("PDF_ENGINE", default="auto")  # auto | weasy | libreoffice
+PDF_PREFER_HTML = env.bool("PDF_PREFER_HTML", default=True)
+PDF_CONVERT_TIMEOUT = env.int("PDF_CONVERT_TIMEOUT", default=180)
+PUBLIC_BASE_URL = env("PUBLIC_BASE_URL", default="https://khachhang.vietmediclinic.com")
+
+
+# thêm vào .env:
+TESSERACT_BIN=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+POPPLER_BIN=r"C:\path\to\poppler\bin"
+
 
 CELERY_BROKER_URL = "redis://localhost:6379/0"
 CELERY_BEAT_SCHEDULE = {

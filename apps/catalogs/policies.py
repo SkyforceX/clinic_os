@@ -32,7 +32,7 @@ class CatalogPolicy:
 
     @classmethod
     def can_manage_groups(cls, user):
-        return cls.is_manager(user) or cls.is_sales(user)
+        return cls.is_it_admin(user)
 
     @classmethod
     def can_manage_categories(cls, user):
