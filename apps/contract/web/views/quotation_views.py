@@ -258,10 +258,15 @@ def edit_quotation(request, quotation_id):
                     "note":          line.note or "",
                     "list_price":    int(line.list_price or 0),
                 })
+            # Ensure columns is always a list (in case columns_json is None or malformed)
+            pkg_columns = pkg.columns_json
+            if not isinstance(pkg_columns, list):
+                pkg_columns = DEFAULT_PACKAGE_COLUMNS
+
             existing_packages.append({
                 "db_id":   pkg.id,
                 "name":    pkg.name,
-                "columns": pkg.columns_json or DEFAULT_PACKAGE_COLUMNS,
+                "columns": pkg_columns,
                 "lines":   pkg_lines,
             })
     else:
@@ -316,18 +321,23 @@ def edit_quotation(request, quotation_id):
     except Exception:
         pass
 
+    try:
+        package_templates = json.loads(package_templates_json) if package_templates_json else []
+    except (json.JSONDecodeError, TypeError):
+        package_templates = []
+
     return render(request, "contract/staff/edit_quotation.html", {
         "quotation":               quotation,
         "groups":                  groups,
-        "catalog_json":            json.dumps(catalog, ensure_ascii=False),
-        "existing_packages_json":  json.dumps(existing_packages, ensure_ascii=False),
-        "package_templates_json":  package_templates_json,
-        "default_columns_json":    json.dumps(DEFAULT_PACKAGE_COLUMNS, ensure_ascii=False),
-        "commission_sale_pct":     float(quotation.commission_sale_pct    or 0),
-        "commission_co_pct":       float(quotation.commission_co_pct      or 0),
+        "catalog_data":            catalog,
+        "existing_packages":       existing_packages,
+        "package_templates":       package_templates,
+        "default_columns":         DEFAULT_PACKAGE_COLUMNS,
+        "commission_sale_pct":     float(quotation.commission_sale_pct or 0),
+        "commission_co_pct":       float(quotation.commission_co_pct or 0),
         "commission_sale_amount":  int(quotation.commission_sale_amount or 0),
-        "commission_co_amount":    int(quotation.commission_co_amount   or 0),
-        "extra_content_json":      json.dumps(quotation.extra_content or "", ensure_ascii=False),
+        "commission_co_amount":    int(quotation.commission_co_amount or 0),
+        "extra_content_value":     quotation.extra_content or "",
     })
 
 

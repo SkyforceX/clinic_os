@@ -97,12 +97,18 @@
   </div>
 </div>
 
+{{ catalog_data|json_script:"catalog-data" }}
+{{ default_columns|json_script:"default-columns-data" }}
+{{ package_templates|json_script:"package-templates-data" }}
+{{ existing_packages|json_script:"existing-packages-data" }}
+{{ extra_content_value|json_script:"existing-extra-content-data" }}
+
 <script>
-var CATALOG_JSON = {{ catalog_json|safe }};
-var DEFAULT_COLUMNS = {{ default_columns_json|safe }};
-var PKG_TEMPLATES = {{ package_templates_json|safe }};
-var EXISTING_PACKAGES = {{ existing_packages_json|safe }};
-var EXISTING_EXTRA_CONTENT = {{ extra_content_json|safe }};
+var CATALOG_JSON = JSON.parse(document.getElementById('catalog-data').textContent);
+var DEFAULT_COLUMNS = JSON.parse(document.getElementById('default-columns-data').textContent);
+var PKG_TEMPLATES = JSON.parse(document.getElementById('package-templates-data').textContent);
+var EXISTING_PACKAGES = JSON.parse(document.getElementById('existing-packages-data').textContent);
+var EXISTING_EXTRA_CONTENT = JSON.parse(document.getElementById('existing-extra-content-data').textContent);
 </script>
 
 <form method="post" action="{% url 'contract:save_quotation' %}" id="qform">
@@ -134,7 +140,7 @@ var EXISTING_EXTRA_CONTENT = {{ extra_content_json|safe }};
     <div class="col-12 col-md-5">
       <div class="commission-row">
         <label for="commission_sale_pct">💼 HC Sale</label>
-        <input type="number" id="commission_sale_pct" name="commission_sale_pct" class="commission-pct-input" min="0" max="100" step="0.1" value="{{ commission_sale_pct }}" oninput="calcCommissions()">
+        <input type="number" id="commission_sale_pct" name="commission_sale_pct" class="commission-pct-input" min="0" max="100" step="0.1" value="{{ commission_sale_pct|unlocalize }}" oninput="calcCommissions()">
         <span class="text-muted" style="font-size:.78rem">%  →</span>
         <span id="commission_sale_amount_display" class="commission-amount" style="color:#1a5276">{% if commission_sale_amount %}{{ commission_sale_amount|vnd }} ₫{% else %}—{% endif %}</span>
         <input type="hidden" id="h_commission_sale_amount" name="commission_sale_amount" value="{{ commission_sale_amount }}">
@@ -143,7 +149,7 @@ var EXISTING_EXTRA_CONTENT = {{ extra_content_json|safe }};
     <div class="col-12 col-md-5">
       <div class="commission-row">
         <label for="commission_co_pct">🏢 HC Công ty</label>
-        <input type="number" id="commission_co_pct" name="commission_co_pct" class="commission-pct-input" min="0" max="100" step="0.1" value="{{ commission_co_pct }}" oninput="calcCommissions()">
+        <input type="number" id="commission_co_pct" name="commission_co_pct" class="commission-pct-input" min="0" max="100" step="0.1" value="{{ commission_co_pct|unlocalize }}" oninput="calcCommissions()">
         <span class="text-muted" style="font-size:.78rem">%  →</span>
         <span id="commission_co_amount_display" class="commission-amount" style="color:#00695c">{% if commission_co_amount %}{{ commission_co_amount|vnd }} ₫{% else %}—{% endif %}</span>
         <input type="hidden" id="h_commission_co_amount" name="commission_co_amount" value="{{ commission_co_amount }}">
@@ -196,7 +202,7 @@ var EXISTING_EXTRA_CONTENT = {{ extra_content_json|safe }};
 </div>
 </form>
 
-{% include "contract/staff/includes/_proposal_table_js.html" %}
+
 {% include "contract/staff/includes/_modal_catalog_picker.html" %}
 {% include "contract/staff/includes/_modal_package_picker.html" %}
 
@@ -657,7 +663,7 @@ function buildItemRow(pid, pkg, line, stt) {
       html += '<td class=\"text-center\" style=\"white-space:nowrap\">';
       html += '<div><span id=\"disp_' + pid + '_' + key + '_' + cid + '\" style=\"font-size:.82rem;font-weight:600;color:#1a5276\">—</span></div>';
       html += '<div><span id=\"dpct_' + pid + '_' + key + '_' + cid + '\" style=\"font-size:.7rem;color:#e67e22;display:none\"></span></div>';
-      html += '<input type=\"number\" id=\"pct_' + pid + '_' + key + '_' + cid + '\" class=\"row-pct-input\" min=\"0\" max=\"100\" step=\"0.5\" placeholder=\"%\" style=\"width:50px\" value=\"' + pctVal + '\" oninput=\"recalcItem(\\'' + pid + '\\',' + cid + ')\">';
+      html += "<input type=\"number\" id=\"pct_" + pid + "_" + key + "_" + cid + "\" class=\"row-pct-input\" min=\"0\" max=\"100\" step=\"0.5\" placeholder=\"%\" style=\"width:50px\" value=\"" + pctVal + "\" oninput=\"recalcItem('" + pid + "'," + cid + ")\">";
       html += '</td>';
     }
   });
@@ -1069,11 +1075,6 @@ enableQuillImageEditor(quillEditor);
 
   renderStickySummary();
   calcCommissions();
-
-  enableQuillImageUpload(quillEditor, {
-    uploadUrl: "{% url 'media_library:upload_quill_image' %}",
-    csrfToken: "{{ csrf_token }}"
-});
 });
 </script>
 {% endblock %}
