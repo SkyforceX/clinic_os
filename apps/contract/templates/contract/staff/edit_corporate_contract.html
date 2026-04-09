@@ -51,31 +51,6 @@
         </div>
       </div>
 
-      <div class="cc-card">
-        <div class="cc-card-header">
-          <h2 class="cc-card-title">Số lượng nhân sự từ báo giá</h2>
-          <p class="cc-card-desc">Thông tin này đồng bộ từ báo giá gốc, không sửa tại hợp đồng.</p>
-        </div>
-        <div class="cc-card-body">
-          <div class="cc-grid cc-grid--3">
-            <div class="cc-field">
-              <label>👨 Nam</label>
-              <input type="text" class="cc-input" value="{{ quotation.male_count|default:0 }}" readonly>
-            </div>
-
-            <div class="cc-field">
-              <label>👩 Nữ độc thân</label>
-              <input type="text" class="cc-input" value="{{ quotation.female_single_count|default:0 }}" readonly>
-            </div>
-
-            <div class="cc-field">
-              <label>👩‍👧 Nữ gia đình</label>
-              <input type="text" class="cc-input" value="{{ quotation.female_family_count|default:0 }}" readonly>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {# ── BÊN B: Thông tin công ty ── #}
       <div class="cc-card">
         <div class="cc-card-header">

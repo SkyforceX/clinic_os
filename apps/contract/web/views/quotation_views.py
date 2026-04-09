@@ -121,21 +121,6 @@ def quotation_issue_blocked_by_contract(quotation):
     return bool(getattr(linked_contract, "is_locked", False) or getattr(linked_contract, "is_approved", False))
 
 
-def _legacy_safe_decimal_broken(raw):
-    if raw in (None, "", "None"):
-        return None
-    if quotation_issue_blocked_by_contract(quotation):
-        messages.error(request, "Há»£p Ä‘á»“ng liÃªn káº¿t Ä‘Ã£ Ä‘Æ°á»£c duyá»‡t hoáº·c Ä‘Ã£ bá»‹ khÃ³a, khÃ´ng thá»ƒ phÃ¡t hÃ nh PDF bÃ¡o giÃ¡.")
-        return redirect("contract:quotation_preview", quotation_id=quotation.pk)
-    if quotation_issue_blocked_by_contract(quotation):
-        messages.error(request, "Há»£p Ä‘á»“ng liÃªn káº¿t Ä‘Ã£ Ä‘Æ°á»£c duyá»‡t hoáº·c Ä‘Ã£ bá»‹ khÃ³a, khÃ´ng thá»ƒ phÃ¡t hÃ nh PDF bÃ¡o giÃ¡.")
-        return redirect("contract:quotation_preview", quotation_id=quotation.pk)
-    try:
-        return Decimal(str(raw).replace(",", "").strip())
-    except (InvalidOperation, ValueError):
-        return None
-
-
 def safe_int(raw, default=0):
     try:
         return int(raw or 0)
@@ -248,30 +233,30 @@ def edit_quotation(request, quotation_id):
             pkg_lines = []
             for line in pkg.lines.order_by("display_order"):
                 pkg_lines.append({
-                    "catalog_id":   line.catalog_id,
-                    "checked_male": bool(line.checked_male),
-                    "checked_fs":   bool(line.checked_female_single),
-                    "checked_ff":   bool(line.checked_female_family),
-                    "price_male":   int(line.price_male or 0),
-                    "price_fs":     int(line.price_female_single or 0),
-                    "price_ff":     int(line.price_female_family or 0),
-                    "udai_male":    int(line.udai_price_male or 0),
-                    "udai_fs":      int(line.udai_price_fs or 0),
-                    "udai_ff":      int(line.udai_price_ff or 0),
-                    "pct_male":     float(line.discount_male_pct or 0),
-                    "pct_fs":       float(line.discount_fs_pct or 0),
-                    "pct_ff":       float(line.discount_ff_pct or 0),
-                    "extra_prices": line.extra_prices_json or {},
-                    "for_m":        bool(line.for_male),
-                    "for_fs":       bool(line.for_female_single),
-                    "for_ff":       bool(line.for_female_family),
-                    "item_name":    line.item_name,
-                    "description":  line.description or "",
-                    "group_name":   line.group_name or "",
+                    "catalog_id":    line.catalog_id,
+                    "checked_male":  bool(line.checked_male),
+                    "checked_fs":    bool(line.checked_female_single),
+                    "checked_ff":    bool(line.checked_female_family),
+                    "price_male":    int(line.price_male or 0),
+                    "price_fs":      int(line.price_female_single or 0),
+                    "price_ff":      int(line.price_female_family or 0),
+                    "udai_male":     int(line.udai_price_male or 0),
+                    "udai_fs":       int(line.udai_price_fs or 0),
+                    "udai_ff":       int(line.udai_price_ff or 0),
+                    "pct_male":      float(line.discount_male_pct or 0),
+                    "pct_fs":        float(line.discount_fs_pct or 0),
+                    "pct_ff":        float(line.discount_ff_pct or 0),
+                    "extra_prices":  line.extra_prices_json or {},
+                    "for_m":         bool(line.for_male),
+                    "for_fs":        bool(line.for_female_single),
+                    "for_ff":        bool(line.for_female_family),
+                    "item_name":     line.item_name,
+                    "description":   line.description or "",
+                    "group_name":    line.group_name or "",
                     "subgroup_name": line.subgroup_name or "",
-                    "price_type":   line.price_type or "standard",
-                    "note":         line.note or "",
-                    "list_price":   int(line.list_price or 0),
+                    "price_type":    line.price_type or "standard",
+                    "note":          line.note or "",
+                    "list_price":    int(line.list_price or 0),
                 })
             existing_packages.append({
                 "db_id":   pkg.id,
@@ -284,35 +269,35 @@ def edit_quotation(request, quotation_id):
         legacy_lines = []
         for line in quotation.lines.order_by("display_order"):
             legacy_lines.append({
-                "catalog_id":   line.catalog_id,
-                "checked_male": bool(line.checked_male),
-                "checked_fs":   bool(line.checked_female_single),
-                "checked_ff":   bool(line.checked_female_family),
-                "price_male":   int(line.price_male or 0),
-                "price_fs":     int(line.price_female_single or 0),
-                "price_ff":     int(line.price_female_family or 0),
-                "udai_male":    int(line.udai_price_male or 0),
-                "udai_fs":      int(line.udai_price_fs or 0),
-                "udai_ff":      int(line.udai_price_ff or 0),
-                "pct_male":     float(line.discount_male_pct or 0),
-                "pct_fs":       float(line.discount_fs_pct or 0),
-                "pct_ff":       float(line.discount_ff_pct or 0),
-                "extra_prices": {},
-                "for_m":        bool(line.for_male),
-                "for_fs":       bool(line.for_female_single),
-                "for_ff":       bool(line.for_female_family),
-                "item_name":    line.item_name,
-                "description":  line.description or "",
-                "group_name":   line.group_name or "",
+                "catalog_id":    line.catalog_id,
+                "checked_male":  bool(line.checked_male),
+                "checked_fs":    bool(line.checked_female_single),
+                "checked_ff":    bool(line.checked_female_family),
+                "price_male":    int(line.price_male or 0),
+                "price_fs":      int(line.price_female_single or 0),
+                "price_ff":      int(line.price_female_family or 0),
+                "udai_male":     int(line.udai_price_male or 0),
+                "udai_fs":       int(line.udai_price_fs or 0),
+                "udai_ff":       int(line.udai_price_ff or 0),
+                "pct_male":      float(line.discount_male_pct or 0),
+                "pct_fs":        float(line.discount_fs_pct or 0),
+                "pct_ff":        float(line.discount_ff_pct or 0),
+                "extra_prices":  {},
+                "for_m":         bool(line.for_male),
+                "for_fs":        bool(line.for_female_single),
+                "for_ff":        bool(line.for_female_family),
+                "item_name":     line.item_name,
+                "description":   line.description or "",
+                "group_name":    line.group_name or "",
                 "subgroup_name": line.subgroup_name or "",
-                "price_type":   line.price_type or "standard",
-                "note":         line.note or "",
-                "list_price":   int(line.list_price or 0),
+                "price_type":    line.price_type or "standard",
+                "note":          line.note or "",
+                "list_price":    int(line.list_price or 0),
             })
         legacy_cols = [
-            {"key": "male",          "label": "NAM",          "count": quotation.male_count or 0,          "discount_pct": float(quotation.discount_male_pct or 0)},
-            {"key": "female_single", "label": "NỮ ĐỘC THÂN",  "count": quotation.female_single_count or 0, "discount_pct": float(quotation.discount_fs_pct or 0)},
-            {"key": "female_family", "label": "NỮ GIA ĐÌNH",  "count": quotation.female_family_count or 0, "discount_pct": float(quotation.discount_ff_pct or 0)},
+            {"key": "male",          "label": "NAM",         "count": quotation.male_count or 0,          "discount_pct": float(quotation.discount_male_pct or 0)},
+            {"key": "female_single", "label": "NỮ ĐỘC THÂN", "count": quotation.female_single_count or 0, "discount_pct": float(quotation.discount_fs_pct or 0)},
+            {"key": "female_family", "label": "NỮ GIA ĐÌNH", "count": quotation.female_family_count or 0, "discount_pct": float(quotation.discount_ff_pct or 0)},
         ]
         existing_packages = [{
             "db_id":   None,
@@ -413,7 +398,7 @@ def save_quotation(request):
     quotation.commission_co_pct      = safe_decimal(post.get("commission_co_pct"))
     quotation.commission_co_amount   = safe_decimal(post.get("commission_co_amount"))
 
-    # Legacy fields — không dùng cho multi-package nhưng giữ để backward compat
+    # Legacy fields — backward compat
     quotation.male_count          = 0
     quotation.female_single_count = 0
     quotation.female_family_count = 0
@@ -422,7 +407,7 @@ def save_quotation(request):
     quotation.discount_ff_pct     = Decimal("0")
     quotation.save()
 
-    # ── Catalog map để tra cứu metadata ──────────────────────────────────────
+    # ── Catalog map ───────────────────────────────────────────────────────────
     catalog     = load_catalog()
     catalog_map = {
         str(item["id"]): item
@@ -451,7 +436,6 @@ def save_quotation(request):
         if not columns_json:
             columns_json = list(DEFAULT_PACKAGE_COLUMNS)
 
-        # Validate schema tối thiểu cho từng column
         valid_columns = []
         for col in columns_json:
             if isinstance(col, dict) and "key" in col and "label" in col:
@@ -494,7 +478,6 @@ def save_quotation(request):
             checked_ff   = f"{prefix}checked_ff_{cid}"   in post
 
             if not (checked_male or checked_fs or checked_ff):
-                # Custom col only — xem có extra_prices không
                 extra_raw = post.get(f"{prefix}extra_{cid}") or "{}"
                 try:
                     extra_prices_check = json.loads(extra_raw)
@@ -508,6 +491,7 @@ def save_quotation(request):
             group_name    = (snap.group_name    if snap else None) or (cat.get("group", "")       if cat else "")
             subgroup_name = (snap.subgroup_name if snap else None) or ((cat.get("subgroup") or "") if cat else "")
             list_price_v  = snap.list_price if snap else safe_decimal(cat.get("list_price") if cat else None)
+
             posted_price_type = (post.get(f"{prefix}price_type_{cid}") or "").strip().lower()
             if posted_price_type not in {"standard", "free", "gift"}:
                 posted_price_type = ""
@@ -538,7 +522,7 @@ def save_quotation(request):
             for_fs = snap.for_female_single if snap else (cat.get("for_female_single", True) if cat else True)
             for_ff = snap.for_female_family if snap else (cat.get("for_female_family", True) if cat else True)
 
-            # FIX #3: closure bug — dùng default arg để bind cid theo value
+            # Closure: bind cid per iteration via default arg
             def _get_price(key, _prefix=prefix, _cid=cid, _cat=cat):
                 raw = post.get(f"{_prefix}price_{key}_{_cid}")
                 val = safe_decimal(raw)
@@ -549,7 +533,6 @@ def save_quotation(request):
             extra_raw = post.get(f"{prefix}extra_{cid}") or "{}"
             try:
                 extra_prices = json.loads(extra_raw)
-                # Sanitize: chỉ giữ numeric values
                 extra_prices = {
                     k: int(v) for k, v in extra_prices.items()
                     if isinstance(v, (int, float)) or (isinstance(v, str) and v.isdigit())
@@ -636,21 +619,29 @@ def quotation_preview(request, quotation_id):
 def issue_quotation_document_view(request, quotation_id):
     quotation = get_quotation_for_user_or_404(request.user, quotation_id)
     quotation = decorate_quotation_contract_state(quotation)
+
     if quotation.is_locked:
         messages.error(request, "Báo giá đã bị khóa, không thể phát hành lại tài liệu.")
         return redirect("contract:quotation_preview", quotation_id=quotation.pk)
+
     if quotation_issue_blocked_by_contract(quotation):
-        messages.error(request, "Há»£p Ä‘á»“ng liÃªn káº¿t Ä‘Ã£ Ä‘Æ°á»£c duyá»‡t hoáº·c Ä‘Ã£ bá»‹ khÃ³a, khÃ´ng thá»ƒ phÃ¡t hÃ nh PDF bÃ¡o giÃ¡.")
+        messages.error(
+            request,
+            "Hợp đồng liên kết đã được duyệt hoặc đã bị khóa, không thể phát hành PDF báo giá."
+        )
         return redirect("contract:quotation_preview", quotation_id=quotation.pk)
+
     try:
         issued = issue_quotation_document(quotation=quotation, actor=request.user, request=request)
     except Exception as exc:
         messages.error(request, f"Không thể phát hành tài liệu: {exc}")
         return redirect("contract:quotation_preview", quotation_id=quotation.pk)
+
     if issued.pdf_file:
-        messages.success(request, "Đã phát hành báo giá PDF.")
+        messages.success(request, "Đã phát hành báo giá PDF thành công.")
     else:
-        messages.warning(request, "PDF chưa được tạo, đang dùng fallback hoặc thiếu công cụ chuyển đổi.")
+        messages.warning(request, "Đã lưu docx nhưng chưa tạo được PDF. Kiểm tra LibreOffice hoặc WeasyPrint.")
+
     return redirect("contract:quotation_preview", quotation_id=quotation.pk)
 
 
@@ -668,18 +659,28 @@ def download_issued_quotation_pdf(request, issued_id):
 
 @login_required(login_url="authentication:staff_login")
 def quotation_pdf(request):
+    """
+    GET view: render PDF trực tiếp từ báo giá mới nhất.
+    Ưu tiên trả file đã issued; nếu chưa có → render HTML → WeasyPrint on-the-fly.
+    """
     quotation_id  = request.GET.get("id")
     quotation     = get_quotation_for_user_or_404(request.user, quotation_id)
     latest_issued = get_latest_issued_quotation_document(quotation)
     if latest_issued and latest_issued.pdf_file:
         return file_response(latest_issued.pdf_file)
+
+    # On-the-fly render
     context = build_quotation_preview_context(quotation)
     context["quotation"] = quotation
     context["today"]     = date.today()
     html_string = render_to_string("contract/staff/quotation_pdf.html", context, request=request)
+
     try:
         import weasyprint
-        pdf_bytes = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf()
+        pdf_bytes = weasyprint.HTML(
+            string=html_string,
+            base_url=request.build_absolute_uri("/"),
+        ).write_pdf()
         filename = f"bao-gia-{quotation.company_name}-{quotation.pk}.pdf"
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="{filename}"'

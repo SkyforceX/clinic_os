@@ -5,6 +5,7 @@ __pycache__/
 *.pyd
 db.sqlite3
 settings.py
+config/
 .env
 media/
 staticfiles/

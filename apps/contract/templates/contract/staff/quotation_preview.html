@@ -2,6 +2,7 @@
 {% load static %}
 {% load core_tags %}
 {% load humanize l10n %}
+{% load contract_tags %}
 
 
 {% block title %}Báo giá – {{ quotation.company_name }}{% endblock %}
@@ -143,6 +144,34 @@
 .preview-price-stack{display:flex;flex-direction:column;align-items:center;gap:2px}
 .preview-price-base{color:#aaa;text-decoration:line-through;font-size:.75rem}
 .preview-price-list{font-size:.82rem;font-weight:600;color:#1f2d3d}
+/* Discount badge */
+.discount-badge{
+  display:inline-block;
+  background:#fff3e0;
+  color:#e65100;
+  border:1px solid #ffcc80;
+  border-radius:10px;
+  padding:0 5px;
+  font-size:.68rem;
+  font-weight:700;
+  line-height:1.5;
+  white-space:nowrap;
+}
+/* Commission block */
+.commission-info-block{
+  background:#f0f4ff;
+  border:1px solid #c7d2fe;
+  border-radius:8px;
+  padding:.9rem 1.1rem;
+}
+.commission-info-block .commission-info-title{
+  font-size:.78rem;
+  font-weight:700;
+  color:#3730a3;
+  margin-bottom:.55rem;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
 </style>
 {% endblock %}
 
@@ -157,7 +186,7 @@
       </h5>
 
       <div class="toolbar-actions">
- 
+
         <form method="post"
               action="{% url 'contract:issue_quotation_document' quotation_id=quotation.pk %}"
               class="d-inline mb-0"
@@ -175,12 +204,6 @@
             <i class="fa fa-file-pdf me-1"></i> PDF
           </a>
           {% endif %}
-          <!-- {% if latest_issued.docx_file %}
-          <a href="{% url 'contract:download_issued_quotation_docx' issued_id=latest_issued.pk %}"
-             class="btn btn-sm btn-outline-secondary">
-            <i class="fa fa-file-word me-1"></i> Word
-          </a>
-          {% endif %} -->
         {% endif %}
 
         {% if can_edit_quotation %}
@@ -286,7 +309,12 @@
             <tbody>
               {% for col in pkg.columns_json %}
               <tr>
-                <td class="fw-semibold">{{ col.label }}</td>
+                <td class="fw-semibold">
+                  {{ col.label }}
+                  {% if col.discount_pct %}
+                  <span class="discount-badge ms-1">–{{ col.discount_pct|floatformat:"-2" }}%</span>
+                  {% endif %}
+                </td>
                 <td>{{ col.count }}</td>
                 <td>
                   {% with col_totals=pkg.totals.by_col %}
@@ -318,7 +346,10 @@
                 <th class="svc-col">DỊCH VỤ</th>
                 <th style="min-width:90px">GIÁ Niêm Yết</th>
                 {% for col in pkg.columns_json %}
-                <th style="min-width:90px">{{ col.label }}</th>
+                <th style="min-width:90px">
+                  {{ col.label }}
+                  {% if col.discount_pct %}<br><span style="font-size:.65rem;opacity:.85;font-weight:400">(–{{ col.discount_pct|floatformat:"-2" }}%)</span>{% endif %}
+                </th>
                 {% endfor %}
               </tr>
             </thead>
@@ -362,6 +393,9 @@
                         <span class="preview-price-base">{{ row.line.list_price|vnd }}</span>
                         {% endif %}
                         <span>{{ row.line.price_male|vnd }}</span>
+                        {% if row.line.has_discount_male and row.line.discount_male_pct %}
+                        <span class="discount-badge">–{{ row.line.discount_male_pct|floatformat:"-2" }}%</span>
+                        {% endif %}
                       </div>
                     {% elif col.key == 'female_single' and row.line.price_female_single %}
                       <div class="preview-price-stack">
@@ -369,6 +403,9 @@
                         <span class="preview-price-base">{{ row.line.list_price|vnd }}</span>
                         {% endif %}
                         <span>{{ row.line.price_female_single|vnd }}</span>
+                        {% if row.line.has_discount_female_single and row.line.discount_fs_pct %}
+                        <span class="discount-badge">–{{ row.line.discount_fs_pct|floatformat:"-2" }}%</span>
+                        {% endif %}
                       </div>
                     {% elif col.key == 'female_family' and row.line.price_female_family %}
                       <div class="preview-price-stack">
@@ -376,6 +413,9 @@
                         <span class="preview-price-base">{{ row.line.list_price|vnd }}</span>
                         {% endif %}
                         <span>{{ row.line.price_female_family|vnd }}</span>
+                        {% if row.line.has_discount_female_family and row.line.discount_ff_pct %}
+                        <span class="discount-badge">–{{ row.line.discount_ff_pct|floatformat:"-2" }}%</span>
+                        {% endif %}
                       </div>
                     {% else %}—{% endif %}
                   </td>
@@ -385,7 +425,6 @@
               {% endfor %}
             </tbody>
             <tfoot>
-              <!-- Totals -->
               <tr class="total-row">
                 <td colspan="3" class="text-end">Giá ưu đãi / người (VND):</td>
                 {% for col in pkg.columns_json %}
@@ -447,9 +486,36 @@
                   {% if row.line.description %}<br><small class="text-muted">{{ row.line.description }}</small>{% endif %}
                 </td>
                 <td class="text-center fw-semibold" style="color:#1a5276">{{ row.line.display_unit_price|default:"—" }}</td>
-                <td class="text-center">{{ row.line.male_mark|default:"–" }}</td>
-                <td class="text-center">{{ row.line.female_single_mark|default:"–" }}</td>
-                <td class="text-center">{{ row.line.female_family_mark|default:"–" }}</td>
+                <td class="text-center">
+                  {% if row.line.has_discount_male %}
+                  <div class="preview-price-stack">
+                    <span>✓</span>
+                    <span class="discount-badge">–{{ row.line.discount_male_pct|floatformat:"-2" }}%</span>
+                  </div>
+                  {% else %}
+                  {{ row.line.male_mark|default:"–" }}
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if row.line.has_discount_female_single %}
+                  <div class="preview-price-stack">
+                    <span>✓</span>
+                    <span class="discount-badge">–{{ row.line.discount_fs_pct|floatformat:"-2" }}%</span>
+                  </div>
+                  {% else %}
+                  {{ row.line.female_single_mark|default:"–" }}
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if row.line.has_discount_female_family %}
+                  <div class="preview-price-stack">
+                    <span>✓</span>
+                    <span class="discount-badge">–{{ row.line.discount_ff_pct|floatformat:"-2" }}%</span>
+                  </div>
+                  {% else %}
+                  {{ row.line.female_family_mark|default:"–" }}
+                  {% endif %}
+                </td>
               </tr>
               {% endif %}
             {% endfor %}
@@ -500,6 +566,47 @@
       </div>
       <div class="text-end mt-2 fw-bold" style="font-size:1.1rem;color:#1a5276">
         Tổng: {{ quotation_payload.totals.grand_total_display|default:"—" }} VND
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── Hoa hồng nội bộ (no-print) ── #}
+    {% if quotation.commission_sale_pct or quotation.commission_co_pct %}
+    <div class="no-print mb-3">
+      <div class="commission-info-block">
+        <div class="commission-info-title">
+          🔒 Thông tin nội bộ – Hoa hồng ước tính
+        </div>
+        <div class="d-flex flex-wrap gap-4 align-items-center">
+          {% if quotation.commission_sale_pct %}
+          <div>
+            <span style="font-size:.8rem;color:#555">💼 HC Sale</span>
+            <strong style="color:#1a5276;font-size:.92rem;margin-left:.35rem">{{ quotation.commission_sale_pct|floatformat:"-2" }}%</strong>
+            {% if quotation.commission_sale_amount %}
+            <span class="ms-2 me-1 text-muted" style="font-size:.8rem">→</span>
+            <strong style="color:#1a5276;font-size:.92rem">{{ quotation.commission_sale_amount|vnd }} ₫</strong>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if quotation.commission_co_pct %}
+          <div style="border-left:1px solid #c7d2fe;padding-left:1rem">
+            <span style="font-size:.8rem;color:#555">🏢 HC Công ty</span>
+            <strong style="color:#00695c;font-size:.92rem;margin-left:.35rem">{{ quotation.commission_co_pct|floatformat:"-2" }}%</strong>
+            {% if quotation.commission_co_amount %}
+            <span class="ms-2 me-1 text-muted" style="font-size:.8rem">→</span>
+            <strong style="color:#00695c;font-size:.92rem">{{ quotation.commission_co_amount|vnd }} ₫</strong>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if quotation.commission_sale_amount and quotation.commission_co_amount %}
+          <div style="border-left:1px solid #c7d2fe;padding-left:1rem;margin-left:.25rem">
+            <span style="font-size:.8rem;color:#555">Σ Tổng hoa hồng</span>
+            <strong style="color:#7c3aed;font-size:.92rem;margin-left:.35rem">
+              {{ quotation.commission_sale_amount|add:quotation.commission_co_amount|vnd }} ₫
+            </strong>
+          </div>
+          {% endif %}
+        </div>
       </div>
     </div>
     {% endif %}

@@ -204,6 +204,13 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                     active_app_names=["catalogs"],
                     active_url_name_contains=["package_"],
                 ),
+                _item(
+                    request=request,
+                    label="Thư viện",
+                    url_name="media_library:index",
+                    active_app_names=["media_library"],
+                    active_url_name_contains=["index", "media", "library"],
+                ),
             ],
         ),
     )
@@ -588,6 +595,13 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                         url_name="api_his:api_playground",
                         active_url_names=["api_playground"],
                         active_app_names=["api_his"],
+                    ),
+                    _item(
+                        request=request,
+                        label="AI",
+                        url_name="ai_assistant:index",
+                        active_url_names=["index"],
+                        active_app_names=["ai_assistant"],
                     ),
                 ],
             ),

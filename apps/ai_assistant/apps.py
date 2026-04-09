@@ -2,5 +2,7 @@ from django.apps import AppConfig
 
 
 class AiAssistantConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'ai_assistant'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.ai_assistant"
+    label = "ai_assistant"
+    verbose_name = "Trợ lý AI"

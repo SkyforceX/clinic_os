@@ -1,23 +1,24 @@
 đọc repo của app contract trong clinic_os
 
 Lỗi:
-- Khi xuất PDF báo giá thì có lỗi:
-WeasyPrint could not import some external libraries. Please carefully follow the installation steps before reporting an issue:
-https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#installation
-https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#troubleshooting 
+- mất định dạng của quill html khi inject vào docx và render ra pdf
+- thiếu hiển thị hình ảnh khi hiển thị ra pdf
+- bảng giá trong báo giá đã tạo còn thiếu:
+    + lưu được % hoa hồng cho sale và công ty
+    + chưa hiển thị khung thông tin % hoa hồng ở trang preview báo giá
+    + % giảm giá của ô giá ở cột đối tượng khách hàng trong bảng giá chưa hiển thị số % giảm (ví dụ -15%) ở trang preview báo giá, và xuất pdf thiếu % giảm giá ở ô có giảm
+- trang preview hợp đồng chưa hiển thị khung thông tin % hoa hồng
 
------
-
-Lỗi khi chuyển đổi PDF quotation #13: cannot load library 'C:\Program Files\Tesseract-OCR\libgobject-2.0-0.dll': error 0x7e
-HTTP 302 response started for ['127.0.0.1', 52309]
-HTTP close for ['127.0.0.1', 52309]
-HTTP response complete for ['127.0.0.1', 52309]
 
 Yêu cầu:
-- tìm code bị lỗi trong app contract, .env. settings.py và các file liên quan để sửa lỗi
-
+- sửa code để lưu % hoa hòng chính xác cho trang tạo báo giá và hiển thị ở trang preview báo gái, và hiển thị đầy đủ ở trang sửa báo giá
+- sửa code để hiển thị % giảm giá ở ô có giảm của cột đối tượng khách hàng
+- tạo code hiển thị % hoa hồng ở trang preview hợp đồng
+- tạo app thư viện để upload ảnh về server ngay khi paste, và có trang quản lý dữ liệu file, hình ảnh, đầy đủ chức năng upload/delete/view file pdf, docx, excel, ảnh....
+- sửa hiển thị html của quill thành docx XML block vào document để tránh mất định dạng văn bản
 Output:
-- tạo code sửa và chỗ sửa
+- tạo full path cho các file cần sửa và các file mới, app mới
+- giữ style và layout chuẩn đang có
 
 
 chỉ đọc file liên quan, không cần đọc toàn bộ repo dự án

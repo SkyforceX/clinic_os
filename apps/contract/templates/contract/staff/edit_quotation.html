@@ -1,9 +1,13 @@
 {% extends "base_admin.html" %}
+{% load static %}
+{% load core_tags %}
 {% load humanize l10n %}
 {% block title %}Sửa báo giá – {{ quotation.company_name }}{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css">
+<script src="{% static 'media_library/js/quill_image_upload.js' %}"></script>
+<script src="{% static 'media_library/js/quill_media_picker.js' %}"></script>
 <style>
 /* ── shared card/table styles ── */
 .qform-card{background:var(--bs-body-bg,#fff);border:1px solid #dee2e6;border-radius:8px;padding:1.25rem;margin-bottom:1rem}
@@ -132,7 +136,7 @@ var EXISTING_EXTRA_CONTENT = {{ extra_content_json|safe }};
         <label for="commission_sale_pct">💼 HC Sale</label>
         <input type="number" id="commission_sale_pct" name="commission_sale_pct" class="commission-pct-input" min="0" max="100" step="0.1" value="{{ commission_sale_pct }}" oninput="calcCommissions()">
         <span class="text-muted" style="font-size:.78rem">%  →</span>
-        <span id="commission_sale_amount_display" class="commission-amount" style="color:#1a5276">—</span>
+        <span id="commission_sale_amount_display" class="commission-amount" style="color:#1a5276">{% if commission_sale_amount %}{{ commission_sale_amount|vnd }} ₫{% else %}—{% endif %}</span>
         <input type="hidden" id="h_commission_sale_amount" name="commission_sale_amount" value="{{ commission_sale_amount }}">
       </div>
     </div>
@@ -141,7 +145,7 @@ var EXISTING_EXTRA_CONTENT = {{ extra_content_json|safe }};
         <label for="commission_co_pct">🏢 HC Công ty</label>
         <input type="number" id="commission_co_pct" name="commission_co_pct" class="commission-pct-input" min="0" max="100" step="0.1" value="{{ commission_co_pct }}" oninput="calcCommissions()">
         <span class="text-muted" style="font-size:.78rem">%  →</span>
-        <span id="commission_co_amount_display" class="commission-amount" style="color:#00695c">—</span>
+        <span id="commission_co_amount_display" class="commission-amount" style="color:#00695c">{% if commission_co_amount %}{{ commission_co_amount|vnd }} ₫{% else %}—{% endif %}</span>
         <input type="hidden" id="h_commission_co_amount" name="commission_co_amount" value="{{ commission_co_amount }}">
       </div>
     </div>
@@ -195,6 +199,8 @@ var EXISTING_EXTRA_CONTENT = {{ extra_content_json|safe }};
 {% include "contract/staff/includes/_proposal_table_js.html" %}
 {% include "contract/staff/includes/_modal_catalog_picker.html" %}
 {% include "contract/staff/includes/_modal_package_picker.html" %}
+
+{% include "media_library/_modal_media_picker.html" %}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
 <script>
@@ -452,6 +458,17 @@ function recalcItem(pid, cid) {
 
     var dispEl = document.getElementById('disp_' + pid + '_' + key + '_' + cid);
     if(dispEl) dispEl.textContent = final > 0 ? fmtNum(final) : '0';
+
+    var dpctEl = document.getElementById('dpct_' + pid + '_' + key + '_' + cid);
+    if (dpctEl) {
+      if (gPct > 0 || rowPct > 0) {
+        var effectivePct = Math.round((1 - (1 - gPct/100) * (1 - rowPct/100)) * 1000) / 10;
+        dpctEl.textContent = '(–' + effectivePct + '%)';
+        dpctEl.style.display = '';
+      } else {
+        dpctEl.style.display = 'none';
+      }
+    }
   });
 
   updatePkgTotal(pid);
@@ -572,7 +589,40 @@ function renderPackageTable(pid) {
 
   tbody.innerHTML = html;
   updatePkgTotal(pid);
-  Object.keys(pkg.items).forEach(function(cid){ recalcItem(pid, parseInt(cid)); });
+  Object.keys(pkg.items).forEach(function(cid) {
+    var cidInt = parseInt(cid);
+    var line = pkg.items[cidInt];
+    if (!line) return;
+
+    // Nếu item đã có giá lưu sẵn (chế độ edit) → chỉ cập nhật display,
+    // KHÔNG recalc lại vì sẽ ghi đè giá đã lưu bằng giá catalog hiện tại
+    var hasSavedPrice = (
+      (line.price_male > 0) || (line.price_fs > 0) || (line.price_ff > 0) ||
+      (line.price_type === 'free') || (line.price_type === 'gift')
+    );
+
+    if (hasSavedPrice) {
+      // Chỉ render display từ data đã lưu
+      pkg.columns.forEach(function(col) {
+        var key = col.key;
+        var dispEl = document.getElementById('disp_' + pid + '_' + key + '_' + cidInt);
+        if (!dispEl) return;
+        if (line.price_type === 'free' || line.price_type === 'gift') {
+          dispEl.textContent = line.note || (line.price_type === 'free' ? 'Miễn phí' : 'Tặng');
+        } else {
+          var val = 0;
+          if (key === 'male') val = line.price_male || 0;
+          else if (key === 'female_single') val = line.price_fs || 0;
+          else if (key === 'female_family') val = line.price_ff || 0;
+          else val = ((line.extra_prices || {})[key]) || 0;
+          dispEl.textContent = val > 0 ? fmtNum(val) : '0';
+        }
+      });
+    } else {
+      // Item mới thêm vào, chưa có giá → tính bình thường
+      recalcItem(pid, cidInt);
+    }
+  });
 }
 
 function buildItemRow(pid, pkg, line, stt) {
@@ -604,9 +654,10 @@ function buildItemRow(pid, pkg, line, stt) {
         : 0
       );
 
-      html += '<td class="text-center" style="white-space:nowrap">';
-      html += '<div><span id="disp_' + pid + '_' + key + '_' + cid + '" style="font-size:.82rem;font-weight:600;color:#1a5276">—</span></div>';
-      html += '<input type="number" id="pct_' + pid + '_' + key + '_' + cid + '" class="row-pct-input" min="0" max="100" step="0.5" placeholder="%" style="width:50px" value="' + pctVal + '" oninput="recalcItem(\'' + pid + '\',' + cid + ')">';
+      html += '<td class=\"text-center\" style=\"white-space:nowrap\">';
+      html += '<div><span id=\"disp_' + pid + '_' + key + '_' + cid + '\" style=\"font-size:.82rem;font-weight:600;color:#1a5276\">—</span></div>';
+      html += '<div><span id=\"dpct_' + pid + '_' + key + '_' + cid + '\" style=\"font-size:.7rem;color:#e67e22;display:none\"></span></div>';
+      html += '<input type=\"number\" id=\"pct_' + pid + '_' + key + '_' + cid + '\" class=\"row-pct-input\" min=\"0\" max=\"100\" step=\"0.5\" placeholder=\"%\" style=\"width:50px\" value=\"' + pctVal + '\" oninput=\"recalcItem(\\'' + pid + '\\',' + cid + ')\">';
       html += '</td>';
     }
   });
@@ -925,6 +976,18 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   });
 
+  // ── Media Library integration ──────────────────────────────
+enableQuillImageUpload(quillEditor, {
+  uploadUrl: "{% url 'media_library:upload_quill_image' %}",
+  csrfToken: "{{ csrf_token }}"
+});
+enableQuillMediaPicker(quillEditor, {
+  listUrl:   "{% url 'media_library:list_json' %}",
+  uploadUrl: "{% url 'media_library:upload' %}",
+  csrfToken: "{{ csrf_token }}"
+});
+enableQuillImageEditor(quillEditor);
+
   if(EXISTING_EXTRA_CONTENT && String(EXISTING_EXTRA_CONTENT).trim()){
     quillEditor.clipboard.dangerouslyPasteHTML(EXISTING_EXTRA_CONTENT);
   }
@@ -1006,6 +1069,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
   renderStickySummary();
   calcCommissions();
+
+  enableQuillImageUpload(quillEditor, {
+    uploadUrl: "{% url 'media_library:upload_quill_image' %}",
+    csrfToken: "{{ csrf_token }}"
+});
 });
 </script>
 {% endblock %}

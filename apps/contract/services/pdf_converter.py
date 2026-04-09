@@ -157,7 +157,7 @@ def build_pdf_bytes(
     engine = (getattr(settings, "PDF_ENGINE", "auto") or "auto").strip().lower()
 
     if prefer_html is None:
-        prefer_html = bool(getattr(settings, "PDF_PREFER_HTML", True))
+        prefer_html = bool(getattr(settings, "PDF_PREFER_HTML", False))
 
     def _html_first() -> bytes | None:
         if fallback_html:

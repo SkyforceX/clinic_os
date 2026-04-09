@@ -13,11 +13,16 @@ Fix bug (v5→v6):
 - tmp_docx_path KHÔNG bị xóa trước khi LibreOffice dùng nó
   (finally của Phase 1 cũ xóa file trước Phase 2 → LibreOffice báo "Docx không tồn tại")
 - Dọn cả 2 tmp file trong finally của Phase 2 sau khi convert xong
+
+Fix (v6→v7):
+- _issued_tmp_dir() kiểm tra quyền ghi ngay sau khi tạo thư mục,
+  throw PermissionError sớm với hướng dẫn rõ ràng thay vì lỗi mơ hồ
 """
 
 from __future__ import annotations
 
 import logging
+import os
 import uuid
 from datetime import date
 from pathlib import Path
@@ -45,6 +50,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 def _resolve_base_url(request=None) -> str | None:
     if request is not None:
         try:
@@ -75,9 +81,44 @@ def _build_filenames(quotation: QuotationDraft, version: int) -> tuple[str, str]
 
 
 def _issued_tmp_dir() -> Path:
+    """
+    Trả về thư mục tạm để render docx/pdf.
+    Tạo thư mục nếu chưa có, kiểm tra quyền ghi ngay sau đó.
+
+    Nếu không có quyền ghi → raise PermissionError với hướng dẫn cụ thể.
+    """
     tmp_dir = Path(settings.MEDIA_ROOT) / "_tmp" / "contract" / "quotations"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+    except PermissionError as exc:
+        _raise_permission_error(tmp_dir, exc)
+
+    # Kiểm tra thực sự bằng cách thử tạo file
+    probe = tmp_dir / f".write_probe_{os.getpid()}"
+    try:
+        probe.touch()
+        probe.unlink()
+    except PermissionError as exc:
+        _raise_permission_error(tmp_dir, exc)
+
     return tmp_dir
+
+
+def _raise_permission_error(path: Path, original: Exception) -> None:
+    media_root = getattr(settings, "MEDIA_ROOT", "/srv/.../media")
+    msg = (
+        f"Không có quyền ghi vào thư mục tạm: {path}\n\n"
+        f"Chạy lệnh sau trên server để cấp quyền:\n"
+        f"  sudo mkdir -p {media_root}/_tmp/contract/quotations\n"
+        f"  sudo mkdir -p {media_root}/contract/quotations\n"
+        f"  sudo chown -R $(whoami):$(whoami) {media_root}\n"
+        f"  sudo chmod -R 775 {media_root}\n\n"
+        f"Hoặc nếu chạy bằng www-data:\n"
+        f"  sudo chown -R www-data:www-data {media_root}\n"
+        f"  sudo chmod -R 755 {media_root}"
+    )
+    raise PermissionError(msg) from original
 
 
 def _tmp_work_paths(quotation: QuotationDraft, version: int) -> tuple[Path, Path]:
@@ -151,6 +192,11 @@ def issue_quotation_document(
         if not docx_bytes:
             raise RuntimeError("Render docx thành công nhưng file rỗng.")
 
+    except PermissionError:
+        # PermissionError đã có message hướng dẫn rõ ràng từ _issued_tmp_dir()
+        _safe_unlink(tmp_docx_path, tmp_pdf_path)
+        raise
+
     except Exception:
         # Nếu render docx thất bại hoàn toàn → dọn file rồi re-raise
         _safe_unlink(tmp_docx_path, tmp_pdf_path)
@@ -174,7 +220,7 @@ def issue_quotation_document(
             docx_path=str(tmp_docx_path),
             fallback_html=fallback_html,
             base_url=base_url,
-            prefer_html=True,
+            prefer_html=False,
         )
 
         if not pdf_bytes:

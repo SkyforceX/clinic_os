@@ -1,0 +1,136 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Trợ lý AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  {# ── Header ─────────────────────────────────────────────────────────────── #}
+  <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-3">
+    <div>
+      <h4 class="mb-1 fw-semibold">
+        <i class="bi bi-robot text-primary me-2"></i>Trợ lý AI Nội bộ
+      </h4>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <small class="text-muted">Chỉ dành cho Executive và quản trị viên</small>
+        <span class="vr d-none d-sm-inline"></span>
+        {# Ollama status badge — tự fetch qua JS #}
+        <span id="ollama-status" class="badge bg-secondary" style="font-size:.72rem;">
+          <span class="spinner-border spinner-border-sm me-1" style="width:.65rem;height:.65rem;"></span>
+          Đang kiểm tra kết nối AI...
+        </span>
+      </div>
+    </div>
+    <form method="post" action="{% url 'ai_assistant:new' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Hội thoại mới
+      </button>
+    </form>
+  </div>
+
+  {# ── Conversation list ─────────────────────────────────────────────────── #}
+  {% if conversations %}
+  <div class="row g-3">
+    {% for conv in conversations %}
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="card border-0 shadow-sm h-100 conv-card" style="border-radius:12px;">
+        <div class="card-body d-flex align-items-start gap-3 p-3">
+          <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+               style="width:42px;height:42px;">
+            <i class="bi bi-chat-dots text-primary"></i>
+          </div>
+          <div class="flex-grow-1 min-w-0">
+            <a href="{% url 'ai_assistant:chat' conv.pk %}"
+               class="text-decoration-none text-dark fw-semibold d-block text-truncate">
+              {{ conv.get_title_display }}
+            </a>
+            <small class="text-muted">
+              {{ conv.updated_at|date:"d/m/Y H:i" }}
+              &middot;
+              {{ conv.messages.count }} tin nhắn
+            </small>
+          </div>
+          <form method="post" action="{% url 'ai_assistant:delete' conv.pk %}"
+                onsubmit="return confirm('Xóa cuộc hội thoại này?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-link text-muted p-0 btn-delete-conv" title="Xóa">
+              <i class="bi bi-trash3" style="font-size:.85rem;"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if is_paginated %}
+  <nav class="mt-4">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">‹</a>
+      </li>
+      {% endif %}
+      <li class="page-item disabled">
+        <span class="page-link">Trang {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      </li>
+      {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.next_page_number }}">›</a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+
+  {% else %}
+  <div class="text-center py-5">
+    <div class="mb-3" style="font-size:3.5rem;">🤖</div>
+    <h5 class="fw-semibold">Chưa có cuộc hội thoại nào</h5>
+    <p class="text-muted">Bắt đầu một hội thoại mới để nhận hỗ trợ từ trợ lý AI nội bộ.</p>
+    <form method="post" action="{% url 'ai_assistant:new' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary px-4">
+        <i class="bi bi-chat-dots me-1"></i>Bắt đầu ngay
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+.conv-card { transition: box-shadow .15s, transform .15s; }
+.conv-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1) !important; transform: translateY(-1px); }
+.btn-delete-conv { opacity: 0; transition: opacity .1s; }
+.conv-card:hover .btn-delete-conv { opacity: 1; }
+</style>
+
+<script>
+(function () {
+  const HEALTH_URL = "{% url 'ai_assistant:health' %}";
+  const badge = document.getElementById("ollama-status");
+
+  fetch(HEALTH_URL)
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.ok && data.model_loaded) {
+        badge.className = "badge bg-success";
+        badge.innerHTML = '<i class="bi bi-circle-fill me-1" style="font-size:.5rem;vertical-align:middle;"></i>AI đang chạy &mdash; ' + data.model;
+      } else if (data.ok && !data.model_loaded) {
+        badge.className = "badge bg-warning text-dark";
+        badge.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Ollama kết nối được nhưng chưa thấy model <strong>' + data.model + '</strong>';
+      } else {
+        badge.className = "badge bg-danger";
+        badge.innerHTML = '<i class="bi bi-x-circle me-1"></i>Không kết nối được AI server';
+        badge.title = data.error || "";
+      }
+    })
+    .catch(function () {
+      badge.className = "badge bg-danger";
+      badge.innerHTML = '<i class="bi bi-x-circle me-1"></i>Lỗi kiểm tra kết nối';
+    });
+})();
+</script>
+{% endblock %}

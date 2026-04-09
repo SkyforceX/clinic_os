@@ -46,7 +46,7 @@ EOF
 sudo ufw allow from ${WEBAPP_PRIVATE_IP} to any port 5432 proto tcp
 sudo ufw allow from 172.39.39.106 to any port 5432 proto tcp
 
-sudo ufw allow from 172.39.39.103 to any port 5432 proto tcp
+sudo ufw allow from 172.39.39.115 to any port 8000 proto tcp
 
 sudo ufw status numbered
 
@@ -98,7 +98,7 @@ sudo systemctl enable ollama
 sudo systemctl start ollama
 sudo journalctl -u ollama -n 100 --no-pager
 
-sudo ufw allow from 172.39.39.106 to any port 11434 proto tcp
+sudo ufw allow from 172.39.39.115 to any port 11434 proto tcp
 sudo ufw status numbered
 
 ollama pull qwen2.5:7b
@@ -527,6 +527,12 @@ sudo systemctl enable gunicorn
 sudo systemctl restart gunicorn
 sudo systemctl status gunicorn --no-pager
 
+
+sudo chown -R os_user:www-data /srv/clinic_os/app/media/
+sudo find /srv/clinic_os/app/media/ -type d -exec chmod 775 {} \;
+sudo find /srv/clinic_os/app/media/ -type f -exec chmod 664 {} \;
+
+
 *** xem log gunicorn nếu có lỗi
 
 journalctl -u gunicorn -n 100 --no-pager
@@ -674,6 +680,14 @@ cd '"${APP_DIR}"'
 source venv/bin/activate
 python manage.py createsuperuser
 '
+
+*** tạo superuser theo môi trường gunicorn trên ubuntu
+cd /srv/clinic_os/app
+set -a
+source /srv/clinic_os/env/.env
+set +a
+source /srv/clinic_os/venv/bin/activate
+python manage.py createsuperuser
 
 ** tạo systemd cho Gunicorn
 sudo tee /etc/systemd/system/clinic_os.service > /dev/null <<EOF

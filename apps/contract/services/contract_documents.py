@@ -185,7 +185,7 @@ def issue_contract_document(
             docx_path=str(tmp_docx_path),
             fallback_html=fallback_html,
             base_url=base_url,
-            prefer_html=True,
+            prefer_html=False,
         )
         
         if not pdf_bytes:

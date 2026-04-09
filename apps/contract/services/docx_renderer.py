@@ -14,6 +14,12 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
+import base64
+import io
+import logging
+import urllib.request
+
+logger = logging.getLogger(__name__)
 
 
 CONTRACT_CATALOG_TABLE_MARKER = "{{ CONTRACT_CATALOG_TABLE }}"
@@ -542,6 +548,14 @@ class _MiniQuillDocxParser(HTMLParser):
             self._append_text("\n")
             return
 
+        if tag == "img":
+            # Flush block hiện tại, lưu ảnh như một block đặc biệt
+            self._flush_block()
+            src = attrs.get("src") or attrs.get("data-src") or ""
+            if src:
+                self.blocks.append({"type": "image", "src": src})
+            return
+
         self.inline_stack.append((tag, self._inline_style_from(tag, attrs)))
 
     def handle_endtag(self, tag):
@@ -751,6 +765,93 @@ def _apply_docx_run_style(run, *, bold=False, italic=False, underline=False, str
         run.font.color.rgb = RGBColor.from_string(color)
 
 
+
+def _embed_image_block(doc: "Document", src: str, insert_after_element) -> object | None:
+    """
+    Nhúng ảnh từ src (base64 data URI, URL tuyệt đối, hoặc path /media/...)
+    vào document dưới dạng block paragraph ngay sau insert_after_element.
+    Trả về element mới hoặc None nếu không nhúng được.
+    """
+    from pathlib import Path as _Path
+    img_stream = None
+    try:
+        if src.startswith("data:image"):
+            # base64 data URI — "data:image/png;base64,iVBORw..."
+            try:
+                _, b64_data = src.split(",", 1)
+                # Thêm padding nếu thiếu
+                b64_data += "=" * (4 - len(b64_data) % 4)
+                img_bytes = base64.b64decode(b64_data)
+                img_stream = io.BytesIO(img_bytes)
+            except Exception as exc:
+                logger.warning("docx_renderer: không decode được base64 img: %s", exc)
+                return None
+
+        elif src.startswith("http://") or src.startswith("https://"):
+            try:
+                req = urllib.request.Request(src, headers={"User-Agent": "clinic_os/1.0"})
+                with urllib.request.urlopen(req, timeout=8) as resp:
+                    img_stream = io.BytesIO(resp.read())
+            except Exception as exc:
+                logger.warning("docx_renderer: không tải được ảnh từ URL %s: %s", src, exc)
+                return None
+
+        elif src.startswith("/"):
+            # URL tương đối — /media/media_library/...
+            # Map sang file system: thử MEDIA_ROOT trước, rồi STATIC_ROOT
+            try:
+                from django.conf import settings as _s
+                candidates = []
+                media_root = getattr(_s, "MEDIA_ROOT", None)
+                if media_root:
+                    candidates.append(_Path(media_root) / src.lstrip("/"))
+                    # /media/... → strip prefix "media/"
+                    stripped = src.lstrip("/")
+                    if stripped.startswith("media/"):
+                        candidates.append(_Path(media_root) / stripped[len("media/"):])
+                static_root = getattr(_s, "STATIC_ROOT", None)
+                if static_root:
+                    candidates.append(_Path(static_root) / src.lstrip("/"))
+                found = next((p for p in candidates if p.exists()), None)
+                if not found:
+                    logger.warning("docx_renderer: không tìm thấy ảnh tại path %s", src)
+                    return None
+                img_stream = open(found, "rb")
+            except Exception as exc:
+                logger.warning("docx_renderer: lỗi đọc ảnh từ path %s: %s", src, exc)
+                return None
+        else:
+            return None
+
+        if img_stream is None:
+            return None
+
+        para = doc.add_paragraph()
+        run = para.add_run()
+        try:
+            # max width = 14cm để vừa trang A4 có lề
+            run.add_picture(img_stream, width=Cm(14))
+        except Exception as exc:
+            logger.warning("docx_renderer: không nhúng được ảnh vào docx: %s", exc)
+            # Xóa paragraph rỗng đã tạo
+            p_el = para._element
+            if p_el.getparent() is not None:
+                p_el.getparent().remove(p_el)
+            return None
+        finally:
+            try:
+                img_stream.close()
+            except Exception:
+                pass
+
+        insert_after_element.addnext(para._element)
+        return para._element
+
+    except Exception as exc:
+        logger.warning("docx_renderer: lỗi không xác định khi nhúng ảnh: %s", exc)
+        return None
+
+
 def _html_align_to_docx(value):
     if value == "center":
         return WD_ALIGN_PARAGRAPH.CENTER
@@ -782,6 +883,15 @@ def _html_to_docx_paragraphs(doc: Document, html: str, insert_after_element):
     last_el = insert_after_element
 
     for block in parser.blocks:
+        # ── Ảnh (base64 hoặc URL) ──────────────────────────────────────────
+        if block.get("type") == "image":
+            src = block.get("src") or ""
+            if src:
+                embedded = _embed_image_block(doc, src, last_el)
+                if embedded is not None:
+                    last_el = embedded
+            continue
+
         para = doc.add_paragraph()
         para.alignment = _html_align_to_docx(block.get("align"))
         para.paragraph_format.left_indent = Cm(0.6 * int(block.get("indent") or 0))
