@@ -557,7 +557,6 @@ body.patient-login-page {
 .pl-footer {
   width: 100%;
   max-width: 860px;
-  text-align: center;
 }
 
 /* ── Animations ─────────────────────────────────────────────── */
@@ -739,7 +738,7 @@ body.patient-login-page {
         gap: 8px;
     }
     .footer-logo { max-width: 150px; height: auto;}
-    .footer-info { font-size: 0.98em; text-align: center; }
+    .footer-info { font-size: 14px;}
     .footer-right {
         margin-top: 10px;
         gap: 24px;
