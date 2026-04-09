@@ -782,3 +782,4 @@ sudo systemctl daemon-reload
 find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
 find . -path "*/migrations/*.pyc" -delete
 
+python manage.py shell -c "from django.conf import settings; print(settings.DATABASES['default'])"

@@ -3,89 +3,194 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>{% block title %}Vietmedi healthcare center{% endblock %}</title>
+  <title>{% block title %}Đăng ký lịch khám — Vietmedi{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Đăng ký lịch khám doanh nghiệp">
+  <meta name="description" content="Đăng ký lịch khám sức khoẻ doanh nghiệp">
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-
-  <link rel="stylesheet" href="{% static 'css/global.css' %}">
-  <!-- Replace old styles.css with your new login.css -->
-  <link rel="stylesheet" href="{% static 'authentication/css/login.css' %}">
-
-  <!-- Flatpickr CSS (if still needed elsewhere) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'authentication/css/customer_login.css' %}">
   <link rel="stylesheet" href="{% static 'css/flatpickr.min.css' %}">
 </head>
 
-<body class="gradient-bg">
+<body class="patient-login-page">
 
-  <div class="center-logo-wrap">
-    <img src="{% static 'img/logo_horizontal_transparent.png' %}" alt="Logo Vietmedi" class="center-logo">
-  </div>
+  {# ── Background decorative blobs ────────────────────────── #}
+  <div class="bg-blob bg-blob-1" aria-hidden="true"></div>
+  <div class="bg-blob bg-blob-2" aria-hidden="true"></div>
 
-  <div class="auth-shell">
-    <div class="auth-head">
-      <h1 class="auth-title">Hệ thống đăng ký lịch khám cho doanh nghiệp</h1>
-      <p class="auth-subtitle">Vui lòng nhập mã khách hàng và ngày sinh để tiếp tục.</p>
-    </div>
+  {# ── Page wrapper ────────────────────────────────────────── #}
+  <div class="pl-wrapper">
 
-    <div class="login-container">
-      {% if form.non_field_errors %}
-        <div class="form-error form-nonfield">
-          {{ form.non_field_errors.0 }}
+    {# ── Logo bar ────────────────────────────────────────────── #}
+    <header class="pl-header">
+      <img src="{% static 'img/logo_horizontal_transparent.png' %}"
+           alt="Logo Vietmedi" class="pl-logo">
+    </header>
+
+    {# ── Card shell ──────────────────────────────────────────── #}
+    <div class="pl-card">
+
+      {# ── LEFT — Booking form ─────────────────────────────── #}
+      <section class="pl-side pl-side-form">
+
+        <div class="plf-head">
+          <div class="plf-icon-wrap">
+            <i class="fa-solid fa-calendar-check"></i>
+          </div>
+          <div>
+            <h1 class="plf-title">Đăng ký lịch khám</h1>
+            <p class="plf-subtitle">Dành cho khách hàng doanh nghiệp</p>
+          </div>
         </div>
-      {% endif %}
 
-      <form method="post" novalidate>
-        {% csrf_token %}
+        <p class="plf-desc">
+          Nhập mã khách hàng và ngày sinh để xác thực và tiếp tục đặt lịch.
+        </p>
 
-        {% if form.patient_code %}
-          <div class="form-group">
-            <label for="id_patient_code">Mã khách hàng</label>
-            {{ form.patient_code }}
-            {% if form.patient_code.errors %}
-              <div class="form-error">{{ form.patient_code.errors.0 }}</div>
-            {% endif %}
+        {# Non-field errors #}
+        {% if form.non_field_errors %}
+          <div class="pl-alert pl-alert-error" role="alert">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ form.non_field_errors.0 }}</span>
           </div>
         {% endif %}
 
-        <div class="form-group">
-          <label for="id_password">Ngày tháng năm sinh (ddmmyyyy)</label>
+        <form method="post" novalidate class="plf-form" id="bookingForm">
+          {% csrf_token %}
 
-          <div class="ap-password-wrap">
-            {{ form.password }}
-            <button
-              type="button"
-              class="ap-toggle-pass"
-              id="apTogglePass"
-              aria-label="Hiện/ẩn ngày sinh"
-              aria-pressed="false"
-              title="Hiện/ẩn"
-            >
-              <i class="fa-solid fa-eye" id="apTogglePassIcon" aria-hidden="true"></i>
-            </button>
+          {# Patient code #}
+          {% if form.patient_code %}
+            <div class="plf-field {% if form.patient_code.errors %}plf-field-error{% endif %}">
+              <label class="plf-label" for="id_patient_code">
+                Mã khách hàng
+                <span class="plf-required" aria-hidden="true">*</span>
+              </label>
+              <div class="plf-input-wrap">
+                <span class="plf-input-icon">
+                  <i class="fa-regular fa-id-card"></i>
+                </span>
+                {{ form.patient_code }}
+              </div>
+              {% if form.patient_code.errors %}
+                <p class="plf-error-msg">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  {{ form.patient_code.errors.0 }}
+                </p>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {# Date of birth (used as password) #}
+          <div class="plf-field {% if form.password.errors %}plf-field-error{% endif %}">
+            <label class="plf-label" for="id_password">
+              Ngày tháng năm sinh
+              <span class="plf-required" aria-hidden="true">*</span>
+            </label>
+            <div class="plf-input-wrap">
+              <span class="plf-input-icon">
+                <i class="fa-regular fa-calendar"></i>
+              </span>
+              {{ form.password }}
+              <button type="button"
+                      class="plf-toggle-btn"
+                      id="apTogglePass"
+                      aria-label="Hiện/ẩn ngày sinh"
+                      aria-pressed="false"
+                      tabindex="-1">
+                <i class="fa-regular fa-eye" id="apTogglePassIcon" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p class="plf-hint">
+              <i class="fa-regular fa-circle-question"></i>
+              Nhập theo định dạng <strong>ngày tháng năm</strong>, ví dụ: <strong>15081990</strong>
+            </p>
+            {% if form.password.errors %}
+              <p class="plf-error-msg">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                {{ form.password.errors.0 }}
+              </p>
+            {% endif %}
           </div>
 
-          {% if form.password.errors %}
-            <div class="form-error">{{ form.password.errors.0 }}</div>
-          {% endif %}
+          {# Submit #}
+          <button type="submit" class="plf-submit" id="btnBookingSubmit">
+            <span class="plf-submit-text">
+              <i class="fa-solid fa-calendar-plus"></i>
+              Tiếp tục đặt lịch
+            </span>
+            <span class="plf-submit-loading" hidden>
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+              Đang xử lý...
+            </span>
+          </button>
+        </form>
+
+      </section>
+
+      {# ── Divider ─────────────────────────────────────────── #}
+      <div class="pl-divider" aria-hidden="true">
+        <div class="pl-divider-line"></div>
+        <span class="pl-divider-text">hoặc</span>
+        <div class="pl-divider-line"></div>
+      </div>
+
+      {# ── RIGHT — EMR link ────────────────────────────────── #}
+      <section class="pl-side pl-side-emr">
+
+        <div class="emr-inner">
+          <div class="emr-icon-wrap" aria-hidden="true">
+            <i class="fa-solid fa-notes-medical"></i>
+            <div class="emr-icon-pulse"></div>
+          </div>
+
+          <div class="emr-text">
+            <h2 class="emr-title">Hồ sơ sức khoẻ</h2>
+            <p class="emr-desc">
+              Truy&nbsp;cập bệnh&nbsp;án&nbsp;điện&nbsp;tử để xem toàn bộ lịch sử khám chữa bệnh, kết quả xét nghiệm và thông tin sức khoẻ cá nhân.
+            </p>
+          </div>
+
+          <ul class="emr-features" aria-label="Tính năng hồ sơ điện tử">
+            <li><i class="fa-solid fa-check-circle"></i> Lịch sử khám & kết quả xét nghiệm</li>
+            <li><i class="fa-solid fa-check-circle"></i> Đơn thuốc & chỉ định điều trị</li>
+            <!-- <li><i class="fa-solid fa-check-circle"></i> Thông tin cá nhân & bảo hiểm</li> -->
+          </ul>
+
+          <form action="https://badt.vietmediclinic.com:9098/" method="get">
+            <button type="submit" class="emr-btn">
+              <span>Đến trang bệnh&nbsp;án&nbsp;điện&nbsp;tử</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </form>
+
+          <p class="emr-note">
+            <i class="fa-solid fa-lock"></i>
+            Kết nối bảo mật SSL
+          </p>
         </div>
 
-        <button type="submit" class="btn-login">Tiếp tục</button>
-      </form>
-    </div>
-  </div>
+      </section>
 
-  {% include "includes/footer.html" %}
+    </div>{# end .pl-card #}
+
+    {# ── Footer ──────────────────────────────────────────────── #}
+    <footer class="pl-footer">
+      {% include "includes/footer.html" %}
+    </footer>
+
+  </div>{# end .pl-wrapper #}
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{% static 'js/flatpickr.js' %}"></script>
   <script src="{% static 'js/global.js' %}"></script>
   <script src="{% static 'authentication/js/scripts.js' %}"></script>
 
-  <!-- Reload page when BFCache restore (keep your original behavior) -->
   <script>
+    /* Reload khi back từ cache */
     window.addEventListener("pageshow", function (event) {
       if (event.persisted || window.performance?.navigation?.type === 2) {
         location.reload();
@@ -93,36 +198,61 @@
     });
   </script>
 
-  <!-- Toggle password visibility + icon swap -->
   <script>
     (function () {
-      const input = document.getElementById("id_password");
-      const btn = document.getElementById("apTogglePass");
-      const icon = document.getElementById("apTogglePassIcon");
+      /* ── Toggle hiện/ẩn ngày sinh ────────────────────── */
+      var input = document.getElementById("id_password");
+      var btn   = document.getElementById("apTogglePass");
+      var icon  = document.getElementById("apTogglePassIcon");
 
       if (!input || !btn || !icon) return;
 
       function setIcon(isShown) {
-        // shown => eye-slash, hidden => eye
-        icon.classList.toggle("fa-eye", !isShown);
-        icon.classList.toggle("fa-eye-slash", isShown);
+        icon.className = isShown ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
         btn.setAttribute("aria-pressed", String(isShown));
-        btn.title = isShown ? "Ẩn" : "Hiện";
+        btn.title = isShown ? "Ẩn ngày sinh" : "Hiện ngày sinh";
+        btn.classList.toggle("active", isShown);
       }
 
       btn.addEventListener("click", function () {
-        const isPassword = input.type === "password";
+        var isPassword = input.type === "password";
         input.type = isPassword ? "text" : "password";
-        setIcon(!isPassword);
-
-        // keep cursor position & focus
-        try { input.focus({ preventScroll: true }); } catch(e) { input.focus(); }
-        const len = input.value?.length ?? 0;
-        try { input.setSelectionRange(len, len); } catch(e) {}
+        setIcon(isPassword);
+        try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
+        var len = input.value ? input.value.length : 0;
+        try { input.setSelectionRange(len, len); } catch (e) {}
       });
 
-      // init state
       setIcon(false);
+
+      /* ── Loading state khi submit ─────────────────────── */
+      var form    = document.getElementById("bookingForm");
+      var submitBtn = document.getElementById("btnBookingSubmit");
+      var textEl  = submitBtn ? submitBtn.querySelector(".plf-submit-text")   : null;
+      var loadEl  = submitBtn ? submitBtn.querySelector(".plf-submit-loading") : null;
+
+      if (form && submitBtn) {
+        form.addEventListener("submit", function () {
+          submitBtn.disabled = true;
+          if (textEl) textEl.hidden = true;
+          if (loadEl) loadEl.hidden = false;
+          setTimeout(function () {
+            submitBtn.disabled = false;
+            if (textEl) textEl.hidden = false;
+            if (loadEl) loadEl.hidden = true;
+          }, 8000);
+        });
+      }
+
+      /* ── Chỉ cho phép nhập số trong field ngày sinh ───── */
+      if (input) {
+        input.addEventListener("input", function () {
+          var val = input.value.replace(/\D/g, "").slice(0, 8);
+          if (input.value !== val) {
+            input.value = val;
+          }
+        });
+      }
     })();
   </script>
 </body>
