@@ -7,7 +7,7 @@ from django.urls import NoReverseMatch, reverse
 
 def _is_manager(user) -> bool:
     return getattr(user, "is_superuser", False) or user.groups.filter(
-        name__in=["Manager", "Managers"]
+        name__in=["Manager", "Managers", "Medical Director"]
     ).exists()
 
 
@@ -326,7 +326,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
         )
 
     # ── KPI ───────────────────────────────────────────────────────────────────
-    if is_sales or is_manager or is_executive:
+    if is_sales or is_executive:
         kpi_items = [
             _item(
                 request=request,
@@ -336,7 +336,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["dashboard", "target", "quota"],
             )
         ]
-        if is_manager or is_executive:
+        if is_executive:
             kpi_items.append(
                 _item(
                     request=request,
@@ -534,30 +534,37 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
     _append_section(sections, _section("Phê duyệt", "✅", approval_items))
 
     # ── Quản lý chất lượng ────────────────────────────────────────────────────
-    if is_manager:
-        _append_section(
-            sections,
-            _section(
-                "Quản lý",
-                "📊",
-                [
-                    _item(
-                        request=request,
-                        label="Kiểm HSBA",
-                        url_name="quality:medical_record_audit_list",
-                        active_app_names=["quality"],
-                        active_url_name_contains=["audit"],
-                    ),
-                    _item(
-                        request=request,
-                        label="Báo cáo sự cố",
-                        url_name="quality:incident_report_list",
-                        active_app_names=["quality"],
-                        active_url_name_contains=["incident"],
-                    ),
-                ],
-            ),
+    quality_items = []
+
+    quality_items.append(
+        _item(
+            request=request,
+            label="Báo cáo sự cố",
+            url_name="quality:incident_report_list",
+            active_app_names=["quality"],
+            active_url_name_contains=["incident"],
         )
+    )
+
+    if is_manager:
+        quality_items.append(
+            _item(
+                request=request,
+                label="Kiểm HSBA",
+                url_name="quality:medical_record_audit_list",
+                active_app_names=["quality"],
+                active_url_name_contains=["audit"],
+            )
+        )
+
+    _append_section(
+        sections,
+        _section(
+            "Quản lý",
+            "📊",
+            quality_items,
+        ),
+    )
 
     # ── Analytics / Executive ────────────────────────────────────────────────
     if is_executive:
