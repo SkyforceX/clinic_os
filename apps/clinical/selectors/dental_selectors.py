@@ -2,7 +2,9 @@ from apps.clinical.models import DentalExamination, ToothNotation
 from apps.organizations.selectors.company_selectors import list_companies_for_actor
 from apps.patients.models import Patient
 import re as _re
-
+import base64
+import mimetypes
+from pathlib import Path
 
 SIGNATURE_DIR = Path(__file__).resolve().parents[1] / "data" / "signature"
 
