@@ -177,41 +177,51 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
     is_care = _is_care(user)
 
     # ── Dashboard tổng quan ──────────────────────────────────────────────────
+    user = request.user
+
+    items = [
+        # Ai cũng thấy
+        _item(
+            request=request,
+            label="Dashboard",
+            url_name="dashboard:overview",
+            active_app_names=["dashboard"],
+            active_url_names=["overview"],
+        ),
+    ]
+
+    # Chỉ Sale + Execute (hoặc superadmin)
+    if is_sales or is_executive:
+        items += [
+            _item(
+                request=request,
+                label="Danh mục khám",
+                url_name="catalogs:category_list",
+                active_app_names=["catalogs"],
+                active_url_name_contains=["category_", "group_"],
+            ),
+            _item(
+                request=request,
+                label="Gói khám",
+                url_name="catalogs:package_list",
+                active_app_names=["catalogs"],
+                active_url_name_contains=["package_"],
+            ),
+            _item(
+                request=request,
+                label="Thư viện",
+                url_name="media_library:index",
+                active_app_names=["media_library"],
+                active_url_name_contains=["index", "media", "library"],
+            ),
+        ]
+
     _append_section(
         sections,
         _section(
             "Tổng quan",
             "🏠",
-            [
-                _item(
-                    request=request,
-                    label="Dashboard",
-                    url_name="dashboard:overview",
-                    active_app_names=["dashboard"],
-                    active_url_names=["overview"],
-                ),
-                _item(
-                        request=request,
-                        label="Danh mục khám",
-                        url_name="catalogs:category_list",
-                        active_app_names=["catalogs"],
-                        active_url_name_contains=["category_", "group_"],
-                ),
-                _item(
-                    request=request,
-                    label="Gói khám",
-                    url_name="catalogs:package_list",
-                    active_app_names=["catalogs"],
-                    active_url_name_contains=["package_"],
-                ),
-                _item(
-                    request=request,
-                    label="Thư viện",
-                    url_name="media_library:index",
-                    active_app_names=["media_library"],
-                    active_url_name_contains=["index", "media", "library"],
-                ),
-            ],
+            items,
         ),
     )
 
@@ -362,32 +372,33 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
         _append_section(sections, _section("Giao việc", "📋", task_items))
 
     # ── Cuộc họp ──────────────────────────────────────────────────────────────
-    if _is_meeting_participant(user):
-        upcoming = _get_meeting_open_count(user)
-        meeting_label = f"Cuộc họp ({upcoming})" if upcoming else "Cuộc họp"
+    # if is_manager or is_executive:
+    #     if _is_meeting_participant(user):
+    #         upcoming = _get_meeting_open_count(user)
+    #         meeting_label = f"Cuộc họp ({upcoming})" if upcoming else "Cuộc họp"
 
-        _append_section(
-            sections,
-            _section(
-                "Cuộc họp",
-                "🤝",
-                [
-                    _item(
-                        request=request,
-                        label=meeting_label,
-                        url_name="meeting:session_list",
-                        active_app_names=["meeting"],
-                        active_url_name_contains=["session", "meeting"],
-                    ),
-                    _item(
-                        request=request,
-                        label="Tạo buổi họp",
-                        url_name="meeting:session_create",
-                        active_url_names=["session_create"],
-                    ),
-                ],
-            ),
-        )
+    #         _append_section(
+    #             sections,
+    #             _section(
+    #                 "Cuộc họp",
+    #                 "🤝",
+    #                 [
+    #                     _item(
+    #                         request=request,
+    #                         label=meeting_label,
+    #                         url_name="meeting:session_list",
+    #                         active_app_names=["meeting"],
+    #                         active_url_name_contains=["session", "meeting"],
+    #                     ),
+    #                     _item(
+    #                         request=request,
+    #                         label="Tạo buổi họp",
+    #                         url_name="meeting:session_create",
+    #                         active_url_names=["session_create"],
+    #                     ),
+    #                 ],
+    #             ),
+    #         )
 
     # ── Chăm sóc khách hàng / chat đa kênh ───────────────────────────────────
     if is_care:

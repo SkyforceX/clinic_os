@@ -611,33 +611,6 @@
 
       {% endif %}
 
-      <!-- ── Quick links (chung) ──────────────────────────────── -->
-      <div class="db-card">
-        <div class="db-card-title"><i class="fa fa-bolt"></i> Truy cập nhanh</div>
-        <div class="d-flex flex-column gap-2">
-          <a href="{% url 'contract:quotation_list' %}" class="btn btn-sm btn-outline-secondary text-start">
-            <i class="fa fa-file-invoice-dollar me-2"></i> Danh sách báo giá
-          </a>
-          <a href="{% url 'contract:corporate_contract_list' %}" class="btn btn-sm btn-outline-secondary text-start">
-            <i class="fa fa-file-signature me-2"></i> Hợp đồng doanh nghiệp
-          </a>
-          <a href="{% url 'tasks:board' %}" class="btn btn-sm btn-outline-secondary text-start">
-            <i class="fa fa-list-check me-2"></i> Quản lý công việc
-          </a>
-          <a href="{% url 'approvals:inbox' %}" class="btn btn-sm btn-outline-secondary text-start">
-            <i class="fa fa-inbox me-2"></i> Inbox phê duyệt
-          </a>
-          <a href="{% url 'contract:implementation_plan_list' %}" class="btn btn-sm btn-outline-secondary text-start">
-            <i class="fa fa-calendar-check me-2"></i> Kế hoạch triển khai
-          </a>
-          {% if user_role == "executive" or request.user.is_superuser %}
-          <a href="{% url 'hrm:doctor_schedule_list' %}" class="btn btn-sm btn-outline-secondary text-start">
-            <i class="fa fa-stethoscope me-2"></i> Lịch bác sĩ
-          </a>
-          {% endif %}
-        </div>
-      </div>
-
     </div><!-- /col-xl-4 -->
   </div><!-- /row -->
 </div>
