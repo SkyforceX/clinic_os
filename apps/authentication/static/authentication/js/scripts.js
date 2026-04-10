@@ -318,10 +318,11 @@
       }
       ctx.restore();
 
-      /* Sun */
+            /* Sun */
       glowCircle(ctx, sx, sy, sr * 5.8, 'rgba(255,130,20,0.09)', 'transparent');
       glowCircle(ctx, sx, sy, sr * 3.0, 'rgba(255,170,40,0.20)', 'transparent');
-      glowCircle(ctx, ctx.canvas ? undefined : sx, sy, sr * 1.4, 'rgba(255,215,90,0.86)', 'transparent');
+      glowCircle(ctx, sx, sy, sr * 1.4, 'rgba(255,215,90,0.86)', 'transparent');
+      glowCircle(ctx, sx, sy, sr * 0.78,'rgba(255,252,210,0.96)', 'transparent');
       // rebuild glow without canvas ref confusion:
       glowCircle(ctx, sx, sy, sr * 1.4, 'rgba(255,215,90,0.86)', 'transparent');
       glowCircle(ctx, sx, sy, sr * 0.78,'rgba(255,252,210,0.96)', 'transparent');
