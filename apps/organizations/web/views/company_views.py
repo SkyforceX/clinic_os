@@ -8,6 +8,7 @@ from apps.organizations.policies import OrganizationPolicy
 from apps.organizations.selectors.company_selectors import (
     get_company_for_actor,
     list_companies_for_actor,
+    list_companies_with_counts_for_actor,
 )
 from apps.organizations.services.company_commands import (
     CompanyPayload,
@@ -40,7 +41,9 @@ def company_list_view(request):
     if not OrganizationPolicy.can_view_list(request.user):
         raise Http404("Bạn không có quyền truy cập.")
 
-    companies = list_companies_for_actor(request.user)
+    # Lấy companies kèm patient_count + contract_count
+    companies = list(list_companies_with_counts_for_actor(request.user))
+
     selected_company_id = request.GET.get("company_id")
     selected_company = None
     patients = []
@@ -58,10 +61,11 @@ def company_list_view(request):
             patients = Patient.objects.filter(
                 company_id=selected_company.id
             ).order_by("id")
-    
+
     context = {
         "companies": companies,
         "patients": patients,
+        "selected_company": selected_company,
         "selected_company_id": str(selected_company.id) if selected_company else "",
         "is_manager": OrganizationPolicy.is_manager(request.user),
     }

@@ -28,7 +28,7 @@ def get_patients_by_company(request, company_id):
             "ma_bn": p.ma_bn,
             "ho_ten": p.ho_ten,
             "gioi_tinh": p.gioi_tinh,
-            "ngay_sinh": p.ngay_sinh.strftime("%Y-%m-%d") if p.ngay_sinh else "",
+            "ngay_sinh": p.ngay_sinh.strftime("%d/%m/%Y") if p.ngay_sinh else "",
         }
         for p in patients
     ]
@@ -45,6 +45,7 @@ def get_all_patients(request):
             "ma_bn": p.ma_bn,
             "gioi_tinh": p.gioi_tinh,
             "ngay_sinh": p.ngay_sinh.strftime("%d/%m/%Y") if p.ngay_sinh else "",
+            "company_id": p.company_id or ""
         }
         for p in patients
     ]

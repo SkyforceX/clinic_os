@@ -1,5 +1,7 @@
 from datetime import date
 
+from django.db.models import Q
+
 from apps.contract.models import Contract
 from apps.organizations.selectors.company_selectors import (
     get_company_for_actor,
@@ -13,8 +15,17 @@ def patient_base_queryset():
 
 
 def list_patients_for_actor(user):
+    """
+    Trả về toàn bộ bệnh nhân mà actor có thể thấy:
+    - Bệnh nhân thuộc các công ty actor được phép
+    - Bệnh nhân lẻ (company=None) — luôn hiển thị để hỗ trợ khám lẻ
+    """
     company_ids = list(list_companies_for_actor(user).values_list("id", flat=True))
-    return patient_base_queryset().filter(company_id__in=company_ids).order_by("id")
+    return (
+        patient_base_queryset()
+        .filter(Q(company__isnull=True) | Q(company_id__in=company_ids))
+        .order_by("id")
+    )
 
 
 def list_patients_by_company_for_actor(*, user, company_id):
@@ -44,11 +55,6 @@ def get_company_scoped_for_actor(*, user, company_id):
 
 
 def build_patient_documents_payload(*, company_id, contract_id):
-    """
-    Bản an toàn cho giai đoạn refactor:
-    - chưa phụ thuộc vào relation documents legacy
-    - vẫn giữ payload shape để UI/service khác không vỡ
-    """
     try:
         contract = Contract.objects.get(id=contract_id)
     except Contract.DoesNotExist:
@@ -62,15 +68,7 @@ def build_patient_documents_payload(*, company_id, contract_id):
 
     patients = list(
         Patient.objects.filter(company_id=company_id)
-        .values(
-            "id",
-            "uuid",
-            "ma_bn",
-            "ho_ten",
-            "gioi_tinh",
-            "ngay_sinh",
-            "phone",
-        )
+        .values("id", "uuid", "ma_bn", "ho_ten", "gioi_tinh", "ngay_sinh", "phone")
         .order_by("id")
     )
 

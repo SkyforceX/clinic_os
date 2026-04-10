@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from apps.organizations.models import Company
@@ -24,6 +24,21 @@ def list_companies_for_actor(user):
         created_by=user,
         created_at__year=visible_year,
     ).order_by("-id")
+
+
+def list_companies_with_counts_for_actor(user):
+    """
+    Trả về danh sách công ty kèm:
+    - patient_count  : số bệnh nhân thuộc công ty
+    - contract_count : số hợp đồng của công ty
+      (related_name mặc định Django = 'contract_set' nếu Contract
+       không khai báo related_name; đổi thành 'contracts' nếu cần)
+    """
+    qs = list_companies_for_actor(user)
+    return qs.annotate(
+        patient_count=Count("patients", distinct=True),
+        contract_count=Count("contracts", distinct=True),
+    )
 
 
 def list_companies_with_patient_count_for_actor(user):

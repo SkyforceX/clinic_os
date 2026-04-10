@@ -1,0 +1,896 @@
+{% extends "base_admin.html" %}
+{% load static %}
+
+{% block title %}Form khám răng miệng{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'clinical/css/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'clinical/css/dental_form.css' %}">
+  <link rel="stylesheet" href="{% static 'clinical/css/dental_print.css' %}">
+  <style>
+    /* ── Layout ─────────────────────────────────────────────── */
+    .de-shell { display: flex; gap: 0; min-height: calc(100vh - 60px); }
+    .de-form-wrap {
+      flex: 1; padding: 20px 24px 40px;
+      overflow-y: auto; background: #f8f9fb;
+    }
+
+    /* ── Page header ─────────────────────────────────────────── */
+    .de-page-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px; padding-bottom: 14px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .de-page-title {
+      font-size: 18px; font-weight: 700; color: #1e293b;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .badge-saved   { font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0; }
+    .de-btn-refresh {
+      display:flex;align-items:center;gap:6px;
+      padding:7px 14px;border-radius:8px;
+      border:1.5px solid #cbd5e1;background:#fff;
+      color:#475569;font-size:13px;font-weight:500;
+      cursor:pointer;text-decoration:none;transition:all .18s;
+    }
+    .de-btn-refresh:hover { background:#f1f5f9;border-color:#94a3b8;color:#1e293b; }
+
+    /* ── Cards ──────────────────────────────────────────────── */
+    .de-card {
+      background:#fff;border-radius:12px;
+      border:1px solid #e2e8f0;padding:20px 22px;
+      margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);
+    }
+    .de-card-title {
+      font-size:13px;font-weight:700;color:#334155;
+      letter-spacing:.4px;text-transform:uppercase;
+      margin-bottom:14px;display:flex;align-items:center;gap:7px;
+    }
+    .de-card-title i { color:#3b82f6;font-size:14px; }
+
+    /* ── Patient info section ───────────────────────────────── */
+    .patient-mode-bar {
+      display:flex;align-items:center;gap:10px;
+      margin-bottom:14px;flex-wrap:wrap;
+    }
+    .mode-badge {
+      display:inline-flex;align-items:center;gap:6px;
+      padding:4px 12px;border-radius:100px;
+      font-size:12px;font-weight:600;
+      transition:all .2s;
+    }
+    .mode-badge.walkin   { background:#fef3c7;color:#b45309;border:1px solid #fde68a; }
+    .mode-badge.selected { background:#dcfce7;color:#15803d;border:1px solid #bbf7d0; }
+    .btn-deselect {
+      display:none;align-items:center;gap:5px;
+      padding:4px 10px;border-radius:100px;
+      font-size:12px;font-weight:600;
+      background:#fff1f2;color:#be123c;
+      border:1px solid #fecdd3;cursor:pointer;
+      transition:all .18s;
+    }
+    .btn-deselect:hover { background:#ffe4e6; }
+    .btn-deselect.visible { display:inline-flex; }
+
+    .de-patient-row {
+      display:grid;
+      grid-template-columns:2.5fr 1fr 1fr 1.2fr;
+      gap:12px;
+    }
+    .de-field label {
+      display:block;font-size:11.5px;font-weight:600;
+      color:#64748b;margin-bottom:5px;
+      letter-spacing:.3px;text-transform:uppercase;
+    }
+    .de-field .field-hint {
+      font-size:11px;color:#94a3b8;margin-top:3px;
+    }
+    .de-field input[type=text],
+    .de-field input[type=number] {
+      width:100%;height:40px;padding:0 12px;
+      border:1.5px solid #e2e8f0;border-radius:8px;
+      font-size:14px;color:#1e293b;background:#fff;
+      transition:border-color .18s,box-shadow .18s,background .18s;
+    }
+    .de-field input:focus {
+      outline:none;border-color:#3b82f6;
+      box-shadow:0 0 0 3px rgba(59,130,246,.10);
+    }
+    /* Locked — readonly state */
+    .de-field input.locked {
+      background:#f1f5f9;color:#475569;
+      cursor:default;border-color:#e2e8f0;
+    }
+    .de-field input.locked:focus { box-shadow:none;border-color:#e2e8f0; }
+
+    /* ── Tooth chart ─────────────────────────────────────────── */
+    .de-tooth-wrap { overflow-x:auto; }
+    .de-tooth-table { width:100%;border-collapse:collapse;min-width:600px; }
+    .de-tooth-table th {
+      text-align:center;font-size:11px;font-weight:700;color:#64748b;
+      padding:4px 2px;background:#f8fafc;border:1px solid #e2e8f0;
+    }
+    .de-tooth-table td { padding:3px 2px;border:1px solid #e8edf4;text-align:center; }
+    .de-tooth-table td.spacer { height:8px;background:#f8fafc;border:none; }
+    .de-tooth-input {
+      width:38px;height:34px;text-align:center;
+      border:1.5px solid #e2e8f0;border-radius:6px;
+      font-size:12px;font-weight:600;color:#1e293b;
+      background:#fff;transition:border-color .15s,background .15s;
+    }
+    .de-tooth-input:focus { outline:none;border-color:#3b82f6;background:#eff6ff; }
+    .de-tooth-input.has-value { border-color:#f59e0b;background:#fffbeb;color:#92400e; }
+
+    /* ── Notation legend ─────────────────────────────────────── */
+    .de-notation-toggle { display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none; }
+    .de-notation-toggle .toggle-icon { transition:transform .22s;font-size:12px;color:#94a3b8; }
+    .de-notation-toggle.collapsed .toggle-icon { transform:rotate(-90deg); }
+    .de-notation-body { margin-top:12px; }
+    .de-notation-body.hidden { display:none; }
+    .de-notation-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:4px 16px; }
+   .de-notation-item {
+      font-size:12px;
+      color:#475569;
+      padding:6px 8px;
+      border-bottom:1px dashed #f1f5f9;
+      cursor:pointer;
+      border-radius:6px;
+      transition:background .15s ease, color .15s ease;
+    }
+
+    .de-notation-item:hover {
+      background:#eff6ff;
+      color:#1e40af;
+    }
+    .de-notation-code { font-weight:700;color:#1e40af;font-family:monospace;margin-right:4px; }
+
+    /* ── Controls ────────────────────────────────────────────── */
+    .de-select {
+      height:40px;padding:0 12px;
+      border:1.5px solid #e2e8f0;border-radius:8px;
+      font-size:14px;color:#1e293b;background:#fff;
+      cursor:pointer;transition:border-color .18s;
+    }
+    .de-select:focus { outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.10); }
+    .de-row-inline { display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
+    .de-row-inline label { font-size:13.5px;font-weight:600;color:#334155;white-space:nowrap; }
+    textarea.de-textarea {
+      width:100%;padding:10px 12px;
+      border:1.5px solid #e2e8f0;border-radius:8px;
+      font-size:14px;color:#1e293b;resize:vertical;
+      transition:border-color .18s;font-family:inherit;
+    }
+    textarea.de-textarea:focus { outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.10); }
+
+    /* ── Conclusion ──────────────────────────────────────────── */
+    .de-conclusion-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px; }
+    .de-conclusion-header label { font-size:13.5px;font-weight:600;color:#334155; }
+    .btn-autofill {
+      display:flex;align-items:center;gap:5px;
+      padding:5px 12px;border-radius:7px;
+      border:1.5px solid #a5b4fc;background:#eef2ff;
+      color:#3730a3;font-size:12px;font-weight:600;
+      cursor:pointer;transition:all .18s;
+    }
+    .btn-autofill:hover { background:#e0e7ff;border-color:#818cf8; }
+
+    /* ── Action buttons ──────────────────────────────────────── */
+    .de-actions { display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px; }
+    .de-btn {
+      display:inline-flex;align-items:center;gap:7px;
+      height:44px;padding:0 20px;border-radius:10px;
+      font-size:14px;font-weight:600;cursor:pointer;
+      border:none;transition:all .18s;text-decoration:none;
+    }
+    .de-btn-save  { background:#2563eb;color:#fff;box-shadow:0 2px 12px rgba(37,99,235,.28); }
+    .de-btn-save:hover { background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 18px rgba(37,99,235,.35); }
+    .de-btn-print { background:#fff;color:#0f766e;border:1.5px solid #0d9488;box-shadow:0 1px 4px rgba(13,148,136,.12); }
+    .de-btn-print:hover { background:#f0fdf4;border-color:#0f766e; }
+    .de-btn-history { background:#fff;color:#7c3aed;border:1.5px solid #a78bfa; }
+    .de-btn-history:hover { background:#faf5ff;border-color:#7c3aed; }
+    .de-btn-history:disabled { opacity:.45;cursor:not-allowed; }
+    .de-date-input {
+      height:44px;padding:0 12px;
+      border:1.5px solid #e2e8f0;border-radius:10px;
+      font-size:13px;color:#475569;background:#f8fafc;
+    }
+
+    /* ── Alerts ──────────────────────────────────────────────── */
+    .de-alert {
+      display:flex;align-items:flex-start;gap:10px;
+      padding:12px 16px;border-radius:10px;
+      font-size:13.5px;font-weight:500;margin-bottom:16px;
+    }
+    .de-alert-success { background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0; }
+    .de-alert-error   { background:#fef2f2;color:#dc2626;border:1px solid #fecaca; }
+    .de-alert-warning { background:#fffbeb;color:#b45309;border:1px solid #fde68a; }
+    .de-alert i { margin-top:1px;flex-shrink:0; }
+
+    /* ── History modal ───────────────────────────────────────── */
+    .history-modal-body { max-height:60vh;overflow-y:auto; }
+    .history-empty { text-align:center;padding:40px 20px;color:#94a3b8; }
+    .history-empty i { font-size:36px;margin-bottom:10px;display:block; }
+    .history-item {
+      display:flex;align-items:flex-start;
+      justify-content:space-between;gap:12px;
+      padding:14px 16px;border-radius:10px;
+      border:1px solid #e2e8f0;margin-bottom:10px;
+      background:#fff;transition:border-color .15s,box-shadow .15s;
+    }
+    .history-item:hover { border-color:#a5b4fc;box-shadow:0 2px 8px rgba(99,102,241,.10); }
+    .history-item-meta { flex:1;min-width:0; }
+    .history-date { font-size:13px;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:7px;margin-bottom:4px; }
+    .history-date i { color:#6366f1; }
+    .history-badges { display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px; }
+    .history-badge {
+      font-size:11px;font-weight:600;padding:2px 8px;
+      border-radius:100px;background:#eff6ff;
+      color:#1d4ed8;border:1px solid #bfdbfe;
+    }
+    .history-conclusion {
+      font-size:12.5px;color:#64748b;line-height:1.5;
+      overflow:hidden;display:-webkit-box;
+      -webkit-line-clamp:2;-webkit-box-orient:vertical;
+    }
+    .history-actions { display:flex;gap:6px;flex-shrink:0; }
+    .history-btn {
+      display:inline-flex;align-items:center;gap:5px;
+      padding:6px 12px;border-radius:7px;font-size:12px;
+      font-weight:600;cursor:pointer;border:none;
+      text-decoration:none;transition:all .15s;
+    }
+    .history-btn-open  { background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe; }
+    .history-btn-open:hover  { background:#dbeafe; }
+    .history-btn-print { background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0; }
+    .history-btn-print:hover { background:#dcfce7; }
+
+    @media (max-width:900px) {
+      .de-patient-row { grid-template-columns:1fr 1fr; }
+      .de-notation-grid { grid-template-columns:repeat(2,1fr); }
+    }
+    @media (max-width:600px) {
+      .de-patient-row { grid-template-columns:1fr; }
+      .de-notation-grid { grid-template-columns:1fr; }
+      .de-form-wrap { padding:14px 12px 40px; }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+
+<script>
+  window.CLINIC_PATIENT_AJAX = {
+    getAllPatientsUrl:        "{% url 'patients:get_all_patients' %}",
+    getPatientsByCompanyUrl: "{% url 'patients:get_patients_by_company' 0 %}",
+    getDentalDataUrl:        "{% url 'clinical:get_dental_data' 0 %}",
+    dentalExamHistoryUrl:    "{% url 'clinical:dental_exam_history' 0 %}",
+    dentalExamFormUrl:       "{% url 'clinical:dental_exam_form' %}"
+  };
+
+  window.NOTATION_MAP = {
+    {% for item in notations %}{% if item.code != "0" %}"{{ item.code }}": "{{ item.description_vi }}"{% if not forloop.last %},{% endif %}{% endif %}{% endfor %}
+  };
+
+  window.DENTAL_PREFILL        = {{ prefill|default:"null"|safe }};
+  window.DENTAL_ALREADY_SAVED  = {{ already_saved|yesno:"true,false" }};
+  window.CURRENT_USER_FULLNAME = "{% if user.is_authenticated %}{{ user.get_full_name }}{% endif %}";
+</script>
+
+<div class="de-shell">
+  {% include "clinical/includes/list_patient.html" %}
+
+  <div class="de-form-wrap js-form-container">
+
+    <div class="de-page-header">
+      <div class="de-page-title">
+        🦷 Phiếu khám răng miệng
+        {% if already_saved %}<span class="badge-saved"><i class="fa-solid fa-check"></i> Đã lưu</span>{% endif %}
+      </div>
+      <a href="{% url 'clinical:dental_exam_form' %}" class="de-btn-refresh">
+        <i class="fa-solid fa-rotate-right"></i> Làm mới
+      </a>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="de-alert de-alert-{{ message.tags }}">
+          <i class="fa-solid {% if 'success' in message.tags %}fa-circle-check{% elif 'error' in message.tags %}fa-circle-exclamation{% else %}fa-triangle-exclamation{% endif %}"></i>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" id="dental-exam-form" action="{% url 'clinical:dental_exam_form' %}">
+      {% csrf_token %}
+      <input type="hidden" name="patient_id"    id="patient_id"    value="">
+      <input type="hidden" name="company_id"    id="company_id"    value="">
+      <input type="hidden" name="dental_exam_id" id="dental_exam_id" value="">
+
+      {# ── 1. Thông tin hành chính ──────────────────────────── #}
+      <div class="de-card">
+        <div class="de-card-title"><i class="fa-regular fa-id-card"></i> Thông tin bệnh nhân</div>
+
+        <div class="patient-mode-bar">
+          <span class="mode-badge walkin" id="modeBadge">
+            <i class="fa-solid fa-user-plus"></i>
+            <span id="modeBadgeText">Khách lẻ — nhập tự do</span>
+          </span>
+          <button type="button" class="btn-deselect" id="btnDeselect" onclick="deselect()">
+            <i class="fa-solid fa-xmark"></i> Bỏ chọn bệnh nhân
+          </button>
+        </div>
+
+        <div class="de-patient-row">
+          <div class="de-field">
+            <label>Họ tên <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="full_name" id="full_name"
+                   placeholder="Nhập họ tên bệnh nhân" autocomplete="off">
+          </div>
+          <div class="de-field">
+            <label>Ngày sinh <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="dob" id="dob"
+                   placeholder="dd/mm/yyyy" autocomplete="off">
+            <div class="field-hint">Định dạng: 15/08/1990</div>
+          </div>
+          <div class="de-field">
+            <label>Giới tính</label>
+            <input type="text" name="gender" id="gender"
+                   placeholder="Nam / Nữ" autocomplete="off">
+          </div>
+          <div class="de-field">
+            <label>Mã bệnh nhân</label>
+            <input type="text" name="patient_code" id="patient_code"
+                   placeholder="Để trống = tự sinh" autocomplete="off">
+            <div class="field-hint">Khách lẻ: để trống nếu chưa có mã</div>
+          </div>
+        </div>
+      </div>
+
+      {# ── 2. Bảng tình trạng răng ──────────────────────────── #}
+      <div class="de-card">
+        <div class="de-card-title"><i class="fa-solid fa-teeth"></i> Tình trạng từng răng</div>
+        <div class="de-tooth-wrap">
+          <table class="de-tooth-table js-complaint-table">
+            <tr>{% for tooth in tooth_upper %}<th>{{ tooth }}</th>{% endfor %}</tr>
+            <tr>
+              {% for tooth in tooth_upper %}
+              <td><input type="text" name="tooth_upper_{{ tooth }}" maxlength="4"
+                         class="de-tooth-input" oninput="onToothInput(this)"
+                         autocomplete="off" title="Răng {{ tooth }}"></td>
+              {% endfor %}
+            </tr>
+            <tr><td colspan="16" class="spacer"></td></tr>
+            <tr>
+              {% for tooth in tooth_lower %}
+              <td><input type="text" name="tooth_lower_{{ tooth }}" maxlength="4"
+                         class="de-tooth-input" oninput="onToothInput(this)"
+                         autocomplete="off" title="Răng {{ tooth }}"></td>
+              {% endfor %}
+            </tr>
+            <tr>{% for tooth in tooth_lower %}<th>{{ tooth }}</th>{% endfor %}</tr>
+          </table>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+          <button type="button" class="btn-autofill" onclick="fillAllTeethZero()">
+            <i class="fa-solid fa-fill-drip"></i> Đặt tất cả là 0
+          </button>
+          <button type="button" class="btn-autofill" onclick="clearAllTeeth()"
+                  style="border-color:#fca5a5;background:#fff5f5;color:#b91c1c;">
+            <i class="fa-solid fa-xmark"></i> Xoá tất cả
+          </button>
+        </div>
+      </div>
+
+      {# ── 3. Bảng chú thích (collapsible) ─────────────────── #}
+      <div class="de-card">
+        <div class="de-notation-toggle collapsed" id="notationToggle" onclick="toggleNotation()">
+          <div class="de-card-title" style="margin-bottom:0;">
+            <i class="fa-solid fa-circle-info"></i> Bảng chú thích ký hiệu
+          </div>
+          <i class="fa-solid fa-chevron-down toggle-icon" id="notationChevron"></i>
+        </div>
+        <div class="de-notation-body hidden" id="notationBody">
+          <div class="de-notation-grid">
+            {% for item in notations %}
+              <div class="de-notation-item"
+                  data-value="{{ item.code }}"
+                  title="Chọn ký hiệu {{ item.code }} để điền vào ô răng đang chọn">
+                <span class="de-notation-code">{{ item.code }}</span>
+                {{ item.description_vi }}
+                {% if item.description_en %}
+                  <span style="color:#94a3b8;">({{ item.description_en }})</span>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      {# ── 4. Phân loại & Chỉ số ────────────────────────────── #}
+      <div class="de-card">
+        <div class="de-card-title"><i class="fa-solid fa-sliders"></i> Phân loại & Chỉ số</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+          <div>
+            <div class="de-row-inline" style="margin-bottom:10px;">
+              <label>Phân loại mất răng:</label>
+              <select name="missing_type" id="missing_type" class="de-select">
+                <option value="">(Để trống)</option>
+                <option value="I">I</option><option value="II">II</option>
+                <option value="III">III</option><option value="IV">IV</option>
+                <option value="V">V</option>
+              </select>
+            </div>
+            <div class="de-row-inline">
+              <label>Phân loại sức khỏe:</label>
+              <select name="health_classification" id="health_classification" class="de-select">
+                <option value="">(Để trống)</option>
+                <option value="I">I</option><option value="II">II</option>
+                <option value="III">III</option><option value="IV">IV</option>
+                <option value="V">V</option>
+              </select>
+            </div>
+
+            <div class="de-row-inline" style="margin-bottom:10px;">
+              <label>Sức nhai (%):</label>
+              <input type="number" id="chewing_ability" name="chewing_ability"
+                     class="de-select" style="width:90px;"
+                     placeholder="0–100" min="0" max="100" step="1"
+                     oninput="this.value=Math.min(100,Math.max(0,parseInt(this.value)||0))"
+                     autocomplete="off">
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <label style="font-size:13px;font-weight:600;color:#334155;display:block;margin-bottom:6px;">Tình trạng RHM khác</label>
+          <textarea name="other_oral_conditions" id="other_oral_conditions"
+                    class="de-textarea" rows="2"
+                    placeholder="Viêm nướu, cao răng, hôi miệng..."></textarea>
+        </div>
+        <div style="margin-top:14px;">
+          <label style="font-size:13px;font-weight:600;color:#334155;display:block;margin-bottom:6px;">Ghi chú thêm</label>
+          <textarea name="additional_notes" id="additional_notes"
+                    class="de-textarea" rows="2"
+                    placeholder="Ghi chú của bác sĩ..."></textarea>
+        </div>
+      </div>
+
+      {# ── 5. Kết luận ──────────────────────────────────────── #}
+      <div class="de-card">
+        <div class="de-conclusion-header">
+          <label style="font-size:13.5px;font-weight:700;color:#334155;">
+            <i class="fa-solid fa-file-medical" style="color:#6366f1;"></i> Kết luận
+          </label>
+          <button type="button" class="btn-autofill" onclick="autofillConclusion()">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Tự động điền từ bảng răng
+          </button>
+        </div>
+        <textarea id="conclusion" name="conclusion" class="de-textarea" rows="4"
+                  placeholder="Ví dụ: R18 Mòn cổ răng, R36 Sâu răng... hoặc nhấn 'Tự động điền'"></textarea>
+        <div style="margin-top:6px;font-size:11.5px;color:#94a3b8;">
+          <i class="fa-regular fa-lightbulb"></i>
+          Nhấn "Tự động điền" để ghép tình trạng răng thành câu kết luận (bỏ ô trống và ký hiệu 0).
+        </div>
+      </div>
+
+      {# ── 6. Nút hành động ─────────────────────────────────── #}
+      <div class="de-card" style="padding:16px 22px;">
+        <div class="de-actions">
+          <button type="submit" class="de-btn de-btn-save" id="btnSave">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span id="btnSaveText">Lưu phiếu khám</span>
+          </button>
+
+          {% if already_saved %}
+          <button type="button" class="de-btn de-btn-print" id="btnPrint" onclick="triggerPrint()">
+            <i class="fa-solid fa-print"></i> In phiếu
+          </button>
+          {% endif %}
+
+          <input type="date" id="printDate" name="printDate" class="de-date-input"
+                 title="Ngày hiển thị trên phiếu in"
+                 {% if prefill.exam_date %}value="{{ prefill.exam_date }}"{% endif %}>
+
+          <button type="button" class="de-btn de-btn-history"
+                  id="btnHistory" disabled onclick="openHistoryModal()">
+            <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử khám
+          </button>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#94a3b8;">
+          <i class="fa-solid fa-circle-info"></i>
+          Khách lẻ: nhập thông tin bệnh nhân trực tiếp. Mỗi lần lưu tạo một bản ghi lịch sử mới.
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{# ── Print section ─────────────────────────────────────────── #}
+{% include "clinical/includes/dental_exam_print.html" %}
+
+{# ── Modal: Lịch sử khám ──────────────────────────────────── #}
+<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius:16px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.18);">
+      <div class="modal-header" style="border-bottom:2px solid #e2e8f0;padding:18px 24px;">
+        <div>
+          <h5 class="modal-title" id="historyModalLabel" style="font-weight:700;color:#1e293b;">
+            <i class="fa-solid fa-clock-rotate-left" style="color:#6366f1;"></i> Lịch sử khám răng
+          </h5>
+          <div id="historyPatientName" style="font-size:13px;color:#64748b;margin-top:3px;"></div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body history-modal-body" style="padding:20px 24px;" id="historyModalBody">
+        <div class="history-empty"><i class="fa-solid fa-clock-rotate-left"></i><br>Đang tải...</div>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid #e2e8f0;padding:12px 24px;">
+        <small class="text-muted">Hiển thị tối đa 30 lần khám gần nhất</small>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'clinical/js/clinic.js' %}"></script>
+<script>
+window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
+
+(function () {
+  "use strict";
+
+  var UPPER_TEETH = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
+  var LOWER_TEETH = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+
+  /* ── Track ô răng đang được focus ────────────────────────── */
+  var activeToothInput = null;
+
+  function bindToothFocus() {
+    document.querySelectorAll(".de-tooth-input").forEach(function (el) {
+      el.addEventListener("focus", function () { activeToothInput = el; });
+      el.addEventListener("blur",  function () {
+        // Giữ lại 200ms để kịp nhận click vào notation
+        setTimeout(function () {
+          if (activeToothInput === el) activeToothInput = null;
+        }, 200);
+      });
+    });
+  }
+
+  function bindNotationClick() {
+    document.querySelectorAll(".de-notation-item").forEach(function (item) {
+      item.style.cursor = "pointer";
+      item.addEventListener("mousedown", function (e) {
+        // mousedown thay vì click để ngăn blur chạy trước
+        e.preventDefault();
+        if (!activeToothInput) return;
+        var code = item.getAttribute("data-value");
+        if (!code) return;
+        activeToothInput.value = code;
+        onToothInput(activeToothInput);
+        activeToothInput.focus();
+      });
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     LOCK / UNLOCK PATIENT FIELDS
+     ═══════════════════════════════════════════════════════════ */
+  var PATIENT_FIELDS = ["full_name", "dob", "gender", "patient_code"];
+
+  function lockPatientFields(patientName) {
+    PATIENT_FIELDS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.setAttribute("readonly", "readonly");
+      el.classList.add("locked");
+    });
+
+    var badge     = document.getElementById("modeBadge");
+    var badgeText = document.getElementById("modeBadgeText");
+    var btnDesel  = document.getElementById("btnDeselect");
+
+    if (badge)     { badge.className = "mode-badge selected"; }
+    if (badgeText) { badgeText.textContent = "Đã chọn: " + (patientName || "Bệnh nhân"); }
+    if (btnDesel)  { btnDesel.classList.add("visible"); }
+  }
+
+  function unlockPatientFields() {
+    PATIENT_FIELDS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.removeAttribute("readonly");
+      el.classList.remove("locked");
+    });
+
+    var badge     = document.getElementById("modeBadge");
+    var badgeText = document.getElementById("modeBadgeText");
+    var btnDesel  = document.getElementById("btnDeselect");
+
+    if (badge)     { badge.className = "mode-badge walkin"; }
+    if (badgeText) { badgeText.textContent = "Khách lẻ — nhập tự do"; }
+    if (btnDesel)  { btnDesel.classList.remove("visible"); }
+  }
+
+  /* ── Theo dõi thay đổi patient_id (clinic.js set bằng JS property) ─ */
+  var pidEl     = document.getElementById("patient_id");
+  var lastPid   = "";
+
+  if (pidEl) {
+    /* Intercept property set để bắt khi clinic.js gán giá trị */
+    var proto     = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+    var origSet   = proto.set;
+    var origGet   = proto.get;
+
+    Object.defineProperty(pidEl, "value", {
+      get: function () { return origGet.call(this); },
+      set: function (v) {
+        origSet.call(this, v);
+        if (v !== lastPid) {
+          lastPid = v;
+          if (v) {
+            var name = (document.getElementById("full_name") || {}).value || "";
+            lockPatientFields(name);
+          } else {
+            unlockPatientFields();
+          }
+          updateHistoryBtn();
+        }
+      },
+      configurable: true
+    });
+  }
+
+  /* ── Bỏ chọn bệnh nhân → chế độ khách lẻ ─────────────────── */
+  window.deselect = function () {
+    /* Xoá patient_id */
+    if (pidEl) origSet.call(pidEl, "");
+    lastPid = "";
+
+    /* Xoá các field hành chính */
+    PATIENT_FIELDS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    var cid = document.getElementById("company_id");
+    if (cid) cid.value = "";
+    var did = document.getElementById("dental_exam_id");
+    if (did) did.value = "";
+
+    /* Xoá bảng răng */
+    clearAllTeeth();
+    /* Xoá các field lâm sàng */
+    ["missing_type","health_classification","chewing_ability",
+     "other_oral_conditions","additional_notes","conclusion"].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+
+    unlockPatientFields();
+    updateHistoryBtn();
+  };
+
+  /* ═══════════════════════════════════════════════════════════
+     TOOTH INPUT
+     ═══════════════════════════════════════════════════════════ */
+  window.onToothInput = function (el) {
+    el.value = el.value.trim();
+    el.classList.toggle("has-value", el.value !== "" && el.value !== "0");
+  };
+
+  window.fillAllTeethZero = function () {
+    document.querySelectorAll(".de-tooth-input").forEach(function (el) {
+      if (!el.value) { el.value = "0"; el.classList.remove("has-value"); }
+    });
+  };
+
+  window.clearAllTeeth = function () {
+    document.querySelectorAll(".de-tooth-input").forEach(function (el) {
+      el.value = ""; el.classList.remove("has-value");
+    });
+  };
+
+  /* ═══════════════════════════════════════════════════════════
+     NOTATION TOGGLE
+     ═══════════════════════════════════════════════════════════ */
+  window.toggleNotation = function () {
+    var body    = document.getElementById("notationBody");
+    var toggle  = document.getElementById("notationToggle");
+    var hidden  = body.classList.contains("hidden");
+    body.classList.toggle("hidden", !hidden);
+    toggle.classList.toggle("collapsed", hidden);
+  };
+
+  /* ═══════════════════════════════════════════════════════════
+     AUTOFILL KẾT LUẬN
+     ═══════════════════════════════════════════════════════════ */
+  window.autofillConclusion = function () {
+    var map   = window.NOTATION_MAP || {};
+    var parts = [];
+    UPPER_TEETH.forEach(function (t) {
+      var el  = document.querySelector('[name="tooth_upper_' + t + '"]');
+      var val = el ? el.value.trim() : "";
+      if (val && val !== "0" && map[val]) parts.push("R" + t + " " + map[val]);
+    });
+    LOWER_TEETH.forEach(function (t) {
+      var el  = document.querySelector('[name="tooth_lower_' + t + '"]');
+      var val = el ? el.value.trim() : "";
+      if (val && val !== "0" && map[val]) parts.push("R" + t + " " + map[val]);
+    });
+    var el = document.getElementById("conclusion");
+    el.value = parts.length ? parts.join(", ") : "Răng tốt";
+    el.focus();
+  };
+
+  /* ═══════════════════════════════════════════════════════════
+     SUBMIT GUARD
+     ═══════════════════════════════════════════════════════════ */
+  var form    = document.getElementById("dental-exam-form");
+  var btnSave = document.getElementById("btnSave");
+  var btnText = document.getElementById("btnSaveText");
+
+  if (form && btnSave) {
+    form.addEventListener("submit", function (e) {
+      var pid  = document.getElementById("patient_id").value;
+      var name = (document.getElementById("full_name").value || "").trim();
+      if (!pid && !name) {
+        e.preventDefault();
+        alert("Vui lòng chọn bệnh nhân từ danh sách hoặc nhập họ tên (khách lẻ) trước khi lưu.");
+        return;
+      }
+      btnSave.disabled = true;
+      if (btnText) btnText.textContent = "Đang lưu...";
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     PRINT
+     ═══════════════════════════════════════════════════════════ */
+  window.triggerPrint = function () {
+    if (typeof window.printDentalForm === "function") window.printDentalForm();
+    else if (typeof window.printSection === "function") window.printSection();
+    else window.print();
+  };
+
+  /* ═══════════════════════════════════════════════════════════
+     LỊCH SỬ KHÁM
+     ═══════════════════════════════════════════════════════════ */
+  function updateHistoryBtn() {
+    var pid = (document.getElementById("patient_id") || {}).value;
+    var btn = document.getElementById("btnHistory");
+    if (btn) btn.disabled = !pid;
+  }
+
+  window.openHistoryModal = function () {
+    var pid  = (document.getElementById("patient_id") || {}).value;
+    var name = (document.getElementById("full_name")  || {}).value;
+    if (!pid) return;
+
+    var bodyEl = document.getElementById("historyModalBody");
+    var nameEl = document.getElementById("historyPatientName");
+    if (nameEl) nameEl.textContent = name ? "Bệnh nhân: " + name : "";
+    if (bodyEl) bodyEl.innerHTML = '<div class="history-empty"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:28px;"></i><br>Đang tải...</div>';
+
+    var modal = new bootstrap.Modal(document.getElementById("historyModal"));
+    modal.show();
+
+    var url = window.CLINIC_PATIENT_AJAX.dentalExamHistoryUrl.replace("/0/", "/" + pid + "/");
+    fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (json.status !== "success" || !json.data || !json.data.length) {
+          bodyEl.innerHTML = '<div class="history-empty"><i class="fa-regular fa-folder-open"></i><br>Chưa có lịch sử khám nào.</div>';
+          return;
+        }
+        renderHistory(json.data);
+      })
+      .catch(function () {
+        bodyEl.innerHTML = '<div class="history-empty" style="color:#dc2626;"><i class="fa-solid fa-triangle-exclamation"></i><br>Lỗi kết nối.</div>';
+      });
+  };
+
+  function renderHistory(items) {
+    var base = window.CLINIC_PATIENT_AJAX.dentalExamFormUrl;
+    var html = "";
+    items.forEach(function (item) {
+      var badges = "";
+      if (item.health_classification)
+        badges += '<span class="history-badge">SK: ' + item.health_classification + '</span>';
+      if (item.tooth_loss_classification)
+        badges += '<span class="history-badge" style="background:#fef3c7;color:#b45309;border-color:#fde68a;">MR: ' + item.tooth_loss_classification + '</span>';
+      if (item.chewing_ability)
+        badges += '<span class="history-badge" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;">Sức nhai: ' + item.chewing_ability + '%</span>';
+
+      var openUrl  = base + "?exam_id=" + item.id;
+      var printUrl = openUrl + "&autoprint=1";
+      html += '<div class="history-item">';
+      html +=   '<div class="history-item-meta">';
+      html +=     '<div class="history-date"><i class="fa-regular fa-calendar-check"></i>' + item.created_at_display + '</div>';
+      if (badges) html += '<div class="history-badges">' + badges + '</div>';
+      if (item.conclusion) html += '<div class="history-conclusion">' + escHtml(item.conclusion) + '</div>';
+      html +=   '</div>';
+      html +=   '<div class="history-actions">';
+      html +=     '<a href="' + openUrl + '" class="history-btn history-btn-open"><i class="fa-solid fa-arrow-up-right-from-square"></i> Mở</a>';
+      html +=     '<a href="' + printUrl + '" class="history-btn history-btn-print"><i class="fa-solid fa-print"></i> In</a>';
+      html +=   '</div>';
+      html += '</div>';
+    });
+    document.getElementById("historyModalBody").innerHTML = html;
+  }
+
+  function escHtml(s) {
+    var d = document.createElement("div");
+    d.appendChild(document.createTextNode(s));
+    return d.innerHTML;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SERVER PREFILL (load exam_id từ URL)
+     ═══════════════════════════════════════════════════════════ */
+  function applyServerPrefill() {
+    var p = window.DENTAL_PREFILL;
+    if (!p) return;
+
+    function set(id, val) {
+      var el = document.getElementById(id);
+      if (el && val !== undefined && val !== null) el.value = val;
+    }
+
+    /* Gán qua setter thông thường (patient_id dùng cách đặc biệt bên dưới) */
+    set("dental_exam_id",        p.dental_exam_id    || "");
+    set("full_name",             p.full_name);
+    set("dob",                   p.dob);
+    set("gender",                p.gender);
+    set("patient_code",          p.patient_code);
+    set("additional_notes",      p.additional_notes);
+    set("missing_type",          p.loss_classification);
+    set("other_oral_conditions", p.other_oral_conditions);
+    set("chewing_ability",       p.chewing_ability);
+    set("health_classification", p.health_classification);
+    set("conclusion",            p.conclusion);
+
+    /* Tooth cells */
+    if (p.tooth_details) {
+      Object.keys(p.tooth_details).forEach(function (key) {
+        var el = document.querySelector('[name="' + key + '"]');
+        if (el) { el.value = p.tooth_details[key]; onToothInput(el); }
+      });
+    }
+
+    /* Gán patient_id — kích hoạt setter → lock fields */
+    if (p.patient_id) {
+      /* Sử dụng trực tiếp origSet vì setter đã được gán */
+      if (pidEl) pidEl.value = p.patient_id;
+    }
+
+    updateHistoryBtn();
+  }
+
+  /* ── Auto-print khi mở từ link In trong modal ─────────────── */
+  function checkAutoprint() {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get("autoprint") === "1" && window.DENTAL_ALREADY_SAVED) {
+      setTimeout(triggerPrint, 800);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     DOM READY
+     ═══════════════════════════════════════════════════════════ */
+  document.addEventListener("DOMContentLoaded", function () {
+    applyServerPrefill();
+    updateHistoryBtn();
+    checkAutoprint();
+    bindToothFocus();      
+    bindNotationClick();
+    /* Lắng nghe custom event 'patientLoaded' nếu clinic.js phát */
+    document.addEventListener("patientLoaded", function () { updateHistoryBtn(); });
+  });
+
+}());
+</script>
+{% endblock %}

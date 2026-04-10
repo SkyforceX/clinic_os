@@ -438,12 +438,19 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                         active_app_names=["clinical"],
                         active_url_names=["sum_assistant"],
                     ),
+                    _item(
+                        request=request,
+                        label="Khám răng",
+                        url_name="clinical:dental_exam_form",
+                        active_app_names=["clinical"],
+                        active_url_names=["dental_exam_form"],
+                    ),
                 ],
             ),
         )
 
     # ── Nhân sự ───────────────────────────────────────────────────────────────
-    if is_hr_admin or is_manager or is_doctor:
+    if is_hr_admin or is_manager:
         hrm_items = [
             _item(
                 request=request,

@@ -1,8 +1,6 @@
 import os
 import unicodedata
 from datetime import date, datetime
-from decimal import Decimal
-from uuid import uuid4
 
 from django.db import models
 from django.utils.text import slugify
@@ -33,8 +31,22 @@ def pathology_upload_path(instance, filename):
 
 
 class DentalExamination(models.Model):
-    patient = models.ForeignKey("patients.Patient", on_delete=models.CASCADE, related_name="clinical_dental_examinations")
-    company = models.ForeignKey("organizations.Company", on_delete=models.CASCADE, related_name="clinical_dental_examinations")
+    patient = models.ForeignKey(
+        "patients.Patient",
+        on_delete=models.CASCADE,
+        related_name="clinical_dental_examinations",
+    )
+    # nullable để hỗ trợ khách lẻ không thuộc công ty nào
+    company = models.ForeignKey(
+        "organizations.Company",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="clinical_dental_examinations",
+    )
+    # Snapshot thông tin hành chính tại thời điểm khám
+    patient_snapshot = models.JSONField(default=dict, blank=True)
+
     additional_notes = models.TextField(blank=True)
     tooth_data = models.JSONField(default=dict)
     tooth_loss_classification = models.CharField(
@@ -54,9 +66,8 @@ class DentalExamination(models.Model):
     updated_at = models.DateTimeField()
 
     class Meta:
-        db_table = "clinic_dentalexamination"
-        managed = False
-        ordering = ["-updated_at", "-id"]
+        db_table = "clinical_dentalexamination"
+        ordering = ["-created_at", "-id"]
         verbose_name = "Dental Examination"
         verbose_name_plural = "Dental Examinations"
 
@@ -70,8 +81,7 @@ class ToothNotation(models.Model):
     description_en = models.CharField(max_length=200)
 
     class Meta:
-        db_table = "clinic_toothnotation"
-        managed = False
+        db_table = "clinical_toothnotation"
         ordering = ["code"]
         verbose_name = "Tooth Notation"
         verbose_name_plural = "Tooth Notations"
@@ -86,7 +96,11 @@ class PathologyResult(models.Model):
         ("follow", "Theo dõi"),
     ]
 
-    patient = models.ForeignKey("patients.Patient", on_delete=models.CASCADE, related_name="clinical_pathology_results")
+    patient = models.ForeignKey(
+        "patients.Patient",
+        on_delete=models.CASCADE,
+        related_name="clinical_pathology_results",
+    )
     location = models.CharField(max_length=255)
     file_url = models.FileField(upload_to=pathology_upload_path)
     result_date = models.DateField(null=True, blank=True)

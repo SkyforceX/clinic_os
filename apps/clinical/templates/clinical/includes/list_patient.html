@@ -1,20 +1,32 @@
-<div class="patient-list">
-  <!-- Dropdown chọn công ty -->
-  <select id="companyFilter" style="width: 100%; padding: 6px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ccc;">
-      <option value="">-- Chọn công ty --</option>
-      {% for c in companies %}
-        <option value="{{ c.id }}" data-value="{{ c.name }}">{{ c.name }}</option>
-      {% endfor %}
-  </select>
-  
-  <!-- Ô tìm kiếm -->
-  <input type="text" id="nameFilter" placeholder="Tìm theo họ tên..." style="width: 100%; padding: 6px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ccc;">
-  <!-- Ô tìm theo mã BN -->
-  <input type="text" id="codeFilter" placeholder="Tìm theo mã BN..." style="width: 100%; padding: 6px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ccc;">
-  <!-- Danh sách bệnh nhân -->
-  <div id="patientContainer">
-    <!-- Danh sách sẽ được tạo bằng JavaScript -->
-  </div>  
-</div>
+<aside class="pl-sidebar">
 
-  
+  <div class="pl-sidebar-head">
+    <span class="pl-sidebar-title">
+      <i class="fa-solid fa-users"></i> Bệnh nhân
+    </span>
+    <span class="pl-count-badge" id="patientCount"></span>
+  </div>
+
+  <div class="pl-sidebar-filters">
+    <div class="pl-filter-row">
+      <i class="fa-solid fa-building pl-fi"></i>
+      <select id="companyFilter" class="pl-filter-select">
+        <option value="">Tất cả công ty</option>
+        {% for c in companies %}
+          <option value="{{ c.id }}" data-value="{{ c.name }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="pl-filter-row">
+      <i class="fa-solid fa-magnifying-glass pl-fi"></i>
+      <input type="text" id="nameFilter" class="pl-filter-input" placeholder="Tìm họ tên...">
+    </div>
+    <div class="pl-filter-row">
+      <i class="fa-solid fa-id-badge pl-fi"></i>
+      <input type="text" id="codeFilter" class="pl-filter-input" placeholder="Tìm mã BN...">
+    </div>
+  </div>
+
+  <div class="pl-sidebar-list" id="patientContainer"></div>
+
+</aside>

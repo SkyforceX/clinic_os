@@ -1,0 +1,377 @@
+/* ══════════════════════════════════════════════════════════════
+   static/clinic/css/print.css
+   Được load trong popup window mà clinic.js mở.
+   Structure trong popup:
+     body > .print-preview-wrapper > .print-a4 > #printSection
+   Giữ nguyên tất cả class names cũ để không vỡ JS / HTML cũ.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Reset ───────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Fonts & base ────────────────────────────────────────────── */
+body {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 12pt;
+  color: #000;
+  background: #dde3ea;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCREEN — preview A4 trong popup
+   ══════════════════════════════════════════════════════════════ */
+@media screen {
+
+  /* Wrapper căn giữa tờ A4 */
+  .print-preview-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 28px 20px 48px;
+    min-height: 100vh;
+  }
+
+  /* Tờ giấy A4 */
+  .print-a4 {
+    background: #fff;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 12mm 18mm 16mm 18mm;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.20), 0 1px 4px rgba(0,0,0,0.08);
+    position: relative;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    color: #000;
+  }
+
+} /* end @media screen */
+
+/* ══════════════════════════════════════════════════════════════
+   PRINT — khi gọi window.print() trong popup
+   ══════════════════════════════════════════════════════════════ */
+@media print {
+
+  @page {
+    size: A4 portrait;
+    margin: 7.6mm 18mm 16mm 18mm;
+  }
+
+  html, body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-preview-wrapper {
+    padding: 0 !important;
+    min-height: auto !important;
+    display: block !important;
+  }
+
+  .print-a4 {
+    width: 100% !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+} /* end @media print */
+
+/* ══════════════════════════════════════════════════════════════
+   CONTENT STYLES — áp dụng cả screen lẫn print
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Header phòng khám ───────────────────────────────────────── */
+.print-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 5px;
+}
+
+.print-clinic-info {
+  flex: 1;
+  text-align: center;
+}
+
+.print-clinic-name {
+  font-size: 11pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  line-height: 1.35;
+}
+
+.print-clinic-sub {
+  font-size: 9pt;
+  font-style: italic;
+  color: #444;
+  margin-top: 1px;
+}
+
+.print-header-rule {
+  border: none;
+  border-top: 2px solid #000;
+  margin: 5px 0 4px;
+}
+
+/* ── Logo ────────────────────────────────────────────────────── */
+img.logo {
+  width: auto;
+  height: 1.1in;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* ── Tiêu đề phiếu ───────────────────────────────────────────── */
+h2 {
+  width: 100%;
+  text-align: center;
+  font-size: 16pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 5px 0 2px;
+}
+
+h3 {
+  width: 100%;
+  text-align: center;
+  font-size: 11pt;
+  font-weight: 400;
+  font-style: italic;
+  margin-bottom: 10px;
+}
+
+/* ── Thông tin bệnh nhân ─────────────────────────────────────── */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+  font-size: 11pt;
+}
+
+.info-col {
+  width: 48%;
+}
+
+.info-col p {
+  margin: 4px 0;
+  line-height: 1.5;
+  padding-bottom: 2px;
+}
+
+.right-align {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.info-value {
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.en-label {
+  font-weight: 400;
+  font-style: italic;
+  font-size: 8.5pt;
+  color: #444;
+}
+
+/* ── Section titles ──────────────────────────────────────────── */
+.section-title {
+  font-size: 10pt;
+  font-weight: 700;
+  margin: 12px 0 6px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+/* ── Bảng răng ───────────────────────────────────────────────── */
+.teeth-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 3px 0 6px;
+  text-align: center;
+  table-layout: fixed;
+}
+
+.teeth-table td {
+  border: 1px solid #000;
+  padding: 2px;
+  font-size: 9pt;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+/* Hàng số răng — nền xám nhạt */
+.tooth-num-row td {
+  background: #f0f0f0;
+  font-size: 8pt;
+  font-weight: 700;
+  height: 14pt;
+  color: #000;
+}
+
+/* Hàng giá trị — cao hơn để dễ đọc */
+.tooth-val-row td {
+  height: 20pt;
+  font-size: 9.5pt;
+}
+
+/* Đường phân cách giữa hàm trên và hàm dưới */
+.tooth-gap-row td {
+  height: 5pt;
+  border: none;
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+  background: transparent;
+}
+
+/* Border dày phân cách hàm trên / dưới */
+/* .tooth-upper td { border-bottom: 2px solid #000; }
+.tooth-lower td { border-top:    2px solid #000; } */
+
+/* ── Bảng chú thích 3 cột ────────────────────────────────────── */
+.notes {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 2px 0 7px;
+}
+
+.note-columns {
+  flex: 1;
+  border-left: 1px solid #ddd;
+  padding: 0 6px;
+}
+
+.note-columns:first-child { border-left: none; padding-left: 0; }
+
+.note-item {
+  font-size: 7.5pt;
+  line-height: 1.6;
+  color: #111;
+  margin-bottom: 1px;
+}
+
+/* ── Kết quả lâm sàng ────────────────────────────────────────── */
+.clinical-findings {
+  margin: 4px 0 6px;
+}
+
+.findings-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+  font-size: 10.5pt;
+  line-height: 1.5;
+}
+
+.findings-row:last-child { margin-bottom: 0; }
+
+.finding-item {
+  flex: 1;
+  min-width: 200px;
+}
+
+.findings-full {
+  display: block;
+}
+
+.finding-value {
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.finding-value-block {
+  font-weight: 700;
+  display: inline;
+  margin-left: 4px;
+}
+
+/* ── Kết luận ────────────────────────────────────────────────── */
+.conclusion-block {
+  margin-bottom: 8px;
+}
+
+.conclusion-content {
+  min-height: 38pt;
+  padding-top: 10px;
+  font-size: 10.5pt;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+/* ── Footer + Chữ ký ─────────────────────────────────────────── */
+.print-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: center;
+  margin-top: 10pt;
+}
+
+.signature {
+  text-align: center;
+  min-width: 120px;
+}
+
+/* Ngày tháng */
+.js-print-date {
+  font-size: 10pt;
+  font-style: italic;
+  margin-bottom: 4pt;
+  color: #111;
+}
+
+/* Tiêu đề "Bác sĩ khám" — không có trong template cũ,
+   nhưng thêm để rõ ràng hơn. Nếu không cần thì xóa block này. */
+.signature::before {
+  content: "Bác sĩ khám";
+  display: block;
+  font-size: 9pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 2pt;
+}
+
+/* Vùng chứa ảnh chữ ký — giữ chỗ để ký tay khi không có ảnh */
+.signature-image-area {
+  min-height: 70pt;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4pt 0;
+}
+
+.dr-signature {
+  max-height: 58pt;
+  max-width: 100%;
+  display: block;
+  margin: 0 auto;
+}
+
+.dr-signature.hidden,
+.hidden {
+  visibility: hidden;
+}
+
+.signature-name {
+  font-size: 10pt;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 2pt;
+}
+
+/* ── Print: force đen trắng + borders ────────────────────────── */
+@media print {
+  .tooth-num-row td  { background: #ebebeb !important; }
+  .conclusion-content { background: transparent !important; }
+  .note-columns       { border-left-color: #bbb !important; }
+}

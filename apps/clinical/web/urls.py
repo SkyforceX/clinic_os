@@ -1,9 +1,9 @@
 from django.urls import path
 
 from apps.clinical.web.views import (
-    api_save_dental_exam,
     clinical_dashboard,
     dental_exam_form,
+    dental_exam_history,
     get_dental_data,
     get_pathology_data,
     load_fixture_data,
@@ -21,10 +21,12 @@ urlpatterns = [
     path("sum-assistant/", sum_assistant, name="sum_assistant"),
     path("load-fixture-data/", load_fixture_data, name="load_fixture_data"),
 
+    # Dental exam — form + lưu (POST) + lịch sử
     path("dental-exam/", dental_exam_form, name="dental_exam_form"),
-    path("api/save-dental-exam/", api_save_dental_exam, name="api_save_dental_exam"),
+    path("api/dental-exam-history/<int:patient_id>/", dental_exam_history, name="dental_exam_history"),
     path("get_dental_data/<int:patient_id>/", get_dental_data, name="get_dental_data"),
 
+    # Pathology
     path("pathology/", pathology, name="pathology"),
     path("pathology-detail/", pathology_detail, name="pathology_detail"),
     path("upload-pathology/", upload_pathology_pdf, name="upload_pathology_pdf"),

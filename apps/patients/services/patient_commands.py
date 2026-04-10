@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from django.db import transaction
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from apps.organizations.selectors.company_selectors import get_company_for_actor
@@ -98,6 +99,54 @@ def validate_patient_payload(payload: PatientPayload, *, exclude_id=None):
 
 
 @transaction.atomic
+def get_or_create_walkin_patient(*, payload: dict) -> Patient:
+    """
+    Tìm hoặc tạo bệnh nhân lẻ (không thuộc công ty nào).
+
+    - Nếu patient_code đã tồn tại trong DB → trả về bệnh nhân đó.
+    - Nếu không có patient_code → tự sinh mã dạng KL<timestamp>.
+    - Tạo bản ghi Patient mới với company=None.
+    """
+    ma_bn    = normalize_text(payload.get("patient_code") or "")
+    ho_ten   = normalize_text(payload.get("full_name")    or "")
+    dob_str  = normalize_text(payload.get("dob")          or "")
+    gioi_tinh = normalize_text(payload.get("gender")      or "")
+
+    if not ho_ten:
+        raise PatientValidationError({"ho_ten": "Vui lòng nhập họ tên bệnh nhân."})
+
+    ngay_sinh = parse_birth_date(dob_str)
+    if not ngay_sinh:
+        raise PatientValidationError(
+            {"ngay_sinh": "Ngày sinh không hợp lệ. Vui lòng nhập theo định dạng dd/mm/yyyy."}
+        )
+
+    # Tìm bệnh nhân đã có theo mã BN
+    if ma_bn:
+        existing = Patient.objects.filter(ma_bn=ma_bn).first()
+        if existing:
+            return existing
+
+    # Tự sinh mã BN dạng KL<YYYYmmddHHMMSS> khi không nhập
+    if not ma_bn:
+        base = timezone.now().strftime("KL%Y%m%d%H%M%S")
+        ma_bn = base
+        suffix = 1
+        while Patient.objects.filter(ma_bn=ma_bn).exists():
+            ma_bn = f"{base}{suffix}"
+            suffix += 1
+
+    patient = Patient.objects.create(
+        ma_bn=ma_bn,
+        ho_ten=ho_ten,
+        gioi_tinh=gioi_tinh or "Không rõ",
+        ngay_sinh=ngay_sinh,
+        company=None,
+    )
+    return patient
+
+
+@transaction.atomic
 def reassign_patient_company(*, patient, company):
     today = date.today()
 
@@ -159,13 +208,10 @@ def import_patient_row(*, ma_bn, ho_ten, gioi_tinh, ngay_sinh, company, phone=No
 
             if patient.company_id != company.pk:
                 PatientCompanyHistory.objects.filter(
-                    patient=patient,
-                    to_date__isnull=True,
+                    patient=patient, to_date__isnull=True
                 ).update(to_date=today)
                 PatientCompanyHistory.objects.create(
-                    patient=patient,
-                    company=company,
-                    from_date=today,
+                    patient=patient, company=company, from_date=today
                 )
                 patient.company_id = company.pk
                 update_fields.append("company")
@@ -181,13 +227,10 @@ def import_patient_row(*, ma_bn, ho_ten, gioi_tinh, ngay_sinh, company, phone=No
 
         if patient.company_id != company.pk:
             PatientCompanyHistory.objects.filter(
-                patient=patient,
-                to_date__isnull=True,
+                patient=patient, to_date__isnull=True
             ).update(to_date=today)
             PatientCompanyHistory.objects.create(
-                patient=patient,
-                company=company,
-                from_date=today,
+                patient=patient, company=company, from_date=today
             )
             patient.company_id = company.pk
             changed_fields.append("company")
@@ -225,9 +268,7 @@ def import_patient_row(*, ma_bn, ho_ten, gioi_tinh, ngay_sinh, company, phone=No
     )
 
     PatientCompanyHistory.objects.create(
-        patient=patient,
-        company=company,
-        from_date=today,
+        patient=patient, company=company, from_date=today
     )
     return "created", None
 
@@ -273,7 +314,9 @@ def create_patient_for_company(*, actor, company_id, payload: PatientPayload):
                 reassign_patient_company(patient=patient, company=company)
             return patient, "Bệnh nhân đã có trong hệ thống, đã gán lại công ty."
 
-        raise PatientValidationError({"ma_bn": "Mã BN đã tồn tại với thông tin khác. Vui lòng kiểm tra lại!"})
+        raise PatientValidationError(
+            {"ma_bn": "Mã BN đã tồn tại với thông tin khác. Vui lòng kiểm tra lại!"}
+        )
 
     patient = Patient.objects.create(
         company=company,
@@ -285,9 +328,7 @@ def create_patient_for_company(*, actor, company_id, payload: PatientPayload):
     )
 
     PatientCompanyHistory.objects.create(
-        patient=patient,
-        company=company,
-        from_date=date.today(),
+        patient=patient, company=company, from_date=date.today()
     )
     return patient, "Thêm bệnh nhân thành công!"
 
@@ -307,14 +348,7 @@ def update_patient_record(*, actor, patient, payload: PatientPayload):
     legacy_patient.phone = payload.phone or None
 
     legacy_patient.save(
-        update_fields=[
-            "ma_bn",
-            "ho_ten",
-            "gioi_tinh",
-            "ngay_sinh",
-            "phone",
-            "updated_at",
-        ]
+        update_fields=["ma_bn", "ho_ten", "gioi_tinh", "ngay_sinh", "phone", "updated_at"]
     )
     return legacy_patient
 
