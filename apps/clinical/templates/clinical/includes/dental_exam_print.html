@@ -139,31 +139,19 @@
       <div class="js-print-date"></div>
 
       <div class="signature-image-area">
-        {% if user.username|lower == 'dthoat.dr' %}
-          <img id="signature-img" class="dr-signature"
-               src="{% static 'clinical/signature/bs_hoat.png' %}" alt="Chữ ký">
-        {% else %}
-          <img id="signature-img" class="dr-signature hidden"
-               src="{% static 'clinical/signature/bs_hoat.png' %}" alt="">
-        {% endif %}
+        <img
+          id="signature-img"
+          class="dr-signature{% if not doctor_signature_url %} hidden{% endif %}"
+          src="{{ doctor_signature_url|default:'' }}"
+          alt="Chữ ký bác sỹ"
+        >
       </div>
 
-      <div class="signature-name">
-        {% if request.user|in_group:"Dentistry" %}
-          {% if user.get_full_name %}
-            <strong>Bs. {{ user.get_full_name }}</strong>
-          {% endif %}
-        {% endif %}
+      <div class="signature-name{% if not doctor_display_name %} hidden{% endif %}">
+        <strong class="js-print-doctor-name">{{ doctor_display_name }}</strong>
       </div>
     </div>
   </div>
 
 </div>{# end #printSection #}
 </div>{# end #print-container #}
-
-{# Hidden element — clinic.js đọc tên bác sĩ để điều kiện hiện chữ ký #}
-{% if user.is_authenticated %}
-  <div id="js-print-fullname-signature" style="display:none;">{{ user.get_full_name }}</div>
-{% else %}
-  <div id="js-print-fullname-signature" style="display:none;"></div>
-{% endif %}

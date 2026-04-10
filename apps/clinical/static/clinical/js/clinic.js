@@ -62,11 +62,6 @@ function renderPatients() {
 
   patientContainer.innerHTML = "";
 
-  if (!companyFilter || !companyFilter.value) {
-    setPatientContainerMessage("Vui lòng chọn công ty để hiển thị danh sách bệnh nhân.");
-    return;
-  }
-
   const nameSearch = removeVietnameseTones(nameFilter?.value || "");
   const codeSearch = (codeFilter?.value || "").toLowerCase();
 
@@ -81,6 +76,9 @@ function renderPatients() {
     return;
   }
 
+  const countEl = document.getElementById("patientCount");
+  if (countEl) countEl.textContent = filtered.length;
+
   filtered.forEach((p) => {
     const div = document.createElement("div");
     div.className = "patient-item";
@@ -89,7 +87,8 @@ function renderPatients() {
     div.onclick = () => selectPatient(p.id, currentFormType);
 
     const isWalkin = !p.company_id;
-    const isMale   = (p.gioi_tinh || "").toLowerCase().includes("nam");
+    const isMale = (p.gioi_tinh || "").toLowerCase().includes("nam");
+
     div.innerHTML = `
       <div class="pi-name">
         ${p.ho_ten || ""}
@@ -107,34 +106,28 @@ function renderPatients() {
       <div class="pi-code">
         <i class="fa-solid fa-id-card"></i> ${p.ma_bn || ""}
       </div>
-    `;                  
+    `;
 
     patientContainer.appendChild(div);
-    // cập nhật badge đếm
-    const countEl = document.getElementById("patientCount");
-    if (countEl) countEl.textContent = filtered.length;
   });
 }
 
 function fetchPatients() {
   if (!patientContainer || !window.CLINIC_PATIENT_AJAX) return;
 
-  const companyId = companyFilter?.value || "";
-
-  if (nameFilter) nameFilter.value = "";
-  if (codeFilter) codeFilter.value = "";
+  const companyId = (companyFilter?.value || "").trim();
 
   clearPatientList();
 
-  if (!companyId) {
-    setPatientContainerMessage("Vui lòng chọn công ty để hiển thị danh sách bệnh nhân.");
-    return;
+  let url = "";
+  if (companyId) {
+    url = (window.CLINIC_PATIENT_AJAX.getPatientsByCompanyUrl || "").replace(
+      "/0/",
+      `/${companyId}/`
+    );
+  } else {
+    url = window.CLINIC_PATIENT_AJAX.getAllPatientsUrl || "";
   }
-
-  const url = (window.CLINIC_PATIENT_AJAX.getPatientsByCompanyUrl || "").replace(
-    "/0/",
-    `/${companyId}/`
-  );
 
   if (!url) {
     setPatientContainerMessage("Không tìm thấy URL tải danh sách bệnh nhân.", "danger");
@@ -174,8 +167,8 @@ if (companyFilter) {
 // Lọc theo tên / mã chỉ khi đã chọn công ty
 if (nameFilter) {
   nameFilter.addEventListener("input", () => {
-    if (!companyFilter?.value) {
-      setPatientContainerMessage("Vui lòng chọn công ty để hiển thị danh sách bệnh nhân.");
+    if (!loadedPatients.length) {
+      fetchPatients();
       return;
     }
     renderPatients();
@@ -184,8 +177,8 @@ if (nameFilter) {
 
 if (codeFilter) {
   codeFilter.addEventListener("input", () => {
-    if (!companyFilter?.value) {
-      setPatientContainerMessage("Vui lòng chọn công ty để hiển thị danh sách bệnh nhân.");
+    if (!loadedPatients.length) {
+      fetchPatients();
       return;
     }
     renderPatients();
@@ -512,6 +505,10 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  if (patientContainer && window.CLINIC_PATIENT_AJAX) {
+    fetchPatients();
+  }
+
   initListCompanyPatientActions();
 });
 
@@ -526,8 +523,7 @@ function in_phieu() {
     const conclusion = document.querySelector('[name="conclusion"]')?.value || "";
     const sucNhai = document.querySelector('[name="chewing_ability"]')?.value || "";
     const health_classification = document.querySelector('[name="health_classification"]')?.value || "";
-    const full_name_signature = document.getElementById("js-print-fullname-signature")?.textContent || "";
-
+    
     const printDateInput = document.getElementById("printDate")?.value || "";
     let printDateFormatted = "";
 
@@ -576,10 +572,24 @@ function in_phieu() {
 
     const signatureImg = printContent.querySelector("#signature-img");
     if (signatureImg) {
-      if (full_name_signature.trim() !== "Đỗ Thị Hoạt") {
+      const signatureSrc = (signatureImg.getAttribute("src") || "").trim();
+      if (!signatureSrc) {
         signatureImg.classList.add("hidden");
       } else {
         signatureImg.classList.remove("hidden");
+      }
+    }
+
+    const doctorNameEl = printContent.querySelector(".js-print-doctor-name");
+    if (doctorNameEl) {
+      const doctorName = (doctorNameEl.textContent || "").trim();
+      const wrapper = doctorNameEl.closest(".signature-name");
+      if (wrapper) {
+        if (!doctorName) {
+          wrapper.classList.add("hidden");
+        } else {
+          wrapper.classList.remove("hidden");
+        }
       }
     }
 

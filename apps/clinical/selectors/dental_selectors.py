@@ -4,6 +4,43 @@ from apps.patients.models import Patient
 import re as _re
 
 
+SIGNATURE_DIR = Path(__file__).resolve().parents[1] / "data" / "signature"
+
+DOCTOR_SIGNATURES = {
+    "dthoat.dr": {
+        "files": ["bs_hoat.png", "bs_hoat.jpg", "bs_hoat.jpeg"],
+        "display_name": "Bs. Đỗ Thị Hoạt",
+    },
+}
+
+
+def _build_signature_data_url(file_path: Path) -> str:
+    mime_type, _ = mimetypes.guess_type(str(file_path))
+    mime_type = mime_type or "image/png"
+    encoded = base64.b64encode(file_path.read_bytes()).decode("ascii")
+    return f"data:{mime_type};base64,{encoded}"
+
+
+def _build_doctor_signature_context(actor):
+    username = (getattr(actor, "username", "") or "").strip().lower()
+    config = DOCTOR_SIGNATURES.get(username, {})
+
+    signature_url = ""
+    for filename in config.get("files", []):
+        candidate = SIGNATURE_DIR / filename
+        if candidate.exists() and candidate.is_file():
+            signature_url = _build_signature_data_url(candidate)
+            break
+
+    full_name = (actor.get_full_name() or "").strip()
+    doctor_name = config.get("display_name") or (f"Bs. {full_name}" if full_name else "")
+
+    return {
+        "doctor_signature_url": signature_url,
+        "doctor_display_name": doctor_name,
+    }
+
+
 def _notation_sort_key(item):
     """
     Sort ký hiệu răng theo thứ tự số thực:
@@ -38,6 +75,8 @@ def build_dental_exam_page_context(*, actor):
     tooth_upper = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28]
     tooth_lower = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38]
 
+    signature_context = _build_doctor_signature_context(actor)
+
     return {
         "companies": companies,
         "notations": notations,
@@ -45,6 +84,7 @@ def build_dental_exam_page_context(*, actor):
         "note_columns": _split_note_columns(notations, num_columns=3),
         "tooth_upper": tooth_upper,
         "tooth_lower": tooth_lower,
+        **signature_context,
     }
 
 
