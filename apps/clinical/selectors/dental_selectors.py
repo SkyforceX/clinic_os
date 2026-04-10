@@ -12,7 +12,7 @@ DOCTOR_SIGNATURES = {
         "display_name": "Bs. Đỗ Thị Hoạt",
     },
     "huynh.htb": {
-        "files": ["bs_huynh.png", "bs_huynh.jpg", "bs_huynh.jpeg"],
+        "files": ["white_paper.png", "white_paper.jpg", "white_paper.jpeg"],
         "display_name": "Bs. Hồ Thị Bạch Huỳnh",
     },
 }
