@@ -7,9 +7,13 @@ import re as _re
 SIGNATURE_DIR = Path(__file__).resolve().parents[1] / "data" / "signature"
 
 DOCTOR_SIGNATURES = {
-    "dthoat.dr": {
+    "hoat.dt": {
         "files": ["bs_hoat.png", "bs_hoat.jpg", "bs_hoat.jpeg"],
         "display_name": "Bs. Đỗ Thị Hoạt",
+    },
+    "huynh.htb": {
+        "files": ["bs_huynh.png", "bs_huynh.jpg", "bs_huynh.jpeg"],
+        "display_name": "Bs. Hồ Thị Bạch Huỳnh",
     },
 }
 
