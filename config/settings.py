@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     "apps.patients",
     "apps.contract",
     "apps.scheduling",
+    "apps.reception",
     "apps.clinical",
     "apps.catalogs",
     "apps.notifications",
@@ -104,8 +105,10 @@ INSTALLED_APPS = [
     "apps.meeting",
     "apps.tasks",
     "apps.engagement",
+    "apps.procedures",
     "apps.media_library",
     "apps.ai_assistant",
+    "apps.helpdesk",
 
     # DRF
     "rest_framework",
