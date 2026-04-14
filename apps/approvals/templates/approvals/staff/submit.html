@@ -1,0 +1,284 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}Nộp phê duyệt – {{ document }}{% endblock %}
+
+{% block extra_head %}
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+.submit-wrap {
+  max-width: 780px;
+  margin: 0 auto;
+}
+.doc-banner {
+  background: linear-gradient(135deg, #f0f5ff 0%, #e8f0fe 100%);
+  border: 1px solid #c5d8ff;
+  border-radius: 14px;
+  padding: 18px 22px;
+  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.doc-banner-icon {
+  width: 48px; height: 48px;
+  background: #0d6efd;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; color: #fff; flex-shrink: 0;
+}
+.doc-banner-title { font-size: .78rem; color: #6c757d; margin-bottom: 2px; }
+.doc-banner-name  { font-size: .95rem; font-weight: 700; color: #1a1a2e; }
+
+.form-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 26px 28px;
+  margin-bottom: 16px;
+}
+.form-card h6 {
+  font-size: .78rem;
+  font-weight: 700;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.form-label { font-size: .8rem; font-weight: 600; color: #495057; margin-bottom: 5px; }
+.form-control { font-size: .84rem; border-radius: 8px; border-color: #dee2e6; }
+.form-control:focus { border-color: #86b7fe; box-shadow: 0 0 0 3px rgba(13,110,253,.12); }
+
+/* Quill */
+.ql-toolbar {
+  border: 1px solid #dee2e6 !important;
+  border-bottom: none !important;
+  border-radius: 8px 8px 0 0 !important;
+  background: #f8f9fa;
+}
+#quill-body {
+  border: 1px solid #dee2e6;
+  border-radius: 0 0 8px 8px;
+  min-height: 200px;
+  font-size: .84rem;
+}
+.ql-container { border: none !important; }
+.ql-editor { min-height: 190px; line-height: 1.65; }
+.ql-editor.ql-blank::before { color: #adb5bd; font-style: normal; }
+
+/* File drop */
+.drop-zone {
+  border: 2px dashed #dee2e6;
+  border-radius: 10px;
+  padding: 22px 18px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .15s;
+  font-size: .8rem;
+  color: #6c757d;
+  background: #fafafa;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: #0d6efd; background: #f0f5ff; color: #0d6efd;
+}
+.drop-zone i { font-size: 1.8rem; display: block; margin-bottom: 8px; }
+.file-list { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.file-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #e9ecef; border-radius: 20px;
+  padding: 4px 12px; font-size: .76rem; color: #343a40;
+}
+.file-chip .fc-size { color: #adb5bd; }
+.file-chip button { background: none; border: none; padding: 0; cursor: pointer; color: #dc3545; font-size: .8rem; line-height: 1; }
+
+.submit-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="submit-wrap">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary">
+      <i class="fa fa-arrow-left"></i>
+    </a>
+    <div>
+      <h5 class="mb-0" style="font-size:.97rem;font-weight:700">
+        <i class="fa fa-paper-plane me-2" style="color:#0d6efd"></i>Nộp yêu cầu phê duyệt
+      </h5>
+      <div style="font-size:.73rem;color:#6c757d">Soạn nội dung trình duyệt chi tiết</div>
+    </div>
+  </div>
+
+  {% if messages %}
+  {% for m in messages %}
+  <div class="alert alert-{{ m.tags|default:'danger' }} alert-dismissible fade show py-2 mb-3" style="font-size:.83rem;border-radius:10px">
+    {{ m }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Tài liệu cần duyệt -->
+  <div class="doc-banner">
+    <div class="doc-banner-icon">
+      {% if doc_type == 'QUOTATION' %}📋
+      {% elif doc_type == 'CONTRACT' %}📄
+      {% elif doc_type == 'PAYMENT_VOUCHER' %}💳
+      {% else %}📑{% endif %}
+    </div>
+    <div>
+      <div class="doc-banner-title">{{ type_label }}</div>
+      <div class="doc-banner-name">{{ document }}</div>
+    </div>
+    <span class="ms-auto badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-size:.72rem;padding:4px 10px;border-radius:8px">
+      Đang ở trạng thái DRAFT
+    </span>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" id="submitForm">
+    {% csrf_token %}
+
+    <!-- ── 1. Tiêu đề ── -->
+    <div class="form-card">
+      <h6><i class="fa fa-heading" style="color:#0d6efd"></i>Tiêu đề trình duyệt</h6>
+      <input type="text" name="submission_title" id="id_title"
+             class="form-control"
+             placeholder="Ví dụ: Phê duyệt báo giá gói khám sức khỏe Q2/2026 cho Công ty ABC..."
+             maxlength="255" required>
+      <div style="font-size:.73rem;color:#adb5bd;margin-top:5px">
+        Tiêu đề ngắn gọn, rõ ràng để người duyệt dễ nhận biết
+      </div>
+    </div>
+
+    <!-- ── 2. Nội dung chi tiết ── -->
+    <div class="form-card">
+      <h6><i class="fa fa-align-left" style="color:#198754"></i>Nội dung chi tiết</h6>
+      <div id="quill-editor"></div>
+      <div id="quill-body"></div>
+      <input type="hidden" name="submission_body" id="bodyInput">
+      <div style="font-size:.73rem;color:#adb5bd;margin-top:8px">
+        Mô tả lý do, bối cảnh, các điểm cần lưu ý khi phê duyệt tài liệu này
+      </div>
+    </div>
+
+    <!-- ── 3. Ghi chú ngắn (tùy chọn) ── -->
+    <div class="form-card" style="padding:18px 28px">
+      <h6><i class="fa fa-comment-alt" style="color:#fd7e14"></i>Ghi chú nhanh <span style="font-weight:400;text-transform:none;font-size:.8rem;color:#adb5bd">(tùy chọn)</span></h6>
+      <textarea name="requester_note" class="form-control" rows="2"
+                placeholder="Lưu ý ngắn cho người duyệt…" style="font-size:.83rem"></textarea>
+    </div>
+
+    <!-- ── 4. Tệp đính kèm ── -->
+    <div class="form-card">
+      <h6><i class="fa fa-paperclip" style="color:#6f42c1"></i>Tệp đính kèm <span style="font-weight:400;text-transform:none;font-size:.8rem;color:#adb5bd">(tùy chọn, riêng tư)</span></h6>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <i class="fa fa-cloud-upload-alt"></i>
+        Kéo & thả hoặc <strong>click để chọn tệp</strong><br>
+        <span style="font-size:.71rem;color:#adb5bd">PDF, DOCX, XLSX, PNG, JPG – tối đa 20MB/tệp · Tệp chỉ người có quyền xem mới truy cập được</span>
+      </div>
+      <input type="file" id="fileInput" name="attachments" multiple style="display:none"
+             accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.zip,.txt,.csv">
+      <div class="file-list" id="fileList"></div>
+    </div>
+
+    <!-- ── Footer actions ── -->
+    <div class="submit-footer">
+      <a href="javascript:history.back()" class="btn btn-outline-secondary">
+        <i class="fa fa-times me-1"></i>Hủy
+      </a>
+      <button type="submit" class="btn btn-primary px-5" id="submitBtn">
+        <i class="fa fa-paper-plane me-2"></i>Nộp phê duyệt
+      </button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+// ── Quill ──────────────────────────────────────────────────────────────────
+const quill = new Quill('#quill-editor', {
+  theme: 'snow',
+  placeholder: 'Nhập nội dung chi tiết trình duyệt...\n\n• Lý do cần phê duyệt\n• Các điểm cần lưu ý\n• Điều khoản đặc biệt (nếu có)',
+  modules: {
+    toolbar: [
+      [{ header: [2, 3, false] }],
+      ['bold', 'italic', 'underline'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      [{ color: [] }],
+      ['link'],
+      ['clean'],
+    ],
+  },
+});
+
+// ── File upload ────────────────────────────────────────────────────────────
+const dropZone  = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileList  = document.getElementById('fileList');
+let selectedFiles = [];
+
+function iconFor(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const map = { pdf:'fa-file-pdf', doc:'fa-file-word', docx:'fa-file-word',
+                xls:'fa-file-excel', xlsx:'fa-file-excel', png:'fa-file-image',
+                jpg:'fa-file-image', jpeg:'fa-file-image', zip:'fa-file-archive' };
+  return map[ext] || 'fa-file-alt';
+}
+
+function renderFiles() {
+  fileList.innerHTML = selectedFiles.map((f, i) =>
+    `<span class="file-chip">
+       <i class="fa ${iconFor(f.name)}"></i>
+       ${f.name}
+       <span class="fc-size">${(f.size/1024).toFixed(0)} KB</span>
+       <button type="button" onclick="removeFile(${i})" title="Xóa">✕</button>
+     </span>`
+  ).join('');
+  const dt = new DataTransfer();
+  selectedFiles.forEach(f => dt.items.add(f));
+  fileInput.files = dt.files;
+}
+
+window.removeFile = function(idx) { selectedFiles.splice(idx, 1); renderFiles(); };
+
+fileInput.addEventListener('change', () => {
+  Array.from(fileInput.files).forEach(f => {
+    if (!selectedFiles.find(x => x.name === f.name && x.size === f.size))
+      selectedFiles.push(f);
+  });
+  renderFiles();
+});
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  Array.from(e.dataTransfer.files).forEach(f => selectedFiles.push(f));
+  renderFiles();
+});
+
+// ── Submit ─────────────────────────────────────────────────────────────────
+document.getElementById('submitForm').addEventListener('submit', function(e) {
+  document.getElementById('bodyInput').value = quill.root.innerHTML.trim();
+  const title = document.getElementById('id_title').value.trim();
+  if (!title) {
+    e.preventDefault();
+    document.getElementById('id_title').focus();
+    return;
+  }
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i>Đang nộp…';
+});
+</script>
+{% endblock %}
+

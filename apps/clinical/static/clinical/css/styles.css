@@ -1,0 +1,282 @@
+.card-body {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-body h5.card-title {
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.card-body p {
+  margin: 6px 0;
+  font-size: 15px;
+  color: #555;
+}
+
+.card-body strong {
+  color: #222;
+}
+
+.mb-2 {
+  margin-bottom: 1rem;
+}
+
+textarea.form-control {
+  width: 100%;
+  font-size: 14px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  resize: none;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  background-color: #0069d9;
+  border-color: #0062cc;
+}
+
+/* Modal customization */
+.modal-pdf .modal-dialog {
+  max-width: 80%;
+  width: 100%;
+  height: 100vh;
+  margin: 0 auto;
+}
+
+.modal-pdf .modal-content {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-pdf .modal-body {
+  flex-grow: 1;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+}
+
+.modal-pdf .modal-body iframe {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0 0 6px 6px;
+  overflow: auto;
+}
+
+.admin-info-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.admin-info-inline > div {
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SIDEBAR — Danh sách bệnh nhân
+   ══════════════════════════════════════════════════════════ */
+.pl-sidebar {
+  width: 272px;
+  flex-shrink: 0;
+  height: calc(100vh - 60px);
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-right: 1.5px solid #e2e8f0;
+  overflow: hidden;
+}
+
+/* Header */
+.pl-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+.pl-sidebar-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: .3px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.pl-sidebar-title i { color: #3b82f6; }
+
+.pl-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 100px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 700;
+}
+.pl-count-badge:empty { display: none; }
+
+/* Filters */
+.pl-sidebar-filters {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex-shrink: 0;
+  background: #f8f9fb;
+}
+.pl-filter-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.pl-fi {
+  position: absolute;
+  left: 10px;
+  color: #94a3b8;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1;
+}
+.pl-filter-select,
+.pl-filter-input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px 0 30px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1e293b;
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color .18s, box-shadow .18s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.pl-filter-select {
+  /* custom arrow */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+.pl-filter-select:focus,
+.pl-filter-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.10);
+}
+
+/* Scrollable list */
+.pl-sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.pl-sidebar-list::-webkit-scrollbar { width: 4px; }
+.pl-sidebar-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+/* Patient items — rendered by clinic.js */
+.patient-item {
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1.5px solid #e2e8f0;
+  margin-bottom: 6px;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+  user-select: none;
+}
+.patient-item:hover {
+  border-color: #93c5fd;
+  background: #f0f9ff;
+  box-shadow: 0 1px 6px rgba(59,130,246,.12);
+}
+.patient-item.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
+
+/* Inner elements of each patient card */
+.pi-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pi-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.pi-gender {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 100px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.pi-male   { background: #eff6ff; color: #1d4ed8; }
+.pi-female { background: #fdf2f8; color: #9d174d; }
+.pi-dob {
+  font-size: 11.5px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.pi-code {
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: monospace;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 1px;
+}
+.pi-walkin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 100px;
+  background: #fef3c7;
+  color: #b45309;
+  margin-left: 4px;
+  vertical-align: middle;

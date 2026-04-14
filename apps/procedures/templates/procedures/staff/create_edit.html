@@ -1,0 +1,146 @@
+{% extends "base_admin.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Chỉnh sửa{% else %}Tạo{% endif %} quy trình{% endblock %}
+
+{% block extra_head %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+  .ql-container { min-height: 200px; font-size: 14px; }
+  .ql-toolbar { border-radius: 6px 6px 0 0; }
+  .ql-container { border-radius: 0 0 6px 6px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{% if is_edit %}{% url 'procedures:detail' procedure.pk %}{% else %}{% url 'procedures:list' %}{% endif %}"
+     class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+  <div>
+    <h4 class="mb-0 fw-bold">
+      {% if is_edit %}Chỉnh sửa: {{ procedure.title }}{% else %}Tạo quy trình mới{% endif %}
+    </h4>
+    <p class="text-muted small mb-0">
+      {% if is_edit %}Cập nhật thông tin và nội dung quy trình{% else %}Điền thông tin để tạo quy trình mới{% endif %}
+    </p>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-lg-9">
+
+{% if messages %}
+{% for msg in messages %}
+<div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+  {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<form method="post" id="proc-form">
+{% csrf_token %}
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold py-3">
+    <i class="fa-solid fa-circle-info me-2 text-primary"></i>Thông tin cơ bản
+  </div>
+  <div class="card-body p-4">
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label fw-semibold">Tên quy trình <span class="text-danger">*</span></label>
+        <input type="text" name="title" class="form-control form-control-lg"
+               value="{{ procedure.title|default:'' }}" required
+               placeholder="Ví dụ: Quy trình tiếp nhận khách hàng doanh nghiệp">
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Mã quy trình</label>
+        <input type="text" name="code" class="form-control"
+               value="{{ procedure.code|default:'' }}"
+               placeholder="Tự động nếu để trống">
+        <div class="form-text">Bỏ trống để hệ thống tự tạo mã.</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Phiên bản</label>
+        <input type="text" name="version" class="form-control"
+               value="{{ procedure.version|default:'1.0' }}" placeholder="1.0">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Ngày hiệu lực</label>
+        <input type="date" name="effective_date" class="form-control"
+               value="{{ procedure.effective_date|date:'Y-m-d'|default:'' }}">
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Loại quy trình</label>
+        <select name="category" class="form-select">
+          {% for val, label in category_choices %}
+          <option value="{{ val }}" {% if procedure and procedure.category == val %}selected{% elif not procedure and val == 'other' %}selected{% endif %}>
+            {{ label }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Trạng thái</label>
+        <select name="status" class="form-select">
+          {% for val, label in status_choices %}
+          <option value="{{ val }}" {% if procedure and procedure.status == val %}selected{% elif not procedure and val == 'draft' %}selected{% endif %}>
+            {{ label }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold py-3">
+    <i class="fa-solid fa-paragraph me-2 text-primary"></i>Mô tả tổng quan
+  </div>
+  <div class="card-body p-4">
+    <div id="quill-editor" style="min-height:220px">{% if procedure %}{{ procedure.description|safe }}{% endif %}</div>
+    <input type="hidden" name="description" id="description-hidden">
+    <div class="form-text mt-2">Mô tả mục đích, phạm vi áp dụng và tóm tắt nội dung quy trình.</div>
+  </div>
+</div>
+
+<div class="d-flex gap-2">
+  <button type="submit" class="btn btn-primary px-4">
+    <i class="fa-solid fa-check me-1"></i>
+    {% if is_edit %}Lưu thay đổi{% else %}Tạo quy trình{% endif %}
+  </button>
+  <a href="{% if is_edit %}{% url 'procedures:detail' procedure.pk %}{% else %}{% url 'procedures:list' %}{% endif %}"
+     class="btn btn-outline-secondary">Hủy</a>
+</div>
+
+</form>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+const quill = new Quill('#quill-editor', {
+  theme: 'snow',
+  placeholder: 'Nhập mô tả tổng quan về quy trình...',
+  modules: {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      [{ color: [] }],
+      ['link'],
+      ['clean'],
+    ],
+  },
+});
+
+document.getElementById('proc-form').addEventListener('submit', function () {
+  document.getElementById('description-hidden').value = quill.root.innerHTML;
+});
+</script>
+{% endblock %}
+

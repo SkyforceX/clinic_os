@@ -1,0 +1,57 @@
+{% extends "admin/base_site.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Trang chủ</a> ›
+  <a href="{% url 'admin:hrm_employee_changelist' %}">Nhân viên</a> ›
+  <a href="{% url 'admin:hrm_employee_change' employee.pk %}">{{ employee.full_name }}</a> ›
+  Đồng bộ nhóm quyền
+</div>
+{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<div style="max-width:520px">
+
+  <div style="display:flex;gap:16px;margin-bottom:20px">
+    <div style="flex:1;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:14px">
+      <strong>Nhóm quyền hiện tại:</strong><br>
+      {% if current_groups %}
+        {% for g in current_groups %}
+          <span style="background:#757575;color:#fff;padding:2px 10px;border-radius:12px;
+                       font-size:12px;margin:2px;display:inline-block">{{ g }}</span>
+        {% endfor %}
+      {% else %}
+        <em style="color:#999">Không có</em>
+      {% endif %}
+    </div>
+    <div style="font-size:24px;align-self:center">→</div>
+    <div style="flex:1;background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:14px">
+      <strong>Nhóm theo chức vụ "{{ employee.position }}":</strong><br>
+      {% if new_groups %}
+        {% for g in new_groups %}
+          <span style="background:#1a73e8;color:#fff;padding:2px 10px;border-radius:12px;
+                       font-size:12px;margin:2px;display:inline-block">{{ g }}</span>
+        {% endfor %}
+      {% else %}
+        <em style="color:#999">Không có mapping</em>
+      {% endif %}
+    </div>
+  </div>
+
+  <p style="color:#555">
+    Thao tác này sẽ <strong>xóa toàn bộ nhóm hiện tại</strong>
+    và cấp lại theo PositionGroupMapping của chức vụ hiện tại.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+    <div style="display:flex;gap:10px">
+      <input type="submit" value="🔄 Xác nhận đồng bộ"
+             class="button default"
+             style="background:#1976d2;border-color:#0d47a1;color:#fff">
+      <a href="{% url 'admin:hrm_employee_change' employee.pk %}"
+         class="button cancel-link">Hủy</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base_admin.html" %}
+
+{% load static %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'quality/css/incident.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 incident-form">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">
+      {% if object %}Sửa báo cáo sự cố{% else %}Báo cáo sự cố / rủi ro{% endif %}
+    </h3>
+    <a href="{% url 'quality:incident_report_list' %}" class="btn btn-outline-secondary btn-sm">
+      &larr; Danh sách báo cáo
+    </a>
+  </div>
+
+  {% include "quality/_incident_report_form_body.html" %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'quality/js/incident_report_form.js' %}"></script>
+{% endblock %}

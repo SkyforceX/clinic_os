@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+
+{% load static %}
+
+{% block content %}
+
+<form method="post">
+  {% csrf_token %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Chọn</th>
+        <th>Nhóm</th>
+        <th>Dịch vụ</th>
+        <th>Mô tả</th>
+        <th>Đơn giá</th>
+        <th>Số lượng</th>
+        <th>Thành tiền</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for service in services %}
+      <tr>
+        <td>
+          <input type="checkbox" name="select_{{ service.id }}" value="1">
+        </td>
+        <td>{{ service.group_title }}</td>
+        <td>{{ service.item_name }}</td>
+        <td>{{ service.description }}</td>
+        <td>
+          <input type="number" step="0.01" name="price_{{ service.id }}" value="{{ service.price_default }}">
+        </td>
+        <td>
+          <input type="number" min="1" name="qty_{{ service.id }}" value="1">
+        </td>
+        <td>
+          <span class="line-total" id="total_{{ service.id }}"></span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div>
+    <b>Tổng cộng:</b> <span id="grand_total"></span>
+  </div>
+  <button type="submit" class="btn btn-success">Tạo báo giá</button>
+  <a href="#" class="btn btn-primary" id="create_contract_btn">Tạo hợp đồng</a>
+</form>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('input', function(e) {
+  // Lặp qua từng dịch vụ, tính tổng tiền
+  let grandTotal = 0;
+  {% for service in services %}
+    let checked = document.querySelector('[name="select_{{ service.id }}"]').checked;
+    if (checked) {
+      let qty = parseInt(document.querySelector('[name="qty_{{ service.id }}"]').value) || 1;
+      let price = parseFloat(document.querySelector('[name="price_{{ service.id }}"]').value) || 0;
+      let lineTotal = price * qty;
+      document.getElementById('total_{{ service.id }}').textContent = lineTotal.toLocaleString();
+      grandTotal += lineTotal;
+    } else {
+      document.getElementById('total_{{ service.id }}').textContent = '';
+    }
+  {% endfor %}
+  document.getElementById('grand_total').textContent = grandTotal.toLocaleString();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,335 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}{{ clist.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.stat-card{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:14px 18px;text-align:center}
+.stat-num{font-size:1.6rem;font-weight:700;color:#1a5276;line-height:1}
+.stat-lbl{font-size:.74rem;color:#6c757d;margin-top:3px}
+.contact-table{width:100%;border-collapse:collapse;font-size:.83rem}
+.contact-table th{background:#f8f9fa;padding:8px 12px;font-weight:600;color:#495057;border-bottom:2px solid #dee2e6;white-space:nowrap;position:sticky;top:0;z-index:2}
+.contact-table td{padding:8px 12px;border-bottom:1px solid #f1f3f5;vertical-align:middle}
+.contact-table tr:hover td{background:#f8f9fa}
+.phone-masked{font-family:monospace;letter-spacing:.05em;color:#6c757d}
+.phone-full{font-family:monospace;letter-spacing:.05em;color:#1a5276;font-weight:600}
+.s-pill{padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:600;white-space:nowrap}
+.s-NEW{background:#e9ecef;color:#495057}
+.s-ASSIGNED{background:#cce5ff;color:#004085}
+.s-REACHED{background:#d4edda;color:#155724}
+.s-INTERESTED{background:#d1ecf1;color:#0c5460}
+.s-NOT_INTERESTED{background:#f8d7da;color:#721c24}
+.s-CONVERTED{background:#d4edda;color:#155724;font-weight:800}
+.s-FOLLOW_UP{background:#fff3cd;color:#856404}
+.s-DO_NOT_CALL{background:#f8d7da;color:#721c24}
+.s-NOT_REACHED{background:#e9ecef;color:#6c757d}
+.s-CALLING{background:#d0e8ff;color:#1a5276}
+.table-wrap{max-height:60vh;overflow-y:auto;border:1px solid #dee2e6;border-radius:8px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h5 class="mb-0"><i class="fa fa-address-book me-2" style="color:#1a5276"></i>{{ clist.name }}</h5>
+    <div class="text-muted" style="font-size:.78rem">
+      {{ clist.campaign_tag|default:"–" }} ·
+      <span class="badge bg-{% if clist.status == 'ACTIVE' %}success{% elif clist.status == 'PAUSED' %}warning{% else %}secondary{% endif %}">
+        {{ clist.get_status_display }}
+      </span>
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if is_admin %}
+    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+      <i class="fa fa-upload me-1"></i>Upload Excel
+    </button>
+    <button class="btn btn-sm btn-outline-secondary" id="btnSelectAll">Chọn tất cả</button>
+    <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#assignModal" id="btnAssignSelected">
+      <i class="fa fa-user-plus me-1"></i>Phân công
+    </button>
+    {% endif %}
+    <a href="{% url 'engagement:contact_list_index' %}" class="btn btn-sm btn-outline-secondary">← Quay lại</a>
+  </div>
+</div>
+
+<!-- ── Stats ── -->
+<div class="row g-2 mb-3">
+  {% with t=clist.total_contacts cr=clist.contact_rate %}
+  <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-num">{{ t }}</div><div class="stat-lbl">Tổng liên hệ</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-num">{{ clist.contacted_count }}</div><div class="stat-lbl">Đã liên hệ</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-num">{{ cr }}%</div><div class="stat-lbl">Tỷ lệ tiếp cận</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-card">
+    <div class="stat-num">{{ contacts|length }}</div><div class="stat-lbl">Đang hiển thị</div>
+  </div></div>
+  {% endwith %}
+</div>
+
+<!-- ── Filters ── -->
+<form method="get" class="d-flex gap-2 flex-wrap align-items-end mb-3">
+  <input type="text" name="q" value="{{ search|default:'' }}" class="form-control form-control-sm" style="width:200px" placeholder="Tìm tên, công ty...">
+  <select name="status" class="form-select form-select-sm" style="width:170px">
+    <option value="">Tất cả trạng thái</option>
+    {% for v,l in status_choices %}<option value="{{ v }}" {% if status_filter == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+  </select>
+  {% if is_admin %}
+  <select name="assigned" class="form-select form-select-sm" style="width:140px">
+    <option value="">Tất cả</option>
+    <option value="me">Của tôi</option>
+    <option value="unassigned">Chưa giao</option>
+  </select>
+  {% endif %}
+  <button type="submit" class="btn btn-sm btn-primary">Lọc</button>
+</form>
+
+{% if not can_view_phone %}
+<div class="alert alert-info py-2" style="font-size:.83rem">
+  <i class="fa fa-shield-halved me-1"></i>
+  Số điện thoại được ẩn để bảo vệ dữ liệu. Liên hệ admin để được cấp quyền xem đầy đủ.
+</div>
+{% endif %}
+
+<!-- ── Table ── -->
+<div class="table-wrap">
+<table class="contact-table">
+  <thead>
+    <tr>
+      {% if is_admin %}<th><input type="checkbox" id="checkAll" onchange="toggleAll(this)"></th>{% endif %}
+      <th>#</th>
+      <th>Họ tên</th>
+      <th>SĐT</th>
+      <th>Công ty</th>
+      <th>Chức vụ</th>
+      <th>Agent</th>
+      <th>Trạng thái</th>
+      <th>Gọi lần</th>
+      <th>Follow-up</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for contact in contacts %}
+  <tr>
+    {% if is_admin %}
+    <td><input type="checkbox" class="contact-check" value="{{ contact.id }}"></td>
+    {% endif %}
+    <td class="text-muted" style="font-size:.75rem">{{ contact.row_number }}</td>
+    <td class="fw-semibold">
+      <a href="{% url 'engagement:contact_detail' contact.id %}" class="text-decoration-none" style="color:#1a5276">
+        {{ contact.full_name }}
+      </a>
+    </td>
+    <td>
+      {% if can_view_phone %}
+      <span class="phone-full">{{ contact.phone_raw }}</span>
+      {% else %}
+      <span class="phone-masked">{{ contact.phone_masked }}</span>
+      {% endif %}
+    </td>
+    <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ contact.company_name|default:"–" }}</td>
+    <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6c757d">{{ contact.position|default:"–" }}</td>
+    <td style="font-size:.78rem">{{ contact.assigned_to.get_full_name|default:"–" }}</td>
+    <td><span class="s-pill s-{{ contact.status }}">{{ contact.get_status_display }}</span></td>
+    <td class="text-center">{{ contact.call_count }}</td>
+    <td style="font-size:.78rem;white-space:nowrap;color:{% if contact.follow_up_at %}#dc3545{% else %}#adb5bd{% endif %}">
+      {% if contact.follow_up_at %}{{ contact.follow_up_at|date:"d/m/Y H:i" }}{% else %}–{% endif %}
+    </td>
+    <td>
+      <button class="btn btn-xs btn-outline-primary" style="font-size:.72rem;padding:2px 7px"
+              onclick="openCallModal({{ contact.id }}, '{{ contact.full_name|escapejs }}')">
+        <i class="fa fa-phone"></i>
+      </button>
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="11" class="text-center py-4 text-muted">Không có liên hệ nào.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<!-- ── Upload Modal ── -->
+{% if is_admin %}
+<div class="modal" id="uploadModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Upload Excel</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size:.83rem">File Excel cần có cột: <strong>Họ tên, Số điện thoại</strong> (bắt buộc) và các cột tuỳ chọn: Email, Công ty, Chức vụ, Địa chỉ.</p>
+        <form id="uploadForm" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Chọn file Excel (.xlsx)</label>
+            <input type="file" name="excel_file" accept=".xlsx,.xls" class="form-control" required>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="overwrite" value="1" id="chkOverwrite">
+            <label class="form-check-label" for="chkOverwrite" style="font-size:.83rem">
+              Xóa toàn bộ danh sách cũ trước khi import
+            </label>
+          </div>
+        </form>
+        <div id="uploadResult" class="mt-2"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="doUpload()">
+          <i class="fa fa-upload me-1"></i>Upload
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Assign Modal ── -->
+<div class="modal" id="assignModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Phân công Agent</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2" style="font-size:.83rem" id="assignCount">Đã chọn: 0 liên hệ</div>
+        <select class="form-select" id="assignAgent">
+          <option value="">-- Bỏ giao (chưa phân công) --</option>
+          {% for ag in agents %}
+          <option value="{{ ag.id }}">{{ ag.get_full_name|default:ag.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="doAssign()">Phân công</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Call Log Modal ── -->
+<div class="modal" id="callModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">📞 Ghi nhận liên hệ – <span id="callContactName"></span></h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="callContactId">
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label fw-semibold" style="font-size:.82rem">Kênh liên hệ</label>
+            <select class="form-select form-select-sm" id="callChannel">
+              {% for v,l in call_channel_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold" style="font-size:.82rem">Kết quả</label>
+            <select class="form-select form-select-sm" id="callOutcome">
+              {% for v,l in outcome_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold" style="font-size:.82rem">Thời lượng (giây)</label>
+            <input type="number" class="form-control form-control-sm" id="callDuration" min="0" placeholder="0">
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold" style="font-size:.82rem">Hẹn follow-up</label>
+            <input type="datetime-local" class="form-control form-control-sm" id="callFollowUp">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold" style="font-size:.82rem">Ghi chú</label>
+            <textarea class="form-control form-control-sm" id="callNote" rows="2" placeholder="Nội dung cuộc gọi..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="submitCall()">Lưu</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const CSRF = '{{ csrf_token }}';
+const LIST_ID = {{ clist.id }};
+
+function openCallModal(id, name){
+  document.getElementById('callContactId').value = id;
+  document.getElementById('callContactName').textContent = name;
+  document.getElementById('callNote').value = '';
+  document.getElementById('callDuration').value = '';
+  document.getElementById('callFollowUp').value = '';
+  new bootstrap.Modal(document.getElementById('callModal')).show();
+}
+
+async function submitCall(){
+  const cid = document.getElementById('callContactId').value;
+  const res = await fetch(`/engagement/contacts/detail/${cid}/call/`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+    body:JSON.stringify({
+      outcome:    document.getElementById('callOutcome').value,
+      channel:    document.getElementById('callChannel').value,
+      duration_s: parseInt(document.getElementById('callDuration').value||0),
+      note:       document.getElementById('callNote').value,
+      follow_up_at: document.getElementById('callFollowUp').value || null,
+    }),
+  });
+  const d = await res.json();
+  if(d.ok){ bootstrap.Modal.getInstance(document.getElementById('callModal')).hide(); location.reload(); }
+  else{ alert('Lỗi: '+d.error); }
+}
+
+{% if is_admin %}
+function toggleAll(master){
+  document.querySelectorAll('.contact-check').forEach(cb=>cb.checked=master.checked);
+  updateAssignCount();
+}
+
+function updateAssignCount(){
+  const count = document.querySelectorAll('.contact-check:checked').length;
+  document.getElementById('assignCount').textContent = `Đã chọn: ${count} liên hệ`;
+}
+
+document.querySelectorAll('.contact-check').forEach(cb=>cb.addEventListener('change',updateAssignCount));
+document.getElementById('btnSelectAll')?.addEventListener('click',()=>{
+  document.querySelectorAll('.contact-check').forEach(cb=>cb.checked=true);
+  updateAssignCount();
+});
+
+async function doAssign(){
+  const ids     = Array.from(document.querySelectorAll('.contact-check:checked')).map(cb=>parseInt(cb.value));
+  const agent   = document.getElementById('assignAgent').value || null;
+  if(!ids.length){ alert('Chưa chọn liên hệ nào.'); return; }
+  const res = await fetch('/engagement/contacts/assign/',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+    body:JSON.stringify({contact_ids:ids, agent_id:agent}),
+  });
+  const d = await res.json();
+  if(d.ok){ bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide(); location.reload(); }
+}
+
+async function doUpload(){
+  const form    = document.getElementById('uploadForm');
+  const formData = new FormData(form);
+  const res = await fetch(`/engagement/contacts/${LIST_ID}/upload/`,{
+    method:'POST',
+    headers:{'X-CSRFToken':CSRF},
+    body:formData,
+  });
+  const d = await res.json();
+  const el = document.getElementById('uploadResult');
+  if(d.ok){
+    el.innerHTML = `<div class="alert alert-success py-2">✅ Đã import <strong>${d.created}</strong> liên hệ (${d.total_rows} hàng). ${d.errors.length ? d.errors.slice(0,3).join('<br>') : ''}</div>`;
+    setTimeout(()=>location.reload(), 1500);
+  } else {
+    el.innerHTML = `<div class="alert alert-danger py-2">❌ ${d.error}</div>`;
+  }
+}
+{% endif %}
+</script>
+{% endblock %}
+

@@ -1,0 +1,277 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}Inbox phê duyệt{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ══════════════════════════════════════
+   Approvals – Inbox
+══════════════════════════════════════ */
+.apv-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+  margin-bottom: 18px;
+}
+.filter-strip {
+  display: flex; align-items: center;
+  flex-wrap: wrap; gap: 8px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+.filter-strip select {
+  font-size: .81rem; border-radius: 7px;
+  border: 1px solid #dee2e6;
+  padding: 5px 10px; height: 34px;
+  background: #fff;
+}
+
+/* ── Request card ── */
+.ar-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0;
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: box-shadow .14s, transform .1s;
+}
+.ar-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
+.ar-card.status-PENDING  { border-left: 4px solid #ffc107; }
+.ar-card.status-APPROVED { border-left: 4px solid #198754; }
+.ar-card.status-REJECTED { border-left: 4px solid #dc3545; }
+.ar-card.status-RECALLED { border-left: 4px solid #adb5bd; }
+
+.ar-card-body {
+  display: flex; align-items: center;
+  gap: 14px; padding: 14px 16px;
+}
+.ar-type-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px;
+  border-radius: 10px; font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.ar-main { flex: 1; min-width: 0; }
+.ar-title {
+  font-size: .88rem; font-weight: 700; color: #1a1a2e;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+.ar-title a { color: inherit; text-decoration: none; }
+.ar-title a:hover { color: #0d6efd; text-decoration: underline; }
+.ar-sub { font-size: .74rem; color: #6c757d; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ar-side { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; flex-shrink: 0; }
+
+/* Status pill */
+.spill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: .71rem; font-weight: 700; white-space: nowrap;
+}
+.spill-PENDING  { background:#fff3cd; color:#856404; border:1px solid #ffc107; }
+.spill-APPROVED { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+.spill-REJECTED { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+.spill-RECALLED { background:#e5e7eb; color:#374151; border:1px solid #9ca3af; }
+
+.ar-actions { display: flex; gap: 5px; align-items: center; }
+
+.empty-state {
+  text-align: center; padding: 60px 20px; color: #adb5bd;
+}
+.empty-state i { font-size: 3rem; display: block; margin-bottom: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="apv-header">
+  <div>
+    <h5 class="mb-0" style="font-size:1.05rem;font-weight:700">
+      <i class="fa fa-inbox me-2" style="color:#0d6efd"></i>
+      Inbox phê duyệt
+      {% if pending_count %}
+        <span class="badge bg-danger ms-1" style="font-size:.65rem">{{ pending_count }}</span>
+      {% endif %}
+    </h5>
+    <div style="font-size:.74rem;color:#6c757d">Tổng hợp yêu cầu phê duyệt đang chờ xử lý</div>
+  </div>
+  <a href="{% url 'approvals:my_requests' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="fa fa-user me-1"></i>Yêu cầu của tôi
+  </a>
+</div>
+
+<!-- ── Filter ── -->
+<form method="get" class="filter-strip">
+  <label style="font-size:.74rem;color:#6c757d;white-space:nowrap">Trạng thái:</label>
+  <select name="status" onchange="this.form.submit()">
+    <option value="">Tất cả</option>
+    {% for val, label in status_choices %}
+    <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <label style="font-size:.74rem;color:#6c757d;white-space:nowrap">Loại:</label>
+  <select name="type" onchange="this.form.submit()">
+    <option value="">Tất cả</option>
+    {% for val, label in type_choices %}
+    <option value="{{ val }}" {% if type_filter == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  {% if status_filter or type_filter %}
+  <a href="{% url 'approvals:inbox' %}" class="btn btn-sm btn-outline-secondary ms-auto">
+    <i class="fa fa-times me-1"></i>Xóa lọc
+  </a>
+  {% endif %}
+</form>
+
+<!-- ── List ── -->
+{% if approval_requests %}
+{% for ar in approval_requests %}
+<div class="ar-card status-{{ ar.status }}">
+  <div class="ar-card-body">
+
+    <!-- Type icon -->
+    <div class="ar-type-badge
+      {% if ar.request_type == 'QUOTATION' %}bg-primary bg-opacity-10
+      {% elif ar.request_type == 'CONTRACT' %}bg-success bg-opacity-10
+      {% elif ar.request_type == 'PAYMENT_VOUCHER' %}bg-warning bg-opacity-10
+      {% else %}bg-secondary bg-opacity-10{% endif %}">
+      {% if ar.request_type == 'QUOTATION' %}📋
+      {% elif ar.request_type == 'CONTRACT' %}📄
+      {% elif ar.request_type == 'PAYMENT_VOUCHER' %}💳
+      {% else %}📑{% endif %}
+    </div>
+
+    <div class="ar-main">
+      <div class="ar-title">
+        {% if ar.submission_title %}
+          <a href="{% url 'approvals:detail' ar.pk %}">{{ ar.submission_title }}</a>
+        {% else %}
+          <a href="{% url 'approvals:detail' ar.pk %}">#{{ ar.pk }} – {{ ar.get_request_type_display }}</a>
+        {% endif %}
+      </div>
+      <div class="ar-sub">
+        <span>{{ ar.get_request_type_display }}</span>
+        <span>·</span>
+        <!-- Link trực tiếp tới tài liệu -->
+        {% if ar.document_url %}
+        <a href="{{ ar.document_url }}" target="_blank" style="color:#0d6efd;text-decoration:none" title="Mở tài liệu gốc">
+          <i class="fa fa-external-link-alt fa-xs me-1"></i>{{ ar.document_label }}
+        </a>
+        {% else %}
+        <span>{{ ar.document_label }}</span>
+        {% endif %}
+        <span>·</span>
+        <span><i class="fa fa-user fa-xs me-1"></i>{{ ar.requested_by.get_full_name|default:ar.requested_by.username|default:"—" }}</span>
+        <span>·</span>
+        <span><i class="fa fa-clock fa-xs me-1"></i>{{ ar.requested_at|date:"d/m/Y H:i" }}</span>
+        {% if ar.attachments.count %}
+        <span>·</span>
+        <span style="color:#6f42c1"><i class="fa fa-paperclip fa-xs me-1"></i>{{ ar.attachments.count }} tệp</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="ar-side">
+      <span class="spill spill-{{ ar.status }}">
+        {% if ar.status == 'PENDING' %}⏳{% elif ar.status == 'APPROVED' %}✅{% elif ar.status == 'REJECTED' %}❌{% else %}↩{% endif %}
+        {{ ar.get_status_display }}
+      </span>
+      <div class="ar-actions">
+        <a href="{% url 'approvals:detail' ar.pk %}" class="btn btn-sm btn-outline-primary" style="font-size:.74rem;padding:3px 10px">
+          <i class="fa fa-eye me-1"></i>Xem
+        </a>
+        {% if ar.status == 'PENDING' %}
+        <button type="button" class="btn btn-sm btn-success" style="font-size:.74rem;padding:3px 10px"
+                data-bs-toggle="modal" data-bs-target="#modalApprove{{ ar.pk }}" title="Phê duyệt">
+          <i class="fa fa-check me-1"></i>Duyệt
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-danger" style="font-size:.74rem;padding:3px 10px"
+                data-bs-toggle="modal" data-bs-target="#modalReject{{ ar.pk }}" title="Từ chối">
+          <i class="fa fa-times"></i>
+        </button>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endfor %}
+
+{% else %}
+<div class="empty-state">
+  <i class="fa fa-inbox"></i>
+  <div style="font-size:.95rem;font-weight:600;color:#6c757d">Không có yêu cầu nào{% if status_filter or type_filter %} phù hợp bộ lọc{% endif %}</div>
+</div>
+{% endif %}
+
+<!-- ── Modals ── -->
+{% block modals %}
+{% for ar in approval_requests %}{% if ar.status == 'PENDING' %}
+
+<div class="modal" id="modalApprove{{ ar.pk }}" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:14px">
+      <div class="modal-header border-0 pb-0" style="background:#f0fff4">
+        <h5 class="modal-title" style="font-size:.9rem;font-weight:700;color:#198754">
+          <i class="fa fa-check-circle me-2"></i>Xác nhận phê duyệt
+        </h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'approvals:approve' ar.pk %}">
+        {% csrf_token %}
+        <div class="modal-body" style="font-size:.84rem">
+          <p class="mb-1">Phê duyệt yêu cầu <strong>#{{ ar.pk }}</strong>:</p>
+          <p class="fw-semibold text-muted mb-3" style="font-size:.85rem">{{ ar.document_label }}</p>
+          <label class="form-label" style="font-size:.78rem;font-weight:600">Ghi chú (tùy chọn)</label>
+          <textarea name="reviewer_note" class="form-control form-control-sm" rows="2"
+                    placeholder="Đã kiểm tra và xác nhận…"></textarea>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-sm btn-success px-4">
+            <i class="fa fa-check me-1"></i>Phê duyệt
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modalReject{{ ar.pk }}" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:14px">
+      <div class="modal-header border-0 pb-0" style="background:#fff5f5">
+        <h5 class="modal-title" style="font-size:.9rem;font-weight:700;color:#dc3545">
+          <i class="fa fa-times-circle me-2"></i>Từ chối yêu cầu
+        </h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'approvals:reject' ar.pk %}">
+        {% csrf_token %}
+        <div class="modal-body" style="font-size:.84rem">
+          <p class="mb-1">Từ chối yêu cầu <strong>#{{ ar.pk }}</strong>:</p>
+          <p class="fw-semibold text-muted mb-3" style="font-size:.85rem">{{ ar.document_label }}</p>
+          <label class="form-label" style="font-size:.78rem;font-weight:600">Lý do từ chối <span class="text-danger">*</span></label>
+          <textarea name="reviewer_note" class="form-control form-control-sm" rows="3"
+                    required placeholder="Bắt buộc nhập lý do từ chối…"></textarea>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-sm btn-danger px-4">
+            <i class="fa fa-times me-1"></i>Từ chối
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endif %}{% endfor %}
+{% endblock modals %}
+
+{% endblock %}
+

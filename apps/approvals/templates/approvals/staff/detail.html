@@ -1,0 +1,525 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}Yêu cầu phê duyệt #{{ ar.pk }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ══════════════════════════════════════
+   Approvals – Detail
+══════════════════════════════════════ */
+.detail-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  margin-bottom: 20px;
+}
+.section-card {
+  background: #fff; border: 1px solid #e2e8f0;
+  border-radius: 12px; margin-bottom: 14px; overflow: hidden;
+}
+.section-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid #f1f3f5;
+  font-size: .78rem; font-weight: 700;
+  color: #495057; text-transform: uppercase; letter-spacing: .05em;
+}
+.section-card-head i { margin-right: 7px; }
+.section-card-body { padding: 16px 18px; }
+
+/* Meta info rows */
+.meta-row {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 7px 0; border-bottom: 1px solid #f8f9fa; font-size: .84rem;
+}
+.meta-row:last-child { border-bottom: none; }
+.meta-lbl { width: 150px; flex-shrink: 0; font-size: .74rem; color: #6c757d; font-weight: 500; }
+
+/* Status pills */
+.spill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: .75rem; font-weight: 700; white-space: nowrap;
+}
+.spill-PENDING  { background:#fff3cd; color:#856404; border:1px solid #ffc107; }
+.spill-APPROVED { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+.spill-REJECTED { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+.spill-RECALLED { background:#e5e7eb; color:#374151; border:1px solid #9ca3af; }
+
+/* Submission body */
+.submission-body {
+  font-size: .85rem; line-height: 1.7;
+  color: #343a40; padding: 16px 18px;
+}
+.submission-body h2, .submission-body h3 { font-size: 1rem; font-weight: 700; margin-top: 12px; }
+.submission-body ul, .submission-body ol { padding-left: 22px; }
+.submission-body p { margin-bottom: 6px; }
+
+/* Attachment chips */
+.att-grid { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 18px; }
+.att-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 8px 14px; font-size: .79rem; color: #343a40;
+  background: #fff; transition: all .12s; cursor: pointer;
+  text-decoration: none; max-width: 240px;
+}
+.att-chip:hover { border-color: #0d6efd; background: #f0f5ff; color: #0d6efd; }
+.att-chip i { font-size: 1.1rem; flex-shrink: 0; }
+.att-chip-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.att-chip-size { font-size: .68rem; color: #adb5bd; flex-shrink: 0; }
+.att-chip--word i { color: #2b579a; }
+.att-chip--excel i { color: #217346; }
+.att-chip--pdf i { color: #dc3545; }
+.att-chip--image i { color: #0d6efd; }
+.att-chip--default i { color: #6c757d; }
+
+/* Action buttons */
+.action-strip {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 14px 18px; border-top: 1px solid #f1f3f5;
+  background: #fafafa;
+}
+
+/* Timeline */
+.tl { display: flex; flex-direction: column; gap: 0; }
+.tl-item {
+  display: flex; gap: 10px;
+  padding: 10px 0; position: relative;
+}
+.tl-item::before {
+  content: ''; position: absolute;
+  left: 15px; top: 36px; bottom: -10px;
+  width: 2px; background: #e9ecef;
+}
+.tl-item:last-child::before { display: none; }
+.tl-dot {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; font-weight: 700; color: #fff; flex-shrink: 0; z-index: 1;
+}
+.dot-SUBMITTED { background: #0d6efd; }
+.dot-APPROVED  { background: #198754; }
+.dot-REJECTED  { background: #dc3545; }
+.dot-RECALLED  { background: #6c757d; }
+.tl-content { flex: 1; }
+.tl-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 2px;
+}
+.tl-action-label { font-size: .8rem; font-weight: 700; }
+.tl-time { font-size: .71rem; color: #adb5bd; }
+.tl-actor { font-size: .76rem; color: #6c757d; }
+.tl-note {
+  margin-top: 5px; font-size: .79rem;
+  background: #f8f9fa; border-radius: 7px;
+  padding: 6px 10px; color: #343a40; line-height: 1.5;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Header ── -->
+<div class="detail-header">
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url 'approvals:inbox' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fa fa-arrow-left"></i>
+    </a>
+    <div>
+      <h5 class="mb-0" style="font-size:.97rem;font-weight:700">
+        {% if ar.submission_title %}
+          {{ ar.submission_title }}
+        {% else %}
+          Yêu cầu phê duyệt #{{ ar.pk }}
+        {% endif %}
+      </h5>
+      <div style="font-size:.73rem;color:#6c757d">
+        #{{ ar.pk }} · {{ ar.get_request_type_display }}
+        · Nộp {{ ar.requested_at|date:"d/m/Y H:i" }}
+      </div>
+    </div>
+  </div>
+  <span class="spill spill-{{ ar.status }}">
+    {% if ar.status == 'PENDING' %}⏳{% elif ar.status == 'APPROVED' %}✅{% elif ar.status == 'REJECTED' %}❌{% else %}↩{% endif %}
+    {{ ar.get_status_display }}
+  </span>
+</div>
+
+<div class="row g-3">
+
+  <!-- ══ Cột trái ══ -->
+  <div class="col-12 col-lg-8">
+
+    <!-- ── Thông tin tài liệu ── -->
+    <div class="section-card">
+      <div class="section-card-head">
+        <span><i class="fa fa-file-alt" style="color:#0d6efd"></i>Thông tin tài liệu</span>
+      </div>
+      <div class="section-card-body">
+        <div class="meta-row">
+          <span class="meta-lbl">Loại tài liệu</span>
+          <span>{{ ar.get_request_type_display }}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-lbl">Tài liệu</span>
+          <span class="d-flex align-items-center gap-2">
+            <strong>{{ ar.document_label }}</strong>
+            {% if ar.document_url %}
+            <a href="{{ ar.document_url }}" target="_blank" class="btn btn-xs btn-outline-primary" style="font-size:.71rem;padding:2px 8px">
+              <i class="fa fa-external-link-alt me-1"></i>Mở tài liệu
+            </a>
+            {% endif %}
+          </span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-lbl">Người nộp</span>
+          <span>{{ ar.requested_by.get_full_name|default:ar.requested_by.username|default:"—" }}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-lbl">Thời gian nộp</span>
+          <span>{{ ar.requested_at|date:"d/m/Y H:i" }}</span>
+        </div>
+        {% if ar.reviewed_by %}
+        <div class="meta-row">
+          <span class="meta-lbl">Người duyệt</span>
+          <span>{{ ar.reviewed_by.get_full_name|default:ar.reviewed_by.username }}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-lbl">Thời gian duyệt</span>
+          <span>{{ ar.reviewed_at|date:"d/m/Y H:i" }}</span>
+        </div>
+        {% endif %}
+        {% if ar.reviewer_note %}
+        <div class="meta-row">
+          <span class="meta-lbl">Phản hồi người duyệt</span>
+          <span {% if ar.status == 'REJECTED' %}style="color:#dc3545;font-weight:600"{% endif %}>
+            {{ ar.reviewer_note }}
+          </span>
+        </div>
+        {% endif %}
+        {% if ar.requester_note %}
+        <div class="meta-row">
+          <span class="meta-lbl">Ghi chú người nộp</span>
+          <span style="color:#6c757d">{{ ar.requester_note }}</span>
+        </div>
+        {% endif %}
+        {% if can_revoke_approved %}
+        <button class="btn btn-outline-danger btn-sm px-4" data-bs-toggle="modal" data-bs-target="#modalRevokeApproved">
+          <i class="fa fa-unlock me-2"></i>Gỡ bỏ phê duyệt
+        </button>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── Nội dung trình duyệt ── -->
+    {% if ar.submission_body %}
+    <div class="section-card">
+      <div class="section-card-head">
+        <span><i class="fa fa-align-left" style="color:#198754"></i>Nội dung trình duyệt</span>
+      </div>
+      <div class="submission-body">
+        {{ ar.submission_body|safe }}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Tệp đính kèm ── -->
+    {% if attachments %}
+    <div class="section-card">
+      <div class="section-card-head">
+        <span><i class="fa fa-paperclip" style="color:#6f42c1"></i>Tệp đính kèm</span>
+        <span style="font-size:.76rem;color:#adb5bd;text-transform:none;letter-spacing:0">{{ attachments|length }} tệp</span>
+      </div>
+      <div class="att-grid">
+        {% for att in attachments %}
+        <div class="att-chip"
+             data-att-id="{{ att.pk }}"
+             data-att-name="{{ att.filename|escapejs }}"
+             data-att-type="{{ att.content_type|default:''|escapejs }}"
+             onclick="previewAttachment(this.dataset.attId, this.dataset.attName, this.dataset.attType)"
+             title="{{ att.filename }} – {{ att.size_display }}">
+          {% if att.is_pdf %}
+          <i class="fa {{ att.icon_class }} att-chip--pdf"></i>
+          {% elif att.is_image %}
+          <i class="fa {{ att.icon_class }} att-chip--image"></i>
+          {% elif att.content_type and 'word' in att.content_type %}
+          <i class="fa {{ att.icon_class }} att-chip--word"></i>
+          {% elif att.content_type and 'excel' in att.content_type %}
+          <i class="fa {{ att.icon_class }} att-chip--excel"></i>
+          {% else %}
+          <i class="fa {{ att.icon_class }} att-chip--default"></i>
+          {% endif %}
+          <span class="att-chip-name">{{ att.filename }}</span>
+          <span class="att-chip-size">{{ att.size_display }}</span>
+          <a href="{% url 'approvals:serve_attachment' att.pk %}?download=1"
+             onclick="event.stopPropagation()"
+             class="btn btn-xs btn-outline-secondary ms-1"
+             style="font-size:.65rem;padding:1px 5px" title="Tải xuống">
+            <i class="fa fa-download"></i>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Action buttons ── -->
+    {% if can_approve or can_reject or can_recall or can_revoke_approved %}
+    <div class="section-card">
+      <div class="action-strip">
+        {% if can_approve %}
+        <button class="btn btn-success btn-sm px-4" data-bs-toggle="modal" data-bs-target="#modalApprove">
+          <i class="fa fa-check me-2"></i>Phê duyệt
+        </button>
+        {% endif %}
+        {% if can_reject %}
+        <button class="btn btn-danger btn-sm px-4" data-bs-toggle="modal" data-bs-target="#modalReject">
+          <i class="fa fa-times me-2"></i>Từ chối
+        </button>
+        {% endif %}
+        {% if can_recall %}
+        <button class="btn btn-outline-warning btn-sm px-4" data-bs-toggle="modal" data-bs-target="#modalRecall">
+          <i class="fa fa-undo me-2"></i>Thu hồi
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ══ Cột phải: Timeline ══ -->
+  <div class="col-12 col-lg-4">
+    <div class="section-card">
+      <div class="section-card-head">
+        <span><i class="fa fa-history" style="color:#fd7e14"></i>Lịch sử thao tác</span>
+      </div>
+      <div class="section-card-body">
+        {% if logs %}
+        <div class="tl">
+          {% for log in logs %}
+          <div class="tl-item">
+            <div class="tl-dot dot-{{ log.action }}">
+              {% if log.action == 'SUBMITTED' %}📤
+              {% elif log.action == 'APPROVED' %}✅
+              {% elif log.action == 'REJECTED' %}❌
+              {% else %}↩{% endif %}
+            </div>
+            <div class="tl-content">
+              <div class="tl-head">
+                <span class="tl-action-label">{{ log.get_action_display }}</span>
+                <span class="tl-time">{{ log.created_at|date:"d/m H:i" }}</span>
+              </div>
+              <div class="tl-actor">{{ log.actor.get_full_name|default:log.actor.username|default:"—" }}</div>
+              {% if log.note %}
+              <div class="tl-note">{{ log.note }}</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted" style="font-size:.82rem">Chưa có thao tác nào.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ Modals ══ -->
+{% block modals %}
+
+{% if can_approve %}
+<div class="modal" id="modalApprove" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:14px">
+      <div class="modal-header border-0 pb-0" style="background:#f0fff4">
+        <h5 class="modal-title" style="font-size:.9rem;font-weight:700;color:#198754">
+          <i class="fa fa-check-circle me-2"></i>Xác nhận phê duyệt
+        </h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'approvals:approve' ar.pk %}">
+        {% csrf_token %}
+        <div class="modal-body" style="font-size:.84rem">
+          <p class="mb-1">Phê duyệt yêu cầu <strong>#{{ ar.pk }}</strong>:</p>
+          <p class="fw-semibold text-muted mb-3">{{ ar.document_label }}</p>
+          <label class="form-label" style="font-size:.78rem;font-weight:600">Ghi chú (tùy chọn)</label>
+          <textarea name="reviewer_note" class="form-control form-control-sm" rows="2"
+                    placeholder="Đã kiểm tra và xác nhận…"></textarea>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-sm btn-success px-5">
+            <i class="fa fa-check me-1"></i>Phê duyệt
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if can_reject %}
+<div class="modal" id="modalReject" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:14px">
+      <div class="modal-header border-0 pb-0" style="background:#fff5f5">
+        <h5 class="modal-title" style="font-size:.9rem;font-weight:700;color:#dc3545">
+          <i class="fa fa-times-circle me-2"></i>Từ chối yêu cầu
+        </h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'approvals:reject' ar.pk %}">
+        {% csrf_token %}
+        <div class="modal-body" style="font-size:.84rem">
+          <p class="mb-1">Từ chối yêu cầu <strong>#{{ ar.pk }}</strong>:</p>
+          <p class="fw-semibold text-muted mb-3">{{ ar.document_label }}</p>
+          <p class="text-muted mb-2" style="font-size:.78rem">Tài liệu sẽ trở về DRAFT để người nộp chỉnh sửa lại.</p>
+          <label class="form-label" style="font-size:.78rem;font-weight:600">Lý do từ chối <span class="text-danger">*</span></label>
+          <textarea name="reviewer_note" class="form-control form-control-sm" rows="3"
+                    required placeholder="Bắt buộc nhập lý do từ chối…"></textarea>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-sm btn-danger px-5">
+            <i class="fa fa-times me-1"></i>Từ chối
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if can_recall %}
+<div class="modal" id="modalRecall" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content" style="border-radius:14px">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" style="font-size:.9rem;font-weight:700">
+          <i class="fa fa-undo me-2" style="color:#fd7e14"></i>Thu hồi yêu cầu
+        </h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'approvals:recall' ar.pk %}">
+        {% csrf_token %}
+        <div class="modal-body" style="font-size:.83rem">
+          <p class="text-muted mb-3">Tài liệu sẽ trở về DRAFT để chỉnh sửa và nộp lại.</p>
+          <label class="form-label" style="font-size:.78rem;font-weight:600">Lý do (tùy chọn)</label>
+          <input name="note" type="text" class="form-control form-control-sm"
+                 placeholder="Cần bổ sung thêm thông tin…">
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary flex-fill" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-sm btn-warning flex-fill">
+            <i class="fa fa-undo me-1"></i>Thu hồi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Modal xem tệp đính kèm ── -->
+{% if can_revoke_approved %}
+<div class="modal" id="modalRevokeApproved" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:14px">
+      <div class="modal-header border-0 pb-0" style="background:#fff5f5">
+        <h5 class="modal-title" style="font-size:.9rem;font-weight:700;color:#dc3545">
+          <i class="fa fa-unlock me-2"></i>Go phe duyet va mo khoa
+        </h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'approvals:revoke_approved' ar.pk %}">
+        {% csrf_token %}
+        <div class="modal-body" style="font-size:.84rem">
+          <p class="mb-2">Thao tac nay se go trang thai da phe duyet va tra tai lieu ve trang thai co the chinh sua.</p>
+          <p class="text-muted mb-3" style="font-size:.78rem">Chi superadmin moi thuc hien duoc. Sau khi go phe duyet, nhan vien co the sua lai bao gia, hop dong hoac phieu lien quan.</p>
+          <label class="form-label" style="font-size:.78rem;font-weight:600">Ly do go phe duyet <span class="text-danger">*</span></label>
+          <textarea name="note" class="form-control form-control-sm" rows="3"
+                    required placeholder="Nhap ly do de nhan vien theo doi va chinh sua..."></textarea>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Dong</button>
+          <button type="submit" class="btn btn-sm btn-danger px-4">
+            <i class="fa fa-unlock me-1"></i>Xac nhan go
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="modal" id="filePreviewModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content" style="border-radius:14px;overflow:hidden">
+      <div class="modal-header border-0 py-2 px-3" style="background:#1a1a2e">
+        <h6 class="modal-title mb-0 text-white d-flex align-items-center gap-2" style="font-size:.85rem">
+          <i class="fa fa-file-alt"></i>
+          <span id="previewFileName">Xem tệp đính kèm</span>
+        </h6>
+        <div class="d-flex gap-2">
+          <a id="previewDownloadBtn" href="#" class="btn btn-sm btn-outline-light" style="font-size:.75rem">
+            <i class="fa fa-download me-1"></i>Tải xuống
+          </a>
+          <a id="previewOpenBtn" href="#" target="_blank" class="btn btn-sm btn-outline-light" style="font-size:.75rem">
+            <i class="fa fa-external-link-alt me-1"></i>Mở tab mới
+          </a>
+          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+      </div>
+      <div class="modal-body p-0" style="background:#2d2d2d;min-height:70vh;display:flex;align-items:center;justify-content:center">
+        <div id="previewContent" style="width:100%;height:78vh"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock modals %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function previewAttachment(attId, filename, contentType) {
+  const baseUrl = '{% url "approvals:serve_attachment" 0 %}'.replace('/0/', `/${attId}/`);
+  const dlUrl   = baseUrl + '?download=1';
+
+  document.getElementById('previewFileName').textContent = filename;
+  document.getElementById('previewDownloadBtn').href = dlUrl;
+  document.getElementById('previewOpenBtn').href = baseUrl;
+
+  const container = document.getElementById('previewContent');
+  container.innerHTML = '';
+
+  if (contentType === 'application/pdf') {
+    container.innerHTML = `
+      <iframe src="${baseUrl}" style="width:100%;height:78vh;border:none;background:#fff"></iframe>`;
+  } else if (contentType.startsWith('image/')) {
+    container.innerHTML = `
+      <img src="${baseUrl}" alt="${filename}"
+           style="max-width:100%;max-height:78vh;object-fit:contain;display:block;margin:auto">`;
+  } else {
+    container.innerHTML = `
+      <div style="text-align:center;padding:60px;color:#adb5bd">
+        <i class="fa fa-file-alt" style="font-size:3rem;display:block;margin-bottom:12px"></i>
+        <div style="font-size:.9rem;margin-bottom:16px">${filename}</div>
+        <a href="${dlUrl}" class="btn btn-light">
+          <i class="fa fa-download me-2"></i>Tải xuống để xem
+        </a>
+      </div>`;
+  }
+
+  const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
+  modal.show();
+}
+
+// Xóa iframe khi đóng modal để tránh memory leak
+document.getElementById('filePreviewModal').addEventListener('hidden.bs.modal', () => {
+  document.getElementById('previewContent').innerHTML = '';
+});
+</script>
+{% endblock %}

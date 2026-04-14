@@ -1,0 +1,65 @@
+{% extends "base_admin.html" %}
+{% block title %}HĐ sắp hết hạn{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h5 class="mb-0"><i class="fa fa-triangle-exclamation me-2" style="color:#dc3545"></i>Hợp đồng sắp hết hạn</h5>
+    <div class="text-muted" style="font-size:.8rem">Cần liên hệ gia hạn trong {{ days }} ngày tới</div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% for d in days_options %}
+    <a href="?days={{ d }}" class="btn btn-sm {% if days == d %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ d }} ngày</a>
+    {% endfor %}
+    <a href="{% url 'retention:overview' %}" class="btn btn-sm btn-outline-secondary">← Retention</a>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0" style="font-size:.84rem">
+      <thead class="table-light">
+        <tr>
+          <th>Urgency</th>
+          <th>Công ty</th>
+          <th>Số HĐ</th>
+          <th>Ngày hết hạn</th>
+          <th class="text-center">Còn lại</th>
+          <th>Sale</th>
+          <th class="text-end">Giá trị HĐ</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in at_risk %}
+      <tr>
+        <td>
+          {% if r.urgency == 'critical' %}
+          <span class="badge bg-danger">🔴 Khẩn cấp</span>
+          {% elif r.urgency == 'warning' %}
+          <span class="badge bg-warning text-dark">⚠️ Cảnh báo</span>
+          {% else %}
+          <span class="badge bg-info text-dark">🔵 Theo dõi</span>
+          {% endif %}
+        </td>
+        <td class="fw-semibold">{{ r.company_name }}</td>
+        <td style="color:#6c757d">{{ r.contract_number }}</td>
+        <td style="white-space:nowrap">{{ r.end_date|date:"d/m/Y" }}</td>
+        <td class="text-center fw-bold {% if r.days_left <= 14 %}text-danger{% elif r.days_left <= 30 %}text-warning{% else %}text-info{% endif %}">
+          {{ r.days_left }} ngày
+        </td>
+        <td>{{ r.sale_name }}</td>
+        <td class="text-end fw-semibold" style="color:#1a5276;white-space:nowrap">{{ r.grand_total }} ₫</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="text-center py-5 text-muted">
+          <i class="fa fa-check-circle fa-2x text-success mb-2 d-block"></i>
+          Không có hợp đồng sắp hết hạn trong {{ days }} ngày tới.
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

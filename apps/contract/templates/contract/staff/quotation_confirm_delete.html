@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h4>Xác nhận xóa báo giá</h4>
+  <p>Bạn có chắc chắn muốn xóa báo giá của <b>{{ quotation.company_name }}</b> (ngày {{ quotation.created_at|date:"d/m/Y" }}) không?</p>
+  <form method="post">
+    {% csrf_token %}
+    <a href="{% url 'contract:quotation_list' %}" class="btn btn-secondary">Hủy</a>
+    <button type="submit" class="btn btn-danger">Xác nhận xóa</button>
+  </form>
+</div>
+{% endblock %}

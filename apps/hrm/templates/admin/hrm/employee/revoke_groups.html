@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Trang chủ</a> ›
+  <a href="{% url 'admin:hrm_employee_changelist' %}">Nhân viên</a> ›
+  <a href="{% url 'admin:hrm_employee_change' employee.pk %}">{{ employee.full_name }}</a> ›
+  Thu hồi nhóm quyền
+</div>
+{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<div style="max-width:480px">
+  <div style="background:#ffebee;border:1px solid #ef9a9a;border-radius:6px;padding:16px;margin-bottom:20px">
+    <strong>⛔ Thu hồi toàn bộ nhóm của tài khoản {{ employee.user.username }}</strong><br><br>
+    Các nhóm sẽ bị xóa:
+    {% if current_groups %}
+      <div style="margin-top:8px">
+        {% for g in current_groups %}
+          <span style="background:#c62828;color:#fff;padding:2px 10px;border-radius:12px;
+                       font-size:12px;margin:2px;display:inline-block">{{ g }}</span>
+        {% endfor %}
+      </div>
+    {% else %}
+      <em>Tài khoản không có nhóm nào.</em>
+    {% endif %}
+    <br><br>
+    Tài khoản vẫn tồn tại và vẫn có thể đăng nhập nhưng sẽ mất mọi quyền truy cập.
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <div style="display:flex;gap:10px">
+      <input type="submit" value="⛔ Xác nhận thu hồi"
+             class="button default"
+             style="background:#f57c00;border-color:#e65100;color:#fff">
+      <a href="{% url 'admin:hrm_employee_change' employee.pk %}"
+         class="button cancel-link">Hủy</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

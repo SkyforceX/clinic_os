@@ -1,0 +1,10 @@
+{% extends "crm/base.html" %}
+
+{% block content %}
+{% load static %}
+<div class="container text-center py-5">
+    <h1 class="display-4 text-danger">500 - Lỗi máy chủ</h1>
+    <p class="lead">Đã xảy ra lỗi trong quá trình xử lý. Vui lòng thử lại sau.</p>
+    <a href="{% url 'schedule_table' %}" class="btn btn-primary mt-3">🏠 Về lịch khám sức khỏe</a>
+</div>
+{% endblock %}

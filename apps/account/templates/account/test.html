@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'health_record/css/styles.css' %}">
+  <meta name="description" content="Hồ sơ sức khỏe điện tử">
+{% endblock %}
+
+
+{% block content %}
+
+<h2>Danh sách bệnh nhân từ {{ tu_ngay }} đến {{ den_ngay }}</h2>
+
+<form method="get">
+  <label>Từ ngày (ddMMyyyy):</label>
+  <input type="text" name="from_date" value="{{ tu_ngay }}">
+  <label>Đến ngày (ddMMyyyy):</label>
+  <input type="text" name="to_date" value="{{ den_ngay }}">
+  <button type="submit">Tra cứu</button>
+</form>
+
+{% if error %}
+  <p style="color:red;">{{ error }}</p>
+{% endif %}
+
+<table class="patient-table">
+  <tr>
+    <th>Mã BN</th>
+    <th>Họ tên</th>
+    <th>Ngày sinh</th>
+    <th>Giới tính</th>
+    <th>SĐT</th>
+    <th>Ngày khám</th>
+  </tr>
+  {% for p in patients %}
+    <tr>
+      <td data-label="Mã BN">{{ p.MABENHNHAN }}</td>
+      <td data-label="Họ tên">{{ p.TENBENHNHAN }}</td>
+      <td data-label="Ngày sinh">{{ p.NGAYSINH }}</td>
+      <td data-label="Giới tính">{{ p.GIOITINH }}</td>
+      <td data-label="SĐT">{{ p.SDTBENHNHAN }}</td>
+      <td data-label="Ngày khám">{{ p.NGAYKHAM }}</td>
+    </tr>
+  {% endfor %}
+</table>
+<!-- 
+<table class="patient-table" border="1" cellspacing="0" cellpadding="5">
+  <thead>
+    <tr>
+      <th>Mã BN</th>
+      <th>Họ tên</th>
+      <th>Ngày sinh</th>
+      <th>Giới tính</th>
+      <th>SĐT</th>
+      <th>Ngày khám</th>
+      <th>Số lần khám</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for group in patients %}
+      {% for visit in group %}
+        <tr>
+          {% if forloop.first %}
+            <td data-label="Mã BN" rowspan="{{ group|length }}"><b>{{ visit.MABENHNHAN }}</b></td>
+            <td data-label="Họ tên" rowspan="{{ group|length }}">{{ visit.TENBENHNHAN }}</td>
+            <td data-label="Ngày sinh" rowspan="{{ group|length }}">{{ visit.NGAYSINH }}</td>
+            <td data-label="Giới tính" rowspan="{{ group|length }}">{{ visit.GIOITINH }}</td>
+            <td data-label="SĐT" rowspan="{{ group|length }}">{{ visit.SDTBENHNHAN }}</td>
+          {% endif %}
+          <td data-label="Ngày khám">{{ visit.NGAYKHAM }}</td>
+          {% if forloop.first %}
+            <td data-label="Số lần khám" rowspan="{{ group|length }}" style="text-align:center;"><b>{{ group|length }}</b></td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    {% endfor %}
+  </tbody>
+</table> -->
+{% endblock %}
+
+{% block extra_scripts %}{% endblock %}

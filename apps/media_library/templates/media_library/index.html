@@ -1,0 +1,356 @@
+{% extends "base_admin.html" %}
+{% load static %}
+
+{% block title %}Thư viện Media{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'media_library/css/media_library.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="fa fa-photo-video me-2"></i>Thư viện Media</h4>
+  <button class="btn btn-primary btn-sm" id="btnOpenUpload">
+    <i class="fa fa-upload me-1"></i> Upload file
+  </button>
+</div>
+
+<!-- ── Bộ lọc ── -->
+<div class="ml-filter-bar mb-3">
+  <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
+    <div class="input-group input-group-sm" style="max-width:260px">
+      <span class="input-group-text"><i class="fa fa-search"></i></span>
+      <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Tìm tên file...">
+    </div>
+    <div class="btn-group btn-group-sm" role="group">
+      <a href="?{% if search %}q={{ search }}&{% endif %}"
+         class="btn {% if not type_filter %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+        Tất cả <span class="badge bg-secondary ms-1">{{ total_all }}</span>
+      </a>
+      <a href="?type=image{% if search %}&q={{ search }}{% endif %}"
+         class="btn {% if type_filter == 'image' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+        🖼 Ảnh <span class="badge bg-secondary ms-1">{{ type_counts.image|default:0 }}</span>
+      </a>
+      <a href="?type=pdf{% if search %}&q={{ search }}{% endif %}"
+         class="btn {% if type_filter == 'pdf' %}btn-danger{% else %}btn-outline-secondary{% endif %}">
+        📄 PDF <span class="badge bg-secondary ms-1">{{ type_counts.pdf|default:0 }}</span>
+      </a>
+      <a href="?type=docx{% if search %}&q={{ search }}{% endif %}"
+         class="btn {% if type_filter == 'docx' %}btn-info{% else %}btn-outline-secondary{% endif %}">
+        📝 Word <span class="badge bg-secondary ms-1">{{ type_counts.docx|default:0 }}</span>
+      </a>
+      <a href="?type=excel{% if search %}&q={{ search }}{% endif %}"
+         class="btn {% if type_filter == 'excel' %}btn-success{% else %}btn-outline-secondary{% endif %}">
+        📊 Excel <span class="badge bg-secondary ms-1">{{ type_counts.excel|default:0 }}</span>
+      </a>
+    </div>
+    <button type="submit" class="btn btn-outline-secondary btn-sm">Lọc</button>
+  </form>
+</div>
+
+<!-- ── Drop zone upload ── -->
+<div class="ml-dropzone" id="mlDropzone" style="display:none">
+  <div class="ml-dropzone-inner">
+    <i class="fa fa-cloud-upload-alt fa-2x mb-2 text-muted"></i>
+    <p class="mb-1 fw-semibold">Kéo thả file vào đây hoặc</p>
+    <label class="btn btn-outline-primary btn-sm mb-2">
+      Chọn file từ máy tính
+      <input type="file" id="mlFileInput" multiple style="display:none"
+             accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.pdf,.doc,.docx,.xls,.xlsx,.csv">
+    </label>
+    <p class="text-muted" style="font-size:.78rem">
+      Hỗ trợ: ảnh (JPG, PNG, GIF, WebP, SVG), PDF, Word, Excel &nbsp;|&nbsp; Tối đa 20MB/file
+    </p>
+    <div id="mlUploadProgress" class="mt-2" style="display:none">
+      <div class="progress" style="height:6px">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" id="mlProgressBar" style="width:0%"></div>
+      </div>
+      <small id="mlProgressLabel" class="text-muted mt-1 d-block">Đang tải lên...</small>
+    </div>
+  </div>
+</div>
+
+<!-- ── Grid file ── -->
+{% if page.object_list %}
+<div class="ml-grid" id="mlGrid">
+  {% for media in page.object_list %}
+  <div class="ml-card" data-id="{{ media.pk }}" data-type="{{ media.file_type }}">
+    <div class="ml-thumb" data-id="{{ media.pk }}">
+      {% if media.is_image %}
+        <img src="{{ media.url }}" alt="{{ media.alt_text|default:media.name }}" loading="lazy">
+      {% elif media.file_type == 'pdf' %}
+        <div class="ml-thumb-icon ml-icon-pdf">PDF</div>
+      {% elif media.file_type == 'docx' %}
+        <div class="ml-thumb-icon ml-icon-docx">DOCX</div>
+      {% elif media.file_type == 'excel' %}
+        <div class="ml-thumb-icon ml-icon-excel">XLSX</div>
+      {% else %}
+        <div class="ml-thumb-icon ml-icon-other"><i class="fa fa-file"></i></div>
+      {% endif %}
+    </div>
+    <div class="ml-card-body">
+      <div class="ml-name" title="{{ media.name }}">{{ media.name }}</div>
+      <div class="ml-meta">{{ media.file_size_display }} &nbsp;·&nbsp; {{ media.created_at|date:"d/m/Y" }}</div>
+      <div class="ml-actions">
+        <a href="{{ media.url }}" target="_blank" class="btn btn-xs btn-outline-secondary" title="Xem / Tải">
+          <i class="fa fa-eye"></i>
+        </a>
+        <button class="btn btn-xs btn-outline-primary btn-copy-url"
+                data-url="{{ media.url }}" title="Copy URL">
+          <i class="fa fa-link"></i>
+        </button>
+        <button class="btn btn-xs btn-outline-danger btn-delete"
+                data-id="{{ media.pk }}" data-name="{{ media.name }}" title="Xóa">
+          <i class="fa fa-trash"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ── Phân trang ── -->
+{% if page.has_other_pages %}
+<nav class="mt-4 d-flex justify-content-center">
+  <ul class="pagination pagination-sm">
+    {% if page.has_previous %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page.previous_page_number }}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search %}&q={{ search }}{% endif %}">‹</a>
+    </li>
+    {% endif %}
+    {% for i in page.paginator.page_range %}
+    <li class="page-item {% if i == page.number %}active{% endif %}">
+      <a class="page-link" href="?page={{ i }}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search %}&q={{ search }}{% endif %}">{{ i }}</a>
+    </li>
+    {% endfor %}
+    {% if page.has_next %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page.next_page_number }}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search %}&q={{ search }}{% endif %}">›</a>
+    </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="text-center py-5 text-muted">
+  <i class="fa fa-folder-open fa-3x mb-3 d-block opacity-25"></i>
+  <p class="mb-0">Chưa có file nào{% if search %} khớp với "{{ search }}"{% endif %}.</p>
+  <button class="btn btn-sm btn-outline-primary mt-2" id="btnOpenUploadEmpty">
+    <i class="fa fa-upload me-1"></i> Upload file ngay
+  </button>
+</div>
+{% endif %}
+
+<!-- ── Modal xác nhận xóa ── -->
+<div class="modal" id="modalDelete" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title">Xác nhận xóa</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="font-size:.88rem">
+        Xóa file <strong id="deleteFileName"></strong>?
+        <br><small class="text-danger">Hành động này không thể hoàn tác.</small>
+      </div>
+      <div class="modal-footer py-2 gap-2">
+        <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button class="btn btn-sm btn-danger" id="btnConfirmDelete">Xóa</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="mlToast" class="toast align-items-center text-white border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="mlToastBody">OK</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  'use strict';
+
+  var UPLOAD_URL  = "{% url 'media_library:upload' %}";
+  var DELETE_URL  = "{% url 'media_library:delete' pk=0 %}".replace('/0/', '/');
+  var CSRF_TOKEN  = "{{ csrf_token }}";
+
+  // ── Toast helper ────────────────────────────────────────────────────────
+  function showToast(msg, ok) {
+    var el = document.getElementById('mlToast');
+    el.className = 'toast align-items-center text-white border-0 ' + (ok ? 'bg-success' : 'bg-danger');
+    document.getElementById('mlToastBody').textContent = msg;
+    var t = new bootstrap.Toast(el, { delay: 3000 });
+    t.show();
+  }
+
+  // ── Upload zone toggle ───────────────────────────────────────────────────
+  function toggleDropzone(show) {
+    document.getElementById('mlDropzone').style.display = show ? 'block' : 'none';
+  }
+  document.getElementById('btnOpenUpload').addEventListener('click', function () {
+    toggleDropzone(true);
+    document.getElementById('mlDropzone').scrollIntoView({ behavior: 'smooth' });
+  });
+  var emptyBtn = document.getElementById('btnOpenUploadEmpty');
+  if (emptyBtn) emptyBtn.addEventListener('click', function () { toggleDropzone(true); });
+
+  // ── Drag & Drop ─────────────────────────────────────────────────────────
+  var dz = document.getElementById('mlDropzone');
+  ['dragenter','dragover'].forEach(function (evt) {
+    dz.addEventListener(evt, function (e) {
+      e.preventDefault();
+      dz.classList.add('ml-dropzone--over');
+    });
+  });
+  ['dragleave','drop'].forEach(function (evt) {
+    dz.addEventListener(evt, function (e) {
+      e.preventDefault();
+      dz.classList.remove('ml-dropzone--over');
+    });
+  });
+  dz.addEventListener('drop', function (e) {
+    uploadFiles(e.dataTransfer.files);
+  });
+
+  // ── File input ───────────────────────────────────────────────────────────
+  document.getElementById('mlFileInput').addEventListener('change', function () {
+    uploadFiles(this.files);
+    this.value = '';
+  });
+
+  // ── Upload ───────────────────────────────────────────────────────────────
+  function uploadFiles(files) {
+    if (!files || !files.length) return;
+    var formData = new FormData();
+    for (var i = 0; i < files.length; i++) {
+      formData.append('files', files[i]);
+    }
+
+    var progressWrap  = document.getElementById('mlUploadProgress');
+    var progressBar   = document.getElementById('mlProgressBar');
+    var progressLabel = document.getElementById('mlProgressLabel');
+    progressWrap.style.display = 'block';
+    progressBar.style.width    = '10%';
+    progressLabel.textContent  = 'Đang tải lên ' + files.length + ' file...';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', UPLOAD_URL);
+    xhr.setRequestHeader('X-CSRFToken', CSRF_TOKEN);
+
+    xhr.upload.addEventListener('progress', function (e) {
+      if (e.lengthComputable) {
+        var pct = Math.round(e.loaded / e.total * 90);
+        progressBar.style.width = pct + '%';
+      }
+    });
+
+    xhr.addEventListener('load', function () {
+      progressBar.style.width = '100%';
+      try {
+        var data = JSON.parse(xhr.responseText);
+        var ok = data.files && data.files.length;
+        if (ok) {
+          showToast('Đã upload ' + data.files.length + ' file thành công!', true);
+          setTimeout(function () { location.reload(); }, 800);
+        }
+        if (data.errors && data.errors.length) {
+          showToast(data.errors.join(' | '), false);
+        }
+        if (!ok && (!data.errors || !data.errors.length)) {
+          showToast('Không có file nào được upload.', false);
+        }
+      } catch (e) {
+        showToast('Lỗi phản hồi từ server.', false);
+      }
+      setTimeout(function () { progressWrap.style.display = 'none'; progressBar.style.width = '0%'; }, 1200);
+    });
+
+    xhr.addEventListener('error', function () {
+      showToast('Lỗi kết nối khi upload.', false);
+      progressWrap.style.display = 'none';
+    });
+
+    xhr.send(formData);
+  }
+
+  // ── Copy URL ─────────────────────────────────────────────────────────────
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.btn-copy-url');
+    if (!btn) return;
+    var url = btn.dataset.url;
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(function () {
+      showToast('Đã copy URL!', true);
+    }).catch(function () {
+      // Fallback
+      var ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('Đã copy URL!', true);
+    });
+  });
+
+  // ── Delete ───────────────────────────────────────────────────────────────
+  var pendingDeleteId = null;
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.btn-delete');
+    if (!btn) return;
+    pendingDeleteId = btn.dataset.id;
+    document.getElementById('deleteFileName').textContent = btn.dataset.name;
+    var modal = new bootstrap.Modal(document.getElementById('modalDelete'));
+    modal.show();
+  });
+
+  document.getElementById('btnConfirmDelete').addEventListener('click', function () {
+    if (!pendingDeleteId) return;
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Đang xóa...';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', DELETE_URL + pendingDeleteId + '/');
+    xhr.setRequestHeader('X-CSRFToken', CSRF_TOKEN);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+
+    xhr.addEventListener('load', function () {
+      try {
+        var data = JSON.parse(xhr.responseText);
+        if (data.ok) {
+          var card = document.querySelector('.ml-card[data-id="' + pendingDeleteId + '"]');
+          if (card) {
+            card.style.transition = 'opacity .25s';
+            card.style.opacity    = '0';
+            setTimeout(function () { card.remove(); }, 260);
+          }
+          showToast('Đã xóa file.', true);
+          bootstrap.Modal.getInstance(document.getElementById('modalDelete')).hide();
+        } else {
+          showToast('Xóa thất bại.', false);
+        }
+      } catch (err) {
+        showToast('Lỗi phản hồi.', false);
+      }
+      btn.disabled    = false;
+      btn.textContent = 'Xóa';
+      pendingDeleteId = null;
+    });
+
+    xhr.send();
+  });
+})();
+</script>
+{% endblock %}
+

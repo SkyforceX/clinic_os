@@ -1,0 +1,45 @@
+
+  <!-- _submit_button.html
+  ───────────────────
+  Hiển thị nút "Nộp phê duyệt" hoặc badge trạng thái tùy status.
+
+  Context cần:
+    document    -- QuotationDraft / Contract instance
+    doc_type    -- string: "QUOTATION" | "CONTRACT" | "PAYMENT_VOUCHER" | "PROPOSAL"
+    doc_id      -- int: pk của document
+    pending_ar  -- ApprovalRequest đang PENDING (hoặc None)
+    can_submit  -- bool -->
+
+
+{% if document.status == "DRAFT" and can_submit %}
+
+  <a href="{% url 'approvals:submit_detail' doc_type=doc_type doc_id=doc_id %}"
+     class="btn btn-sm btn-outline-primary">
+    <i class="fa fa-paper-plane me-1"></i>Nộp phê duyệt
+  </a>
+
+{% elif document.status == "SUBMITTED" %}
+  <span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-size:.8rem;padding:4px 10px;border-radius:8px">
+    ⏳ Đang chờ duyệt
+  </span>
+  {% if pending_ar %}
+    <a href="{% url 'approvals:detail' pending_ar.pk %}"
+       class="btn btn-xs btn-outline-secondary ms-1" style="font-size:.75rem">
+      <i class="fa fa-eye me-1"></i>Xem yêu cầu #{{ pending_ar.pk }}
+    </a>
+  {% endif %}
+
+{% elif document.status == "APPROVED" %}
+  <span class="badge" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;font-size:.8rem;padding:4px 10px;border-radius:8px">
+    ✅ Đã được phê duyệt
+  </span>
+
+{% elif document.status == "REJECTED" %}
+  <span class="badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;font-size:.8rem;padding:4px 10px;border-radius:8px">
+    ❌ Đã bị từ chối
+  </span>
+  {% if can_submit %}
+    <span class="text-muted ms-1" style="font-size:.76rem">— Chỉnh sửa rồi nộp lại.</span>
+  {% endif %}
+
+{% endif %}

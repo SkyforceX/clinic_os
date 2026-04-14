@@ -1,0 +1,156 @@
+{% extends "base_admin.html" %}
+
+{% load static %}
+{% block extra_head %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- ====== Nhóm gói khám ====== -->
+  <div class="card shadow-sm mb-5">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0"><i class="fa-solid fa-layer-group me-2"></i>Thêm nhóm gói khám</h5>
+    </div>
+    <div class="card-body">
+      <form method="post" action="{% url 'contract:groupcheckup_create' %}" class="row g-3">
+        {% csrf_token %}
+        {{ form_group.non_field_errors }}
+        <div class="col-md-8">
+          {{ form_group.name.label_tag }}
+          {{ form_group.name }}
+          {% for error in form_group.name.errors %}
+            <div class="text-danger small">{{ error }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fa-solid fa-plus me-1"></i>Thêm nhóm
+          </button>
+        </div>
+      </form>
+
+      <hr>
+
+      <h6 class="fw-bold mt-3">Danh sách nhóm đã có:</h6>
+      <ul class="list-group list-group-flush">
+        {% for group in groupcheckup %}
+          <li class="list-group-item">{{ group.name }}</li>
+        {% empty %}
+          <li class="list-group-item text-muted fst-italic">Chưa có nhóm nào.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- ====== Thêm danh mục dịch vụ ====== -->
+  <div class="card shadow-sm mb-5">
+  <div class="card-header bg-success text-white">
+    <h5 class="mb-0"><i class="fa-solid fa-stethoscope me-2"></i>Thêm danh mục dịch vụ khám</h5>
+  </div>
+  <div class="card-body">
+    <form method="post" novalidate class="row g-3 align-items-start checkup-form">
+      {% csrf_token %}
+
+      <!-- Hàng 1: Nhóm & Tên DV -->
+      <div class="col-md-6">
+        <label class="form-label fw-semibold" for="id_group_checkup">Nhóm gói khám</label>
+        {{ form.group_checkup }}
+        {% for error in form.group_checkup.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold" for="id_item_name">Tên dịch vụ / xét nghiệm</label>
+        {{ form.item_name }}
+        {% for error in form.item_name.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+
+      <!-- Hàng 2: Mô tả full-width -->
+      <div class="col-12">
+        <label class="form-label fw-semibold" for="id_description">Mô tả</label>
+        {{ form.description }}
+        {% for error in form.description.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+
+      <!-- Hàng 3: 4 cột giá cân bằng -->
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" for="id_price_discount">Giá ưu đãi</label>
+        {{ form.price_discount }}
+        {% for error in form.price_discount.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" for="id_price_male">Giá nam</label>
+        {{ form.price_male }}
+        {% for error in form.price_male.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" for="id_price_female">Giá nữ</label>
+        {{ form.price_female }}
+        {% for error in form.price_female.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" for="id_price_female_family">Giá nữ có gia đình</label>
+        {{ form.price_female_family }}
+        {% for error in form.price_female_family.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+
+      <!-- Hàng 4: nút lưu -->
+      <div class="col-12 d-flex justify-content-end">
+        <button type="submit" class="btn btn-success px-4">
+          <i class="fa-solid fa-floppy-disk me-1"></i> Lưu dịch vụ
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+  <!-- ====== Danh sách danh mục dịch vụ ====== -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-light">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fa-solid fa-list me-2"></i>Danh mục dịch vụ khám</h5>
+        <a href="{% url 'contract:checkupcategory_create' %}" class="btn btn-sm btn-success">
+          <i class="fa-solid fa-plus me-1"></i>Thêm mới
+        </a>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-striped table-bordered align-middle mb-0">
+        <thead class="table-light text-center">
+          <tr>
+            <th width="5%">#</th>
+            <th width="20%">Nhóm gói khám</th>
+            <th width="25%">Tên dịch vụ</th>
+            <th width="30%">Mô tả</th>
+            <th width="10%">Giá</th>
+            <th width="10%">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in checkupcategories %}
+          <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td>{{ c.group_checkup }}</td>
+            <td class="fw-semibold">{{ c.item_name }}</td>
+            <td>{{ c.description|default:"" }}</td>
+            <td class="text-end">{{ c.price|default:"" }}</td>
+            <td class="text-center">
+              <a href="{% url 'contract:checkupcategory_edit' c.id %}" class="btn btn-sm btn-outline-primary">
+                <i class="fa-solid fa-pen-to-square"></i> Sửa
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted fst-italic">Chưa có dịch vụ nào.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

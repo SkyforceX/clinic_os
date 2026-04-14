@@ -1,0 +1,387 @@
+/* =========================================================
+   INCIDENT - SHARED TOKENS
+   ========================================================= */
+:root{
+  --inc-text: #111827;
+  --inc-muted: #6b7280;
+  --inc-border: #e5e7eb;
+  --inc-border-soft: #f1f5f9;
+  --inc-bg-head: #f8fafc;
+  --inc-bg-hover: #f9fafb;
+  --inc-card-border: #e2e8f0;
+  --inc-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* =========================================================
+   INCIDENT - LIST (TABLE)
+   ========================================================= */
+
+.incident-filter{
+  margin-bottom: 15px;
+}
+
+/* Table layout ổn định, không bị co/dính chữ */
+.incident-table{
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
+}
+
+.incident-table thead th{
+  background: var(--inc-bg-head);
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid var(--inc-border);
+  padding: 10px 12px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.incident-table tbody tr{
+  border-bottom: 1px solid var(--inc-border-soft);
+}
+
+.incident-table tbody tr:hover{
+  background: var(--inc-bg-hover);
+}
+
+.incident-table td{
+  padding: 10px 12px;
+  color: #4b5563;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Cột “Tên sự cố”: ưu tiên đọc được, cho wrap đẹp */
+.incident-table td:nth-child(2){
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.incident-name{
+  font-weight: 600;
+  color: var(--inc-text);
+}
+
+/* Cột action gọn, không làm méo bảng */
+.incident-actions{
+  white-space: nowrap;
+  width: 72px;
+  text-align: right;
+}
+
+.incident-actions a{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  font-size: 14px;
+  text-decoration: none;
+  color: #2563eb;
+  border-radius: 6px;
+}
+
+.incident-actions a:hover{
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+/* =========================================================
+   INCIDENT - SEVERITY BADGE (dùng cho LIST)
+   ========================================================= */
+
+.sev-badge{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.sev-dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+/* Severity palette (đang dùng ở list của bạn) */
+.sev-near-miss{ background: #e8f7e3; color: #2e7d32; }
+.sev-no-harm,
+.sev-minor{ background: #eaf4ff; color: #1565c0; }
+.sev-moderate{ background: #fff8e1; color: #f57f17; }
+.sev-severe{ background: #ffebee; color: #c62828; }
+.sev-death{ background: #fdecea; color: #b71c1c; }
+.sev-unknown{ background: #eeeeee; color: #555; }
+
+.sev-near-miss .sev-dot{ background: #2e7d32; }
+.sev-no-harm .sev-dot,
+.sev-minor .sev-dot{ background: #1565c0; }
+.sev-moderate .sev-dot{ background: #f57f17; }
+.sev-severe .sev-dot{ background: #c62828; }
+.sev-death .sev-dot{ background: #b71c1c; }
+.sev-unknown .sev-dot{ background: #6b7280; }
+
+/* =========================================================
+   INCIDENT - FORM (CREATE/EDIT)
+   ========================================================= */
+
+.incident-form{
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.incident-header h3{
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.incident-header a.btn{
+  white-space: nowrap;
+}
+
+/* Card */
+.incident-form .card{
+  border-radius: 6px;
+  border: 1px solid var(--inc-card-border);
+  box-shadow: var(--inc-shadow);
+}
+
+.incident-form .card-header{
+  font-weight: 550;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #2f3e4f;
+  background: #d9e2ec;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.incident-form .card-body{
+  padding: 16px 20px;
+}
+
+.incident-form .card + .card{
+  margin-top: 18px;
+}
+
+/* Grid 2 cột */
+.incident-form .form-row-2col{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px 16px;
+}
+
+/* Label & controls */
+.incident-form .mb-3{
+  margin-bottom: 14px;
+}
+
+.incident-form label{
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.incident-form .form-control,
+.incident-form .form-select{
+  padding: 6px 10px;
+  height: auto;
+  min-height: 34px;
+  font-size: 14px;
+}
+
+/* Textarea */
+.incident-form textarea.form-control{
+  min-height: 60px;
+  resize: none; /* để auto-grow JS quản lý */
+}
+
+/* Hint text */
+.incident-form small.text-muted{
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* Submit */
+.incident-form button.btn-primary{
+  padding: 8px 20px;
+  font-size: 15px;
+}
+
+/* Indicator (form severity nhỏ) */
+.incident-form .severity-indicator{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.incident-form .severity-indicator .dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* Form indicator palette (giữ như bạn đang dùng) */
+.incident-form .severity-indicator.sev-low{ background: #ecfdf3; color: #166534; }
+.incident-form .severity-indicator.sev-low .dot{ background: #22c55e; }
+
+.incident-form .severity-indicator.sev-medium{ background: #fffbeb; color: #92400e; }
+.incident-form .severity-indicator.sev-medium .dot{ background: #facc15; }
+
+.incident-form .severity-indicator.sev-high{ background: #fef2f2; color: #b91c1c; }
+.incident-form .severity-indicator.sev-high .dot{ background: #ef4444; }
+
+.incident-form .severity-indicator.sev-unknown{ background: #e5e7eb; color: #374151; }
+.incident-form .severity-indicator.sev-unknown .dot{ background: #6b7280; }
+
+/* =========================================================
+   INCIDENT - IMAGE PREVIEW
+   ========================================================= */
+
+.incident-previews,
+.incident-existing-previews{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.incident-previews .preview-item,
+.incident-existing-item{
+  width: 80px;
+  height: 80px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--inc-border);
+  background: #f8f9fa;
+}
+
+.incident-previews .preview-item{
+  position: relative;
+}
+
+.incident-previews .preview-item img,
+.incident-existing-item img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 576px){
+  .incident-form{
+    max-width: 100%;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  .incident-form .card-body{
+    padding: 12px 14px;
+  }
+}
+/* =========================
+   INCIDENT LIST - MOBILE FIX
+   ========================= */
+
+/* Desktop vẫn giữ như cũ */
+.incident-table th,
+.incident-table td {
+  word-break: normal;
+}
+
+/* Mobile: cho bảng cuộn ngang thay vì ép chữ rớt từng ký tự */
+@media (max-width: 576px){
+  .incident-table-wrap{
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--inc-border);
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .incident-table{
+    table-layout: auto;     /* quan trọng: bỏ fixed trên mobile */
+    min-width: 820px;       /* ép bảng đủ rộng để cuộn */
+    font-size: 13px;
+  }
+
+  .incident-table thead th{
+    white-space: nowrap;    /* header vẫn 1 dòng, nhưng giờ có scroll */
+  }
+
+  /* Cột thời điểm: gọn */
+  .incident-table th:nth-child(1),
+  .incident-table td:nth-child(1){
+    width: 140px;
+    white-space: nowrap;
+  }
+
+  /* Cột tên sự cố: cho wrap đẹp */
+  .incident-table th:nth-child(2),
+  .incident-table td:nth-child(2){
+    width: 320px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Khoa/phòng */
+  .incident-table th:nth-child(3),
+  .incident-table td:nth-child(3){
+    width: 160px;
+    white-space: nowrap;
+  }
+
+  /* Mức độ */
+  .incident-table th:nth-child(4),
+  .incident-table td:nth-child(4){
+    width: 120px;
+    white-space: nowrap;
+  }
+
+  /* Bệnh nhân */
+  .incident-table th:nth-child(5),
+  .incident-table td:nth-child(5){
+    width: 180px;
+    white-space: nowrap;
+  }
+
+  /* Action */
+  .incident-actions{
+    width: 88px;
+  }
+}
+.incident-table-wrap {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--inc-border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.incident-table {
+  border: none;
+  margin-bottom: 0;
+}
+
+@media (max-width: 576px) {
+  .card {
+    overflow-x:auto;
+  }
+}

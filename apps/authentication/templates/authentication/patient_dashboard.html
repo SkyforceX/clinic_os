@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'authentication/css/styles.css' %}">
+  <meta name="description" content="Trang chủ bệnh nhân Vietmedi">
+{% endblock %}
+
+{% block content %}
+<div class="patient-home">
+
+  {% if patient %}
+  <!-- Greeting -->
+  <div class="patient-home__greeting">
+    <div class="patient-home__hello">Xin chào 👋</div>
+    <div class="patient-home__name">{{ patient.ho_ten }}</div>
+    <div class="patient-home__sub">Chọn dịch vụ bên dưới để tiếp tục</div>
+  </div>
+  {% endif %}
+
+  <!-- Action cards -->
+  <div class="patient-home__cards">
+
+    <!-- Đăng ký lịch khám doanh nghiệp -->
+    <a href="{% url 'booking:register_schedule' %}" class="patient-card patient-card--booking">
+      <div class="patient-card__icon-wrap">
+        <span class="patient-card__emoji">🗓️</span>
+      </div>
+      <div class="patient-card__body">
+        <div class="patient-card__title">Đăng ký lịch khám</div>
+        <div class="patient-card__sub">Khám sức khỏe doanh nghiệp</div>
+      </div>
+      <div class="patient-card__arrow">
+        <i class="fa-solid fa-chevron-right"></i>
+      </div>
+    </a>
+
+    <!-- Hồ sơ sức khỏe — hiện bị ẩn, bật khi có URL -->
+    {# 
+    <a href="" class="patient-card patient-card--health">
+      <div class="patient-card__icon-wrap">
+        <span class="patient-card__emoji">🩺</span>
+      </div>
+      <div class="patient-card__body">
+        <div class="patient-card__title">Hồ sơ sức khỏe</div>
+        <div class="patient-card__sub">Xem kết quả & lịch sử khám</div>
+      </div>
+      <div class="patient-card__arrow">
+        <i class="fa-solid fa-chevron-right"></i>
+      </div>
+    </a>
+    #}
+
+  </div><!-- /.patient-home__cards -->
+
+</div><!-- /.patient-home -->
+{% endblock %}

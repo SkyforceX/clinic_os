@@ -1,0 +1,117 @@
+<!-- _proposal_row.html — included by create_quotation.html & edit_quotation.html -->
+<tr class="svc-row"
+    data-id="{{ item.id }}"
+    data-cat-m="{{ item.price_male|default:0 }}"
+    data-cat-fs="{{ item.price_female_single|default:0 }}"
+    data-cat-ff="{{ item.price_female_family|default:0 }}"
+    data-for-m="{{ item.for_male|yesno:'1,0' }}"
+    data-for-fs="{{ item.for_female_single|yesno:'1,0' }}"
+    data-for-ff="{{ item.for_female_family|yesno:'1,0' }}"
+    data-type="{{ item.price_type }}">
+
+  <td class="text-center">
+    <input type="checkbox" class="row-check" name="selected_ids" value="{{ item.id }}"
+      {% if item.price_type == "free" %}checked{% endif %}
+      onchange="onRowCheck(this)">
+  </td>
+  <td class="stt-col">{{ item.stt }}</td>
+  <td>
+    <div class="fw-semibold" style="font-size:.85rem">{{ item.name }}</div>
+    {% if item.description %}<div class="text-muted" style="font-size:.75rem">{{ item.description }}</div>{% endif %}
+  </td>
+
+  <!-- Giá niêm yết — catalog price gốc, read-only, computed by JS -->
+  <td class="niemyet-cell text-end">
+    {% if item.price_type == "free" %}
+      <span class="text-muted" style="font-size:.75rem">Miễn phí</span>
+    {% elif item.price_type == "gift" %}
+      <span style="color:#e65100;font-size:.75rem">TẶNG</span>
+    {% else %}
+      <span class="niemyet-display" id="niemyet_{{ item.id }}">–</span>
+    {% endif %}
+  </td>
+
+  <!-- Giá ưu đãi — read-only, computed by JS (catalog × (1 - global%)) -->
+  <td class="udai-cell text-end">
+    {% if item.price_type == "free" %}
+      <span class="udai-free">Miễn phí</span>
+    {% elif item.price_type == "gift" %}
+      <span class="udai-free" style="color:#e65100">TẶNG</span>
+    {% else %}
+      <span class="udai-display" id="udai_{{ item.id }}">–</span>
+    {% endif %}
+    <input type="hidden" name="udai_male_{{ item.id }}"   id="h_udai_m_{{ item.id }}"  value="">
+    <input type="hidden" name="udai_fs_{{ item.id }}"     id="h_udai_fs_{{ item.id }}" value="">
+    <input type="hidden" name="udai_ff_{{ item.id }}"     id="h_udai_ff_{{ item.id }}" value="">
+    <input type="hidden" name="price_male_{{ item.id }}"           id="h_pm_{{ item.id }}"  value="">
+    <input type="hidden" name="price_female_single_{{ item.id }}"  id="h_pfs_{{ item.id }}" value="">
+    <input type="hidden" name="price_female_family_{{ item.id }}"  id="h_pff_{{ item.id }}" value="">
+  </td>
+
+  <!-- % giảm riêng cho Nam -->
+  <td class="text-center">
+    {% if item.price_type == "free" or item.price_type == "gift" %}
+      <span class="text-muted" style="font-size:.75rem">–</span>
+    {% elif item.for_male %}
+      <input type="number" class="row-pct-input pct-m"
+        name="pct_male_{{ item.id }}" id="pct_m_{{ item.id }}"
+        value="" min="0" max="100" step="0.5" placeholder=""
+        oninput="recalcRow('{{ item.id }}')">
+    {% else %}
+      <span class="text-muted">–</span>
+    {% endif %}
+  </td>
+
+  <!-- % giảm riêng cho Nữ ĐT -->
+  <td class="text-center">
+    {% if item.price_type == "free" or item.price_type == "gift" %}
+      <span class="text-muted" style="font-size:.75rem">–</span>
+    {% elif item.for_female_single %}
+      <input type="number" class="row-pct-input pct-fs"
+        name="pct_fs_{{ item.id }}" id="pct_fs_{{ item.id }}"
+        value="" min="0" max="100" step="0.5" placeholder=""
+        oninput="recalcRow('{{ item.id }}')">
+    {% else %}
+      <span class="text-muted">–</span>
+    {% endif %}
+  </td>
+
+  <!-- % giảm riêng cho Nữ GĐ -->
+  <td class="text-center">
+    {% if item.price_type == "free" or item.price_type == "gift" %}
+      <span class="text-muted" style="font-size:.75rem">–</span>
+    {% elif item.for_female_family %}
+      <input type="number" class="row-pct-input pct-ff"
+        name="pct_ff_{{ item.id }}" id="pct_ff_{{ item.id }}"
+        value="" min="0" max="100" step="0.5" placeholder=""
+        oninput="recalcRow('{{ item.id }}')">
+    {% else %}
+      <span class="text-muted">–</span>
+    {% endif %}
+  </td>
+
+  <!-- Áp dụng checkboxes -->
+  <td>
+    <div class="gender-check">
+      {% if item.for_male %}
+      <label title="Nam">
+        <input type="checkbox" name="checked_male_{{ item.id }}" class="g-check" checked onchange="recalcRow('{{ item.id }}')">
+        <span style="color:#1a5276;font-size:.75rem">M</span>
+      </label>
+      {% endif %}
+      {% if item.for_female_single %}
+      <label title="Nữ độc thân">
+        <input type="checkbox" name="checked_fs_{{ item.id }}" class="g-check" checked onchange="recalcRow('{{ item.id }}')">
+        <span style="color:#6a1b9a;font-size:.75rem">FS</span>
+      </label>
+      {% endif %}
+      {% if item.for_female_family %}
+      <label title="Nữ gia đình">
+        <input type="checkbox" name="checked_ff_{{ item.id }}" class="g-check" checked onchange="recalcRow('{{ item.id }}')">
+        <span style="color:#00695c;font-size:.75rem">FF</span>
+      </label>
+      {% endif %}
+    </div>
+  </td>
+</tr>
+

@@ -1,0 +1,993 @@
+{% extends "base_admin.html" %}
+{% load static %}
+
+{% block title %}{{ procedure.title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Tree diagram ── */
+#tree-scroll-wrap {
+  overflow: auto;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 1px solid #dee2e6;
+  min-height: 320px;
+  position: relative;
+}
+#tree-svg-wrap {
+  display: inline-block;
+  padding: 24px;
+  transform-origin: top left;
+  transition: transform .2s;
+}
+.tree-node rect { cursor: pointer; transition: filter .15s; }
+.tree-node:hover rect { filter: brightness(1.15); }
+
+/* ── Steps table ── */
+.step-row td { vertical-align: middle; }
+.step-row .step-color-dot {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Color picker ── */
+.color-opt { display:none; }
+.color-opt + label {
+  display: inline-block;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  margin: 2px;
+  transition: border-color .1s, transform .1s;
+}
+.color-opt:checked + label {
+  border-color: #333;
+  transform: scale(1.2);
+}
+
+/* ── Attachment drop zone ── */
+#drop-zone {
+  border: 2px dashed #dee2e6;
+  border-radius: 10px;
+  padding: 30px;
+  text-align: center;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+#drop-zone.drag-over { background: #e9f5ff; border-color: #0d6efd; }
+
+/* ── Quill in step form ── */
+.ql-step-container { min-height: 120px; }
+</style>
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Header ────────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+  <div class="d-flex align-items-start gap-3">
+    <a href="{% url 'procedures:list' %}" class="btn btn-sm btn-outline-secondary mt-1">
+      <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div>
+      <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+        <span class="badge bg-{{ procedure.status_badge }} fs-6">{{ procedure.get_status_display }}</span>
+        <span class="badge bg-light text-dark border">{{ procedure.get_category_display }}</span>
+        <code class="text-muted small">{{ procedure.code }}</code>
+        <span class="text-muted small">v{{ procedure.version }}</span>
+        {% if procedure.effective_date %}
+        <span class="text-muted small"><i class="fa-solid fa-calendar-days me-1"></i>{{ procedure.effective_date|date:"d/m/Y" }}</span>
+        {% endif %}
+      </div>
+      <h4 class="mb-0 fw-bold">{{ procedure.title }}</h4>
+      <small class="text-muted">
+        Tạo bởi {{ procedure.created_by.get_full_name|default:procedure.created_by.username }}
+        · {{ procedure.created_at|date:"d/m/Y H:i" }}
+        {% if procedure.updated_at != procedure.created_at %}
+        · Cập nhật {{ procedure.updated_at|date:"d/m/Y H:i" }}
+        {% endif %}
+      </small>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    {% if can_edit %}
+    <a href="{% url 'procedures:edit' procedure.pk %}" class="btn btn-sm btn-outline-primary">
+      <i class="fa-solid fa-pen me-1"></i>Chỉnh sửa
+    </a>
+    {% endif %}
+    {% if can_delete %}
+    <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete()">
+      <i class="fa-solid fa-trash me-1"></i>Xóa
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Tabs ──────────────────────────────────────────────────────────────────── -->
+<ul class="nav nav-tabs border-bottom mb-4" id="procTabs">
+  <li class="nav-item">
+    <a class="nav-link active" data-bs-toggle="tab" href="#tab-overview">
+      <i class="fa-solid fa-circle-info me-1"></i>Tổng quan
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#tab-tree" id="tree-tab-btn">
+      <i class="fa-solid fa-diagram-project me-1"></i>Sơ đồ quy trình
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#tab-steps">
+      <i class="fa-solid fa-list-ol me-1"></i>Quản lý bước
+      <span class="badge bg-secondary ms-1">{{ steps|length }}</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#tab-attach">
+      <i class="fa-solid fa-paperclip me-1"></i>Tài liệu đính kèm
+      <span class="badge bg-secondary ms-1">{{ attachments|length }}</span>
+    </a>
+  </li>
+</ul>
+
+<div class="tab-content">
+
+<!-- ── Tab: Tổng quan ─────────────────────────────────────────────────────── -->
+<div class="tab-pane fade show active" id="tab-overview">
+  <div class="row g-4">
+    <div class="col-md-8">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white fw-semibold">
+          <i class="fa-solid fa-paragraph me-2 text-primary"></i>Nội dung mô tả
+        </div>
+        <div class="card-body p-4">
+          {% if procedure.description %}
+          <div class="proc-description">{{ procedure.description|safe }}</div>
+          {% else %}
+          <p class="text-muted fst-italic">Chưa có mô tả.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold">
+          <i class="fa-solid fa-table-list me-2 text-primary"></i>Thông tin
+        </div>
+        <div class="card-body p-0">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between py-3">
+              <span class="text-muted small">Trạng thái</span>
+              <span class="badge bg-{{ procedure.status_badge }}">{{ procedure.get_status_display }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between py-3">
+              <span class="text-muted small">Loại</span>
+              <span class="small fw-semibold">{{ procedure.get_category_display }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between py-3">
+              <span class="text-muted small">Phiên bản</span>
+              <span class="small fw-semibold">{{ procedure.version }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between py-3">
+              <span class="text-muted small">Ngày hiệu lực</span>
+              <span class="small fw-semibold">{{ procedure.effective_date|date:"d/m/Y"|default:"—" }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between py-3">
+              <span class="text-muted small">Số bước</span>
+              <span class="small fw-semibold">{{ steps|length }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between py-3">
+              <span class="text-muted small">Tài liệu đính kèm</span>
+              <span class="small fw-semibold">{{ attachments|length }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab: Sơ đồ quy trình ──────────────────────────────────────────────── -->
+<div class="tab-pane fade" id="tab-tree">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="text-muted small mb-0">
+      <i class="fa-solid fa-circle-info me-1"></i>
+      Click vào từng ô trong sơ đồ để xem chi tiết bước đó.
+    </p>
+    <div class="d-flex gap-1">
+      <button class="btn btn-sm btn-outline-secondary" onclick="zoomTree(-0.15)" title="Thu nhỏ">
+        <i class="fa-solid fa-magnifying-glass-minus"></i>
+      </button>
+
+      <button class="btn btn-sm btn-outline-secondary" onclick="zoomTree(0)" title="Khôi phục">
+        <i class="fa-solid fa-expand"></i>
+      </button>
+
+      <button class="btn btn-sm btn-outline-secondary" onclick="zoomTree(0.15)" title="Phóng to">
+        <i class="fa-solid fa-magnifying-glass-plus"></i>
+      </button>
+
+      <button class="btn btn-sm btn-outline-secondary" onclick="window.print()" title="In sơ đồ">
+        <i class="fa-solid fa-print"></i>
+      </button>
+    </div>
+  </div>
+
+  <div id="tree-scroll-wrap">
+    <div id="tree-svg-wrap">
+      <div id="tree-empty" class="text-center text-muted py-5" style="display:none">
+        <i class="fa-solid fa-diagram-project fs-1 d-block mb-2 opacity-50"></i>
+        <p>Chưa có bước nào. Vui lòng thêm bước trong tab <strong>Quản lý bước</strong>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab: Quản lý bước ─────────────────────────────────────────────────── -->
+<div class="tab-pane fade" id="tab-steps">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="text-muted small mb-0">
+      Danh sách các bước trong quy trình.
+    </p>
+    {% if can_edit %}
+    <button class="btn btn-sm btn-primary" onclick="openAddStepModal()">
+      <i class="fa-solid fa-plus me-1"></i>Thêm bước
+    </button>
+    {% endif %}
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" id="steps-table">
+        <thead class="table-light">
+          <tr>
+            <th style="width:50px">#</th>
+            <th>Tên bước</th>
+            <th>Bước cha</th>
+            <th>Người thực hiện</th>
+            <th>Thời gian</th>
+            {% if can_edit %}<th style="width:110px">Thao tác</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody id="steps-tbody">
+          {% for step in steps %}
+          <tr class="step-row" data-step-id="{{ step.pk }}">
+            <td>
+              <span class="step-color-dot" style="background:{{ step.color }}; display:inline-block; width:12px; height:12px; border-radius:50%;"></span>
+              {{ step.order }}
+            </td>
+            <td>
+              <span class="fw-semibold">{{ step.title }}</span>
+              {% if step.parent %}
+              <br><small class="text-muted"><i class="fa-solid fa-turn-down me-1"></i>{{ step.parent.title }}</small>
+              {% endif %}
+            </td>
+            <td><small class="text-muted">{{ step.parent.title|default:"—" }}</small></td>
+            <td><small>{{ step.responsible|default:"—" }}</small></td>
+            <td><small class="text-muted">{{ step.duration|default:"—" }}</small></td>
+            {% if can_edit %}
+            <td>
+              <button class="btn btn-xs btn-outline-primary py-0 px-2" onclick='openEditStepModal({{ step.pk }})'>
+                <i class="fa-solid fa-pen"></i>
+              </button>
+
+              <button class="btn btn-xs btn-outline-danger py-0 px-2 ms-1" onclick='confirmDeleteStep({{ step.pk }}, "{{ step.title|escapejs }}")'>
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>                             
+            {% endif %}
+          </tr>
+          {% empty %}
+          <tr id="steps-empty-row">
+            <td colspan="{% if can_edit %}6{% else %}5{% endif %}" class="text-center text-muted py-4">
+              Chưa có bước nào.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab: Tài liệu đính kèm ────────────────────────────────────────────── -->
+<div class="tab-pane fade" id="tab-attach">
+  {% if can_edit %}
+  <div id="drop-zone" class="mb-4" onclick="document.getElementById('attach-input').click()">
+    <i class="fa-solid fa-cloud-arrow-up fs-2 text-muted d-block mb-2"></i>
+    <p class="mb-1">Kéo thả hoặc click để tải lên tệp đính kèm</p>
+    <small class="text-muted">Hỗ trợ ảnh (JPG, PNG, GIF) và PDF</small>
+    <input type="file" id="attach-input" class="d-none" accept="image/*,.pdf" multiple>
+  </div>
+  {% endif %}
+
+  <div id="attachments-list" class="row g-3">
+    {% for att in attachments %}
+    <div class="col-md-4 col-lg-3 att-card" data-att-id="{{ att.pk }}">
+      <div class="card border-0 shadow-sm h-100">
+        {% if att.file_type == 'image' %}
+        <img src="{{ att.file.url }}" class="card-img-top"
+             style="height:140px;object-fit:cover;cursor:zoom-in"
+             onclick="previewImage('{{ att.file.url }}', '{{ att.name|escapejs }}')">
+        {% elif att.file_type == 'pdf' %}
+        <div class="d-flex align-items-center justify-content-center bg-light" style="height:140px">
+          <i class="fa-solid fa-file-pdf text-danger" style="font-size:3rem"></i>
+        </div>
+        {% else %}
+        <div class="d-flex align-items-center justify-content-center bg-light" style="height:140px">
+          <i class="fa-solid fa-file text-secondary" style="font-size:3rem"></i>
+        </div>
+        {% endif %}
+        <div class="card-body p-2">
+          <p class="card-text small fw-semibold mb-0 text-truncate" title="{{ att.name }}">{{ att.name }}</p>
+          <small class="text-muted">{{ att.uploaded_at|date:"d/m/Y" }}</small>
+        </div>
+        <div class="card-footer bg-transparent border-0 p-2 pt-0 d-flex gap-1">
+          <a href="{{ att.file.url }}" target="_blank" class="btn btn-xs btn-outline-secondary py-0 px-2 flex-grow-1">
+            <i class="fa-solid fa-download me-1"></i>Tải
+          </a>
+          {% if can_edit %}
+          <button class="btn btn-xs btn-outline-danger py-0 px-2" onclick="deleteAttachment({{ att.pk }})">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12" id="attach-empty">
+      <p class="text-muted text-center py-3 fst-italic">Chưa có tài liệu đính kèm.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+</div>
+<!-- end tab-content -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════════════════════════════════════  -->
+
+<!-- Modal: Xem chi tiết bước (tree click) -->
+<div class="modal" id="stepDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" id="step-detail-header" style="border-bottom:3px solid #0d6efd">
+        <h5 class="modal-title" id="step-detail-title">Chi tiết bước</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <div class="d-flex align-items-center gap-2">
+              <i class="fa-solid fa-id-badge text-muted"></i>
+              <div>
+                <small class="text-muted d-block">Người / Bộ phận thực hiện</small>
+                <span id="step-detail-responsible" class="fw-semibold">—</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="d-flex align-items-center gap-2">
+              <i class="fa-solid fa-clock text-muted"></i>
+              <div>
+                <small class="text-muted d-block">Thời gian thực hiện</small>
+                <span id="step-detail-duration" class="fw-semibold">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <hr>
+        <div id="step-detail-description" class="proc-description text-muted fst-italic">
+          Chưa có mô tả chi tiết.
+        </div>
+        <div id="step-detail-attachments" class="mt-3" style="display:none">
+          <h6 class="fw-semibold"><i class="fa-solid fa-paperclip me-1"></i>Tệp đính kèm</h6>
+          <div id="step-attach-list" class="d-flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        {% if can_edit %}
+        <button class="btn btn-outline-primary btn-sm" id="step-detail-edit-btn">
+          <i class="fa-solid fa-pen me-1"></i>Chỉnh sửa bước này
+        </button>
+        {% endif %}
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Thêm / Chỉnh sửa bước -->
+<div class="modal" id="stepFormModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="step-form-title">Thêm bước</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="step-form-id">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold">Tên bước <span class="text-danger">*</span></label>
+            <input type="text" id="step-form-title-inp" class="form-control"
+                   placeholder="Ví dụ: Tiếp nhận hồ sơ">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Bước cha</label>
+            <select id="step-form-parent" class="form-select">
+              <option value="">— Không có (bước gốc) —</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Thứ tự</label>
+            <input type="number" id="step-form-order" class="form-control" value="1" min="1">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Thời gian</label>
+            <input type="text" id="step-form-duration" class="form-control" placeholder="VD: 30 phút">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Người / Bộ phận thực hiện</label>
+            <input type="text" id="step-form-responsible" class="form-control"
+                   placeholder="VD: Nhân viên Sale, Trưởng khoa...">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Mô tả chi tiết</label>
+            <div id="step-form-quill" class="ql-step-container">
+            </div>
+            <input type="hidden" id="step-form-description">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold d-block">Màu sắc nút</label>
+            <div class="d-flex flex-wrap gap-1 align-items-center" id="color-picker">
+              {% for hex, name in color_choices %}
+              <input type="radio" name="step-color" value="{{ hex }}"
+                     id="color-{{ forloop.counter }}" class="color-opt"
+                     {% if forloop.first %}checked{% endif %}>
+              <label for="color-{{ forloop.counter }}"
+                     style="background:{{ hex }}"
+                     title="{{ name }}"></label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-primary" id="step-form-save-btn" onclick="saveStep()">
+          <i class="fa-solid fa-check me-1"></i>Lưu bước
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Xem ảnh full -->
+<div class="modal" id="imagePreviewModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content bg-dark">
+      <div class="modal-header border-0">
+        <h6 class="modal-title text-white" id="img-preview-title"></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center p-2">
+        <img id="img-preview-src" src="" class="img-fluid" style="max-height:80vh">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete form -->
+<form method="post" action="{% url 'procedures:delete' procedure.pk %}" id="delete-form" style="display:none">
+  {% csrf_token %}
+</form>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+   SCRIPTS
+══════════════════════════════════════════════════════════════════════════ -->
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+/* ── Data ── */
+let stepsData = {{ steps_json|safe }};
+let stepChoices = {{ step_choices_json|safe }};
+const PROCEDURE_PK = {{ procedure.pk }};
+const CAN_EDIT = {% if can_edit %}true{% else %}false{% endif %};
+
+/* ── CSRF helper ── */
+function getCsrf() {
+  const c = document.cookie.split('; ').find(r => r.startsWith('csrftoken='));
+  return c ? c.split('=')[1] : '';
+}
+
+async function apiPost(url, payload) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+/* ══════════════════════════════════════════════════
+   TREE DIAGRAM
+══════════════════════════════════════════════════ */
+const NODE_W = 190;
+const NODE_H = 56;
+const H_GAP  = 44;
+const V_GAP  = 80;
+const PAD    = 32;
+
+let treeScale = 1;
+
+function zoomTree(delta) {
+  if (delta === 0) { treeScale = 1; }
+  else { treeScale = Math.max(0.25, Math.min(2.5, treeScale + delta)); }
+  document.getElementById('tree-svg-wrap').style.transform = `scale(${treeScale})`;
+}
+
+function escSvg(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function truncate(s, n) {
+  return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+function buildAndRenderTree(data) {
+  const wrap = document.getElementById('tree-svg-wrap');
+  const empty = document.getElementById('tree-empty');
+
+  if (!data || data.length === 0) {
+    wrap.innerHTML = '';
+    wrap.appendChild(empty);
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  /* Build map */
+  const map = {};
+  data.forEach(s => {
+    map[s.id] = Object.assign({}, s, { children: [], x: 0, y: 0, subtreeW: 0 });
+  });
+
+  const roots = [];
+  data.forEach(s => {
+    if (s.parent_id && map[s.parent_id]) {
+      map[s.parent_id].children.push(map[s.id]);
+    } else {
+      roots.push(map[s.id]);
+    }
+  });
+
+  const sortNode = n => {
+    n.children.sort((a, b) => a.order - b.order);
+    n.children.forEach(sortNode);
+  };
+  roots.forEach(sortNode);
+
+  /* Subtree widths */
+  const computeW = n => {
+    if (n.children.length === 0) { n.subtreeW = NODE_W; return; }
+    n.children.forEach(computeW);
+    const total = n.children.reduce((s, c) => s + c.subtreeW, 0) + H_GAP * (n.children.length - 1);
+    n.subtreeW = Math.max(NODE_W, total);
+  };
+  roots.forEach(computeW);
+
+  /* Assign positions */
+  const assignPos = (n, startX, depth) => {
+    n.y = PAD + depth * (NODE_H + V_GAP);
+    if (n.children.length === 0) {
+      n.x = startX + (n.subtreeW - NODE_W) / 2;
+      return;
+    }
+    let cx = startX;
+    n.children.forEach(child => {
+      assignPos(child, cx, depth + 1);
+      cx += child.subtreeW + H_GAP;
+    });
+    const first = n.children[0];
+    const last  = n.children[n.children.length - 1];
+    n.x = (first.x + last.x + NODE_W) / 2 - NODE_W / 2;
+  };
+
+  let sx = PAD;
+  roots.forEach(r => {
+    assignPos(r, sx, 0);
+    sx += r.subtreeW + H_GAP * 2;
+  });
+
+  const all = Object.values(map);
+  const svgW = Math.max(...all.map(n => n.x + NODE_W)) + PAD;
+  const svgH = Math.max(...all.map(n => n.y + NODE_H)) + PAD;
+
+  /* Build SVG strings */
+  let edges = '';
+  let nodes = '';
+
+  all.forEach(node => {
+    /* Edge */
+    if (node.parent_id && map[node.parent_id]) {
+      const p = map[node.parent_id];
+      const x1 = p.x + NODE_W / 2, y1 = p.y + NODE_H;
+      const x2 = node.x + NODE_W / 2, y2 = node.y;
+      const cy = (y1 + y2) / 2;
+      edges += `<path d="M${x1},${y1} C${x1},${cy} ${x2},${cy} ${x2},${y2}"
+        fill="none" stroke="#adb5bd" stroke-width="2" stroke-dasharray="none"/>`;
+    }
+
+    /* Node */
+    const color = node.color || '#0d6efd';
+    const titleTxt = escSvg(truncate(node.title, 24));
+    const respTxt  = node.responsible ? escSvg(truncate(node.responsible, 26)) : '';
+    const hasResp  = Boolean(respTxt);
+    const titleY   = hasResp ? node.y + 22 : node.y + NODE_H / 2 + 5;
+
+    nodes += `<g class="tree-node" data-id="${node.id}"
+              style="cursor:pointer" onclick="showStepModal(${node.id})">
+      <rect x="${node.x}" y="${node.y}" width="${NODE_W}" height="${NODE_H}"
+            rx="10" ry="10" fill="${color}"/>
+      <text x="${node.x + NODE_W / 2}" y="${titleY}"
+            text-anchor="middle" fill="white"
+            font-size="13" font-weight="600" font-family="inherit">${titleTxt}</text>
+      ${hasResp
+        ? `<text x="${node.x + NODE_W / 2}" y="${node.y + 42}"
+                 text-anchor="middle" fill="rgba(255,255,255,0.82)"
+                 font-size="11" font-family="inherit">${respTxt}</text>`
+        : ''}
+    </g>`;
+  });
+
+  const svg = `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <style>
+        .tree-node rect { transition: filter .15s; }
+        .tree-node:hover rect { filter: brightness(1.18) drop-shadow(0 2px 6px rgba(0,0,0,.3)); }
+      </style>
+    </defs>
+    ${edges}
+    ${nodes}
+  </svg>`;
+
+  wrap.innerHTML = svg;
+}
+
+/* ── Show step detail modal (tree click) ── */
+function showStepModal(stepId) {
+  const step = stepsData.find(s => s.id === stepId);
+  if (!step) return;
+
+  const color = step.color || '#0d6efd';
+  document.getElementById('step-detail-header').style.borderBottomColor = color;
+  document.getElementById('step-detail-title').textContent = step.title;
+  document.getElementById('step-detail-responsible').textContent = step.responsible || '—';
+  document.getElementById('step-detail-duration').textContent = step.duration || '—';
+
+  const descEl = document.getElementById('step-detail-description');
+  if (step.description && step.description.trim() && step.description.trim() !== '<p><br></p>') {
+    descEl.innerHTML = step.description;
+    descEl.classList.remove('text-muted', 'fst-italic');
+  } else {
+    descEl.textContent = 'Chưa có mô tả chi tiết.';
+    descEl.classList.add('text-muted', 'fst-italic');
+  }
+
+  /* Edit button */
+  const editBtn = document.getElementById('step-detail-edit-btn');
+  if (editBtn) {
+    editBtn.onclick = () => {
+      bootstrap.Modal.getInstance(document.getElementById('stepDetailModal')).hide();
+      openEditStepModal(stepId);
+    };
+  }
+
+  new bootstrap.Modal(document.getElementById('stepDetailModal')).show();
+}
+
+/* ── Render tree when tab shown ── */
+document.getElementById('tree-tab-btn').addEventListener('shown.bs.tab', () => {
+  buildAndRenderTree(stepsData);
+});
+
+/* Initial render if tree tab is active on load */
+if (window.location.hash === '#tab-tree') {
+  buildAndRenderTree(stepsData);
+}
+
+/* ══════════════════════════════════════════════════
+   STEP FORM (Add / Edit)
+══════════════════════════════════════════════════ */
+let stepQuill = null;
+let stepFormMode = 'add';
+
+function initStepQuill() {
+  if (stepQuill) return;
+  stepQuill = new Quill('#step-form-quill', {
+    theme: 'snow',
+    placeholder: 'Mô tả chi tiết các nội dung, lưu ý trong bước này...',
+    modules: {
+      toolbar: [
+        ['bold', 'italic', 'underline'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        [{ color: [] }],
+        ['clean'],
+      ],
+    },
+  });
+}
+
+function populateParentSelect(excludeId) {
+  const sel = document.getElementById('step-form-parent');
+  sel.innerHTML = '<option value="">— Không có (bước gốc) —</option>';
+  stepChoices.forEach(c => {
+    if (c.id === excludeId) return;
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.title;
+    sel.appendChild(opt);
+  });
+}
+
+function openAddStepModal() {
+  stepFormMode = 'add';
+  document.getElementById('step-form-title').textContent = 'Thêm bước mới';
+  document.getElementById('step-form-id').value = '';
+  document.getElementById('step-form-title-inp').value = '';
+  document.getElementById('step-form-responsible').value = '';
+  document.getElementById('step-form-duration').value = '';
+  document.getElementById('step-form-order').value = stepsData.length + 1;
+  initStepQuill();
+  stepQuill.setContents([]);
+  populateParentSelect(null);
+
+  /* Reset color to first */
+  const firstColor = document.querySelector('input[name="step-color"]');
+  if (firstColor) firstColor.checked = true;
+
+  new bootstrap.Modal(document.getElementById('stepFormModal')).show();
+}
+
+function openEditStepModal(stepId) {
+  const step = stepsData.find(s => s.id === stepId);
+  if (!step) return;
+  stepFormMode = 'edit';
+
+  document.getElementById('step-form-title').textContent = 'Chỉnh sửa bước';
+  document.getElementById('step-form-id').value = step.id;
+  document.getElementById('step-form-title-inp').value = step.title;
+  document.getElementById('step-form-responsible').value = step.responsible;
+  document.getElementById('step-form-duration').value = step.duration;
+  document.getElementById('step-form-order').value = step.order;
+  initStepQuill();
+  stepQuill.clipboard.dangerouslyPasteHTML(step.description || '');
+  populateParentSelect(step.id);
+  document.getElementById('step-form-parent').value = step.parent_id || '';
+
+  /* Set color */
+  const colorInput = document.querySelector(`input[name="step-color"][value="${step.color}"]`);
+  if (colorInput) colorInput.checked = true;
+
+  new bootstrap.Modal(document.getElementById('stepFormModal')).show();
+}
+
+async function saveStep() {
+  const title = document.getElementById('step-form-title-inp').value.trim();
+  if (!title) {
+    alert('Vui lòng nhập tên bước.');
+    return;
+  }
+
+  const colorInput = document.querySelector('input[name="step-color"]:checked');
+  const payload = {
+    title,
+    parent_id: document.getElementById('step-form-parent').value || null,
+    responsible: document.getElementById('step-form-responsible').value.trim(),
+    duration: document.getElementById('step-form-duration').value.trim(),
+    order: parseInt(document.getElementById('step-form-order').value) || 1,
+    description: stepQuill ? stepQuill.root.innerHTML : '',
+    color: colorInput ? colorInput.value : '#0d6efd',
+  };
+
+  const btn = document.getElementById('step-form-save-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang lưu...';
+
+  let url, data;
+  if (stepFormMode === 'add') {
+    url = `/quy-trinh/${PROCEDURE_PK}/buoc/tao/`;
+    data = await apiPost(url, payload);
+  } else {
+    const stepId = document.getElementById('step-form-id').value;
+    url = `/quy-trinh/buoc/${stepId}/sua/`;
+    data = await apiPost(url, payload);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fa-solid fa-check me-1"></i>Lưu bước';
+
+  if (data.ok) {
+    stepsData = data.all_steps;
+    stepChoices = stepsData.map(s => ({ id: s.id, title: s.title }));
+    renderStepsTable(stepsData);
+    buildAndRenderTree(stepsData);
+    bootstrap.Modal.getInstance(document.getElementById('stepFormModal')).hide();
+  } else {
+    alert('Lỗi: ' + (data.error || 'Không xác định'));
+  }
+}
+
+function confirmDeleteStep(stepId, stepTitle) {
+  if (!confirm(`Xóa bước "${stepTitle}"?\nCác bước con sẽ được gắn vào bước cha của bước này.`)) return;
+  apiPost(`/quy-trinh/buoc/${stepId}/xoa/`, {}).then(data => {
+    if (data.ok) {
+      stepsData = data.all_steps;
+      stepChoices = stepsData.map(s => ({ id: s.id, title: s.title }));
+      renderStepsTable(stepsData);
+      buildAndRenderTree(stepsData);
+    } else {
+      alert('Lỗi: ' + (data.error || 'Không xác định'));
+    }
+  });
+}
+
+function renderStepsTable(steps) {
+  const tbody = document.getElementById('steps-tbody');
+  if (steps.length === 0) {
+    tbody.innerHTML = `<tr id="steps-empty-row">
+      <td colspan="${CAN_EDIT ? 6 : 5}" class="text-center text-muted py-4">Chưa có bước nào.</td>
+    </tr>`;
+    return;
+  }
+
+  const parentMap = {};
+  steps.forEach(s => { parentMap[s.id] = s.title; });
+
+  tbody.innerHTML = steps.map(s => `
+    <tr class="step-row" data-step-id="${s.id}">
+      <td>
+        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${s.color};margin-right:6px"></span>
+        ${s.order}
+      </td>
+      <td>
+        <span class="fw-semibold">${escHtml(s.title)}</span>
+        ${s.parent_id ? `<br><small class="text-muted"><i class="fa-solid fa-turn-down me-1"></i>${escHtml(parentMap[s.parent_id] || '')}</small>` : ''}
+      </td>
+      <td><small class="text-muted">${s.parent_id ? escHtml(parentMap[s.parent_id] || '—') : '—'}</small></td>
+      <td><small>${escHtml(s.responsible) || '—'}</small></td>
+      <td><small class="text-muted">${escHtml(s.duration) || '—'}</small></td>
+      ${CAN_EDIT ? `<td>
+        <button class="btn btn-xs btn-outline-primary py-0 px-2" onclick="openEditStepModal(${s.id})">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button class="btn btn-xs btn-outline-danger py-0 px-2 ms-1" onclick="confirmDeleteStep(${s.id}, '${s.title.replace(/'/g, "\\'")}')">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>` : ''}
+    </tr>
+  `).join('');
+}
+
+function escHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/* ══════════════════════════════════════════════════
+   ATTACHMENTS
+══════════════════════════════════════════════════ */
+const dropZone = document.getElementById('drop-zone');
+const attachInput = document.getElementById('attach-input');
+
+if (dropZone) {
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    [...e.dataTransfer.files].forEach(uploadFile);
+  });
+  attachInput.addEventListener('change', () => {
+    [...attachInput.files].forEach(uploadFile);
+    attachInput.value = '';
+  });
+}
+
+async function uploadFile(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('name', file.name);
+
+  const res = await fetch(`/quy-trinh/${PROCEDURE_PK}/dinh-kem/tai-len/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrf() },
+    body: fd,
+  });
+  const data = await res.json();
+  if (data.ok) {
+    addAttachmentCard(data.attachment);
+    document.getElementById('attach-empty')?.remove();
+  } else {
+    alert('Lỗi tải tệp: ' + (data.error || 'Không xác định'));
+  }
+}
+
+function addAttachmentCard(att) {
+  const list = document.getElementById('attachments-list');
+  const col = document.createElement('div');
+  col.className = 'col-md-4 col-lg-3 att-card';
+  col.dataset.attId = att.id;
+
+  let preview = '';
+  if (att.file_type === 'image') {
+    preview = `<img src="${att.file_url}" class="card-img-top"
+                style="height:140px;object-fit:cover;cursor:zoom-in"
+                onclick="previewImage('${att.file_url}', '${att.name.replace(/'/g, "\\'")}')">`;
+  } else if (att.file_type === 'pdf') {
+    preview = `<div class="d-flex align-items-center justify-content-center bg-light" style="height:140px">
+                <i class="fa-solid fa-file-pdf text-danger" style="font-size:3rem"></i></div>`;
+  } else {
+    preview = `<div class="d-flex align-items-center justify-content-center bg-light" style="height:140px">
+                <i class="fa-solid fa-file text-secondary" style="font-size:3rem"></i></div>`;
+  }
+
+  col.innerHTML = `<div class="card border-0 shadow-sm h-100">
+    ${preview}
+    <div class="card-body p-2">
+      <p class="card-text small fw-semibold mb-0 text-truncate" title="${escHtml(att.name)}">${escHtml(att.name)}</p>
+      <small class="text-muted">${att.uploaded_at}</small>
+    </div>
+    <div class="card-footer bg-transparent border-0 p-2 pt-0 d-flex gap-1">
+      <a href="${att.file_url}" target="_blank" class="btn btn-xs btn-outline-secondary py-0 px-2 flex-grow-1">
+        <i class="fa-solid fa-download me-1"></i>Tải
+      </a>
+      ${CAN_EDIT ? `<button class="btn btn-xs btn-outline-danger py-0 px-2" onclick="deleteAttachment(${att.id})">
+        <i class="fa-solid fa-trash"></i></button>` : ''}
+    </div>
+  </div>`;
+  list.appendChild(col);
+}
+
+async function deleteAttachment(attId) {
+  if (!confirm('Xóa tệp đính kèm này?')) return;
+  const data = await apiPost(`/quy-trinh/dinh-kem/${attId}/xoa/`, {});
+  if (data.ok) {
+    document.querySelector(`.att-card[data-att-id="${attId}"]`)?.remove();
+  } else {
+    alert('Lỗi: ' + (data.error || 'Không xác định'));
+  }
+}
+
+function previewImage(url, name) {
+  document.getElementById('img-preview-src').src = url;
+  document.getElementById('img-preview-title').textContent = name;
+  new bootstrap.Modal(document.getElementById('imagePreviewModal')).show();
+}
+
+/* ══════════════════════════════════════════════════
+   DELETE PROCEDURE
+══════════════════════════════════════════════════ */
+function confirmDelete() {
+  if (confirm('Bạn có chắc chắn muốn xóa quy trình "{{ procedure.title|escapejs }}"?\nHành động này không thể hoàn tác.')) {
+    document.getElementById('delete-form').submit();
+  }
+}
+</script>
+{% endblock %}
+

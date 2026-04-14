@@ -1,0 +1,746 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}Ticket #{{ ticket.pk }} – {{ ticket.subject }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ══════════════════════════════════════════════
+   Helpdesk Ticket Detail
+   Timeline-based conversation view
+══════════════════════════════════════════════ */
+
+/* ── Status stepper ── */
+.status-stepper {
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.status-step {
+  flex: 1;
+  text-align: center;
+  padding: 10px 6px;
+  font-size: .73rem;
+  font-weight: 500;
+  color: #adb5bd;
+  border-right: 1px solid #e2e8f0;
+  cursor: default;
+  position: relative;
+  transition: all .15s;
+}
+.status-step:last-child { border-right: none; }
+.status-step .step-icon { font-size: 1.1rem; display: block; margin-bottom: 3px; }
+.status-step.done-past  { color: #6c757d; }
+.status-step.current {
+  font-weight: 700;
+  color: #fff;
+}
+.status-step.clickable:hover { filter: brightness(0.92); cursor: pointer; }
+
+/* Step color per status */
+.step-OPEN.current            { background: #0d6efd; }
+.step-IN_PROGRESS.current     { background: #fd7e14; }
+.step-PENDING_CONFIRM.current { background: #198754; }
+.step-CLOSED.current          { background: #6c757d; }
+
+/* ── Ticket meta card ── */
+.meta-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+.meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f1f3f5;
+  font-size: .83rem;
+}
+.meta-row:last-child { border-bottom: none; }
+.meta-lbl {
+  width: 130px;
+  flex-shrink: 0;
+  font-size: .74rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* ── Timeline ── */
+.timeline { display: flex; flex-direction: column; gap: 0; }
+
+.tl-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  position: relative;
+}
+.tl-item::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 44px;
+  bottom: -12px;
+  width: 2px;
+  background: #e9ecef;
+}
+.tl-item:last-child::before { display: none; }
+
+.tl-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .85rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  z-index: 1;
+}
+.tl-avatar.system {
+  background: #e9ecef;
+  color: #6c757d;
+  font-size: 1rem;
+}
+.tl-avatar.executive { background: #0d6efd; }
+.tl-avatar.it-admin  { background: #198754; }
+.tl-avatar.manager   { background: #6f42c1; }
+.tl-avatar.other     { background: #6c757d; }
+
+.tl-content { flex: 1; min-width: 0; }
+
+.tl-bubble {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0 12px 12px 12px;
+  padding: 12px 14px;
+  position: relative;
+}
+.tl-bubble.mine {
+  background: #f0f5ff;
+  border-color: #c5d8ff;
+  border-radius: 12px 0 12px 12px;
+}
+.tl-bubble.system-event {
+  background: #f8f9fa;
+  border: 1px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: .78rem;
+  color: #6c757d;
+}
+
+.tl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.tl-author { font-size: .78rem; font-weight: 600; color: #343a40; }
+.tl-time   { font-size: .7rem; color: #adb5bd; }
+
+.tl-body {
+  font-size: .85rem;
+  line-height: 1.6;
+  color: #343a40;
+  word-break: break-word;
+}
+.tl-body p { margin-bottom: 4px; }
+.tl-body ul, .tl-body ol { padding-left: 20px; }
+
+.tl-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.att-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: .74rem;
+  color: #495057;
+  text-decoration: none;
+  transition: all .12s;
+}
+.att-chip:hover { background: #e9ecef; color: #212529; }
+
+/* ── Reply box ── */
+.reply-box {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-top: 16px;
+}
+.reply-box h6 {
+  font-size: .82rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #343a40;
+}
+#reply-editor {
+  border: 1px solid #dee2e6;
+  border-radius: 0 0 8px 8px;
+  min-height: 100px;
+  background: #fff;
+  font-size: .83rem;
+}
+.ql-toolbar {
+  border: 1px solid #dee2e6 !important;
+  border-bottom: none !important;
+  border-radius: 8px 8px 0 0 !important;
+  background: #f8f9fa;
+}
+.ql-container { border: none !important; font-size: .83rem; }
+
+/* ── File upload mini ── */
+.mini-drop {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: .76rem;
+  color: #6c757d;
+  text-align: center;
+  transition: all .15s;
+  margin-top: 10px;
+}
+.mini-drop:hover { border-color: #0d6efd; color: #0d6efd; background: #f0f5ff; }
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #e9ecef;
+  border-radius: 20px;
+  padding: 2px 9px;
+  font-size: .72rem;
+  margin: 2px;
+}
+.file-chip button { background:none;border:none;padding:0;cursor:pointer;color:#dc3545;font-size:.77rem; }
+
+/* ── IT Controls panel ── */
+.it-panel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.it-panel h6 {
+  font-size: .8rem;
+  font-weight: 700;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 12px;
+}
+
+/* ── Close confirm button ── */
+.close-ticket-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 2px solid #198754;
+  background: #fff;
+  color: #198754;
+  font-weight: 700;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.close-ticket-btn:hover {
+  background: #198754;
+  color: #fff;
+}
+
+/* Priority badges */
+.prio { display:inline-block; padding:1px 8px; border-radius:8px; font-size:.7rem; font-weight:700; }
+.prio-LOW    { background:#e9ecef; color:#495057; }
+.prio-MEDIUM { background:#cce5ff; color:#004085; }
+.prio-HIGH   { background:#fff3cd; color:#856404; }
+.prio-URGENT { background:#f8d7da; color:#721c24; }
+
+.status-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px; border-radius: 20px;
+  font-size: .72rem; font-weight: 600;
+}
+.status-OPEN            { background:#cce5ff; color:#004085; }
+.status-IN_PROGRESS     { background:#fff3cd; color:#856404; }
+.status-PENDING_CONFIRM { background:#d4edda; color:#155724; }
+.status-CLOSED          { background:#e9ecef; color:#495057; }
+
+.closed-notice {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  padding: 14px 18px;
+  text-align: center;
+  font-size: .83rem;
+  color: #6c757d;
+  margin-top: 16px;
+}
+.closed-notice i { font-size: 1.4rem; display: block; margin-bottom: 6px; color: #198754; }
+</style>
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<!-- ── Page header ── -->
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url 'helpdesk:list' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fa fa-arrow-left"></i>
+    </a>
+    <div>
+      <h5 class="mb-0" style="font-size:.95rem;font-weight:700">
+        <span style="color:#adb5bd">#{{ ticket.pk }}</span>
+        {{ ticket.subject }}
+      </h5>
+      <div style="font-size:.73rem;color:#6c757d">
+        {{ ticket.category_label }}
+        &nbsp;·&nbsp;
+        Gửi {{ ticket.created_at|date:"d/m/Y H:i" }}
+        bởi <strong>{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</strong>
+      </div>
+    </div>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <span class="prio prio-{{ ticket.priority }}">{{ ticket.priority_label }}</span>
+    <span class="status-badge status-{{ ticket.status }}">{{ ticket.status_label }}</span>
+  </div>
+</div>
+
+<!-- ── Status stepper ── -->
+{% with steps="OPEN,IN_PROGRESS,PENDING_CONFIRM,CLOSED" %}
+<div class="status-stepper">
+  {% for s, slabel in statuses %}
+  <div class="status-step step-{{ s }}
+    {% if ticket.status == s %}current{% endif %}
+    {% if ticket.status == 'IN_PROGRESS' and s == 'OPEN' %}done-past{% endif %}
+    {% if ticket.status == 'PENDING_CONFIRM' and s in 'OPEN,IN_PROGRESS' %}done-past{% endif %}
+    {% if ticket.status == 'CLOSED' %}done-past{% endif %}
+    {% if can_change_status and not ticket.is_closed %}clickable{% endif %}"
+    {% if can_change_status and not ticket.is_closed and ticket.status != s %}
+      onclick="doChangeStatus('{{ s }}')"
+    {% endif %}>
+    <span class="step-icon">
+      {% if s == 'OPEN' %}📥
+      {% elif s == 'IN_PROGRESS' %}⚙️
+      {% elif s == 'PENDING_CONFIRM' %}✅
+      {% else %}🔒{% endif %}
+    </span>
+    {{ slabel }}
+  </div>
+  {% endfor %}
+</div>
+{% endwith %}
+
+<div class="row g-3">
+
+  <!-- ══ Left: Timeline + Reply ══ -->
+  <div class="col-12 col-lg-8">
+
+    <!-- ── Timeline ── -->
+    <div class="timeline" id="timeline">
+      {% for msg in messages_qs %}
+      {% with is_system=msg.is_system_event %}
+
+      <div class="tl-item">
+        <!-- Avatar -->
+        {% if is_system %}
+        <div class="tl-avatar system">
+          {% if msg.event_type == 'STATUS_CHANGED' %}🔄
+          {% elif msg.event_type == 'TICKET_OPENED' %}📥
+          {% elif msg.event_type == 'TICKET_CLOSED' %}🔒
+          {% elif msg.event_type == 'ASSIGNED' %}👤
+          {% else %}ℹ️{% endif %}
+        </div>
+        {% else %}
+        {% with sender=msg.sender %}
+        <div class="tl-avatar
+          {% if sender and sender.groups.filter(name__in='IT Admin,IT,IT Support').exists %}it-admin
+          {% elif sender and sender.groups.filter(name__in='Executive,Executives').exists %}executive
+          {% elif sender and sender.groups.filter(name__in='Manager,Managers').exists %}manager
+          {% else %}other{% endif %}">
+          {{ sender.get_full_name|default:sender.username|slice:":1"|upper|default:"?" }}
+        </div>
+        {% endwith %}
+        {% endif %}
+
+        <!-- Content -->
+        <div class="tl-content">
+          {% if is_system %}
+          <div class="tl-bubble system-event">
+            <i class="fa fa-info-circle me-1"></i>
+            {{ msg.body }}
+            <span class="ms-2" style="color:#adb5bd">{{ msg.created_at|date:"d/m H:i" }}</span>
+          </div>
+          {% else %}
+          <div class="tl-bubble {% if msg.sender_id == request.user.id %}mine{% endif %}">
+            <div class="tl-header">
+              <span class="tl-author">
+                {{ msg.sender.get_full_name|default:msg.sender.username|default:"Người dùng" }}
+              </span>
+              <span class="tl-time">{{ msg.created_at|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div class="tl-body">{{ msg.body|safe }}</div>
+            {% if msg.attachments_json %}
+            <div class="tl-attachments">
+              {% for att in msg.attachments_json %}
+              <a href="{{ att.url }}" target="_blank" class="att-chip">
+                <i class="fa fa-paperclip"></i>
+                {{ att.name }}
+                <span style="color:#adb5bd">({{ att.size_display }})</span>
+              </a>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% endwith %}
+      {% empty %}
+      <div style="text-align:center;padding:30px;color:#adb5bd;font-size:.82rem">
+        Chưa có nội dung
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- ── Reply / Closed notice ── -->
+    {% if ticket.is_closed %}
+    <div class="closed-notice">
+      <i class="fa fa-lock"></i>
+      <strong>Ticket đã đóng</strong><br>
+      Xác nhận bởi <strong>{{ ticket.closed_by.get_full_name|default:ticket.closed_by.username|default:"—" }}</strong>
+      lúc {{ ticket.closed_at|date:"d/m/Y H:i" }}
+    </div>
+
+    {% elif can_reply %}
+    <div class="reply-box">
+      <h6><i class="fa fa-reply me-2"></i>Phản hồi</h6>
+      <form method="post" enctype="multipart/form-data" id="replyForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="reply">
+        <input type="hidden" name="body" id="replyBodyInput">
+
+        <div id="reply-editor"></div>
+
+        <!-- Mini file upload -->
+        <div class="mini-drop" onclick="document.getElementById('replyFileInput').click()">
+          <i class="fa fa-paperclip me-1"></i>Đính kèm tệp
+        </div>
+        <input type="file" id="replyFileInput" name="attachments" multiple
+               style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.zip,.txt">
+        <div id="replyFileList" style="margin-top:6px"></div>
+
+        <div class="d-flex gap-2 justify-content-end mt-3">
+          <button type="submit" class="btn btn-primary btn-sm px-4" id="replyBtn">
+            <i class="fa fa-paper-plane me-1"></i>Gửi phản hồi
+          </button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ══ Right: Controls ══ -->
+  <div class="col-12 col-lg-4">
+
+    <!-- ── IT: Change status quick buttons ── -->
+    {% if can_change_status %}
+    <div class="it-panel">
+      <h6><i class="fa fa-toggle-on me-1"></i>Cập nhật trạng thái</h6>
+      {% for s, slabel in statuses %}
+      {% if s != ticket.status and s != 'CLOSED' %}
+      <button type="button" class="btn btn-sm btn-outline-secondary w-100 mb-2"
+              onclick="doChangeStatus('{{ s }}')">
+        {% if s == 'OPEN' %}📥{% elif s == 'IN_PROGRESS' %}⚙️{% elif s == 'PENDING_CONFIRM' %}✅{% endif %}
+        Chuyển sang: {{ slabel }}
+      </button>
+      {% endif %}
+      {% endfor %}
+
+      <!-- Status note modal trigger -->
+      <button type="button" class="btn btn-sm btn-outline-info w-100"
+              data-bs-toggle="modal" data-bs-target="#statusNoteModal">
+        <i class="fa fa-comment-alt me-1"></i>Đổi trạng thái có ghi chú…
+      </button>
+    </div>
+    {% endif %}
+
+    <!-- ── IT: Assign ── -->
+    {% if can_assign %}
+    <div class="it-panel">
+      <h6><i class="fa fa-user-cog me-1"></i>Phân công IT</h6>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="assign">
+        <select name="assignee_id" class="form-select form-select-sm mb-2"
+                onchange="this.form.submit()">
+          <option value="">— Chưa phân công —</option>
+          {% for u in it_users %}
+          <option value="{{ u.pk }}"
+            {% if ticket.assigned_to_id == u.pk %}selected{% endif %}>
+            {{ u.get_full_name|default:u.username }}
+          </option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- ── Executive: Close confirm ── -->
+    {% if can_close %}
+    <div class="it-panel" style="border-color:#198754">
+      <h6 style="color:#198754"><i class="fa fa-check-circle me-1"></i>Xác nhận hoàn thành</h6>
+      <p style="font-size:.78rem;color:#6c757d;margin-bottom:12px">
+        IT đã xử lý xong yêu cầu của bạn? Nhấn xác nhận để đóng ticket.
+        Sau khi đóng, hai bên không gửi thêm được.
+      </p>
+      <button type="button" class="close-ticket-btn"
+              data-bs-toggle="modal" data-bs-target="#closeModal">
+        <i class="fa fa-lock"></i>Xác nhận đóng ticket
+      </button>
+    </div>
+    {% endif %}
+
+    <!-- ── Ticket info ── -->
+    <div class="meta-card">
+      <div class="meta-row">
+        <span class="meta-lbl">Người gửi</span>
+        <span>{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-lbl">IT phụ trách</span>
+        <span>{{ ticket.assigned_to.get_full_name|default:"Chưa phân công" }}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-lbl">Loại yêu cầu</span>
+        <span>{{ ticket.category_label }}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-lbl">Độ ưu tiên</span>
+        <span class="prio prio-{{ ticket.priority }}">{{ ticket.priority_label }}</span>
+      </div>
+      {% if ticket.linked_task %}
+      <div class="meta-row">
+        <span class="meta-lbl">Công việc liên kết</span>
+        <a href="{% url 'tasks:detail' task_id=ticket.linked_task.pk %}"
+           style="font-size:.82rem">
+          <i class="fa fa-external-link-alt me-1"></i>#{{ ticket.linked_task.pk }}
+          {{ ticket.linked_task.title|truncatechars:30 }}
+        </a>
+      </div>
+      {% endif %}
+      <div class="meta-row">
+        <span class="meta-lbl">Ngày tạo</span>
+        <span>{{ ticket.created_at|date:"d/m/Y H:i" }}</span>
+      </div>
+      {% if ticket.closed_at %}
+      <div class="meta-row">
+        <span class="meta-lbl">Ngày đóng</span>
+        <span>{{ ticket.closed_at|date:"d/m/Y H:i" }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ Modals ══ -->
+{% block modals %}
+
+<!-- ── Change status with note ── -->
+{% if can_change_status %}
+<div class="modal" id="statusNoteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content" style="border-radius:14px">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" style="font-size:.9rem;font-weight:700">Đổi trạng thái</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" id="statusNoteForm">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="change_status">
+          <div class="mb-3">
+            <label class="form-label" style="font-size:.78rem;font-weight:600">Trạng thái mới</label>
+            <select name="status" class="form-select form-select-sm">
+              {% for s, slabel in statuses %}
+              {% if s != ticket.status %}
+              <option value="{{ s }}">{{ slabel }}</option>
+              {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" style="font-size:.78rem;font-weight:600">Ghi chú</label>
+            <textarea name="note" class="form-control form-control-sm" rows="3"
+                      placeholder="Mô tả tiến độ xử lý..."></textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary flex-fill"
+                    data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-sm btn-primary flex-fill">Xác nhận</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Close ticket confirm ── -->
+{% if can_close %}
+<div class="modal" id="closeModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content" style="border-radius:14px">
+      <div class="modal-header border-0 pb-0" style="background:#f0fff4">
+        <h5 class="modal-title" style="font-size:.9rem;font-weight:700;color:#198754">
+          <i class="fa fa-lock me-2"></i>Xác nhận đóng ticket
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:.82rem;color:#495057">
+          Bạn xác nhận IT đã xử lý xong yêu cầu này?
+          Ticket sẽ được <strong>đóng lại</strong> và không ai gửi thêm được nữa.
+        </p>
+        <form method="post" id="closeForm">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="close">
+          <div class="mb-3">
+            <label class="form-label" style="font-size:.78rem;font-weight:600">
+              Ghi chú xác nhận (tùy chọn)
+            </label>
+            <textarea name="close_note" class="form-control form-control-sm" rows="2"
+                      placeholder="Đã kiểm tra và xác nhận..."></textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary flex-fill"
+                    data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-sm btn-success flex-fill">
+              <i class="fa fa-check me-1"></i>Xác nhận đóng
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Hidden form for quick status change (via stepper / buttons) ── -->
+{% if can_change_status %}
+<form method="post" id="quickStatusForm" style="display:none">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="change_status">
+  <input type="hidden" name="status" id="quickStatusValue">
+  <input type="hidden" name="note" value="">
+</form>
+{% endif %}
+
+{% endblock modals %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+// ── Quill reply editor ──
+{% if can_reply and not ticket.is_closed %}
+const replyQuill = new Quill('#reply-editor', {
+  theme: 'snow',
+  placeholder: 'Nhập nội dung phản hồi...',
+  modules: {
+    toolbar: [
+      ['bold', 'italic', 'underline'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['link'],
+      ['clean'],
+    ],
+  },
+});
+
+// ── Reply file upload ──
+const replyFileInput = document.getElementById('replyFileInput');
+const replyFileList  = document.getElementById('replyFileList');
+let replyFiles = [];
+
+function renderReplyFiles() {
+  replyFileList.innerHTML = replyFiles.map((f, i) =>
+    `<span class="file-chip">
+       <i class="fa fa-paperclip"></i> ${f.name}
+       <button type="button" onclick="removeReplyFile(${i})">✕</button>
+     </span>`
+  ).join('');
+  const dt = new DataTransfer();
+  replyFiles.forEach(f => dt.items.add(f));
+  replyFileInput.files = dt.files;
+}
+
+function removeReplyFile(idx) {
+  replyFiles.splice(idx, 1);
+  renderReplyFiles();
+}
+
+replyFileInput.addEventListener('change', () => {
+  Array.from(replyFileInput.files).forEach(f => {
+    if (!replyFiles.find(x => x.name === f.name && x.size === f.size))
+      replyFiles.push(f);
+  });
+  renderReplyFiles();
+});
+
+document.getElementById('replyForm').addEventListener('submit', function(e) {
+  const html = replyQuill.root.innerHTML.trim();
+  const text = replyQuill.getText().trim();
+  if (!text && replyFiles.length === 0) {
+    e.preventDefault();
+    alert('Vui lòng nhập nội dung hoặc đính kèm tệp.');
+    return;
+  }
+  document.getElementById('replyBodyInput').value = html;
+  document.getElementById('replyBtn').disabled = true;
+  document.getElementById('replyBtn').innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i>Đang gửi...';
+});
+{% endif %}
+
+// ── Quick status change (stepper / buttons) ──
+function doChangeStatus(newStatus) {
+  {% if can_change_status %}
+  const form = document.getElementById('quickStatusForm');
+  if (!form) return;
+  document.getElementById('quickStatusValue').value = newStatus;
+  form.submit();
+  {% endif %}
+}
+
+// ── Auto-scroll timeline to bottom ──
+(function() {
+  const tl = document.getElementById('timeline');
+  if (tl) tl.scrollTop = tl.scrollHeight;
+})();
+</script>
+{% endblock %}
+

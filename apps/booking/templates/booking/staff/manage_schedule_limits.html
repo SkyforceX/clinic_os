@@ -1,0 +1,65 @@
+{% extends "booking/base.html" %}
+{% block content %}
+<div class="form-container" style="width: 100%;">
+<div class="form-row">
+    <div class="form-group" style="flex: 1;">
+        <h2>Quản lý giới hạn lịch khám - Năm {{ year }}</h2>
+    </div>
+</div>
+
+<div class="form-row">
+    <div class="form-group" style="flex: 1;">
+        <div class="filter-bar">
+        <form method="get" style="display: inline-block;">
+            <label for="year">Năm:</label>
+            <select name="year" id="year">
+          
+            </select>
+
+            <label for="month">Tháng:</label>
+            <select name="month" id="month">
+            <option value="">Tất cả</option>
+
+            </select>
+
+            <button type="submit">Lọc</button>
+        </form>
+        </div>
+
+        <form method="post">
+        {% csrf_token %}
+        <table class="schedule-table">
+            <thead>
+            <tr>
+                <th>Ngày</th>
+                <th>Giới hạn sáng</th>
+                <th>Giới hạn chiều</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for schedule in schedules %}
+                <tr>
+                <td>{{ schedule.day }}/{{ schedule.month }}/{{ schedule.year }}</td>
+
+                {% if schedule.editable %}
+                    <td>
+                    <input type="number" name="limit_am_{{ schedule.id }}" value="{{ schedule.limit_am }}" min="0" max="50" />
+                    </td>
+                    <td>
+                    <input type="number" name="limit_pm_{{ schedule.id }}" value="{{ schedule.limit_pm }}" min="0" max="50" />
+                    </td>
+                {% else %}
+                    <td class="readonly-cell">{{ schedule.limit_am }}</td>
+                    <td class="readonly-cell">{{ schedule.limit_pm }}</td>
+                {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <button type="submit" class="submit-btn">💾 Lưu thay đổi</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

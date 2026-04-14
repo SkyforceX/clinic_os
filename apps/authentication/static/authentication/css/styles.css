@@ -1,0 +1,227 @@
+/* ──────────────────────────────────────────
+   PATIENT DASHBOARD — patient_dashboard.html
+   ────────────────────────────────────────── */
+.patient-home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 16px 80px;
+  min-height: calc(100vh - var(--topbar-height, 64px) - 180px);
+}
+
+/* Greeting block */
+.patient-home__greeting {
+  text-align: center;
+  margin-bottom: 40px;
+  animation: phFadeDown 0.5s ease both;
+}
+
+.patient-home__hello {
+  font-size: 1rem;
+  color: #64748b;
+  font-weight: 400;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.patient-home__name {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #0d7a6e;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.patient-home__sub {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+/* Cards row */
+.patient-home__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  justify-content: center;
+  width: 100%;
+  max-width: 720px;
+  animation: phFadeUp 0.55s 0.1s ease both;
+}
+
+/* Base card */
+.patient-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  max-width: 340px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(13, 122, 110, 0.09),
+              0 1px 4px rgba(0, 0, 0, 0.04);
+  border: 1.5px solid rgba(13, 122, 110, 0.08);
+  text-decoration: none;
+  color: #18211f;
+  padding: 22px 24px;
+  transition: transform 0.22s ease,
+              box-shadow 0.22s ease,
+              border-color 0.22s ease;
+  cursor: pointer;
+}
+
+.patient-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 36px rgba(13, 122, 110, 0.17),
+              0 2px 8px rgba(0, 0, 0, 0.05);
+  border-color: rgba(13, 122, 110, 0.28);
+  color: #0d7a6e;
+  text-decoration: none;
+}
+
+.patient-card:active {
+  transform: translateY(0);
+}
+
+/* Icon wrapper */
+.patient-card__icon-wrap {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: #e6f5f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.22s ease;
+}
+
+.patient-card:hover .patient-card__icon-wrap {
+  background: #c8ede8;
+}
+
+.patient-card__emoji {
+  font-size: 1.95rem;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Text body */
+.patient-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.patient-card__title {
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #18211f;
+  margin-bottom: 4px;
+  transition: color 0.18s;
+}
+
+.patient-card:hover .patient-card__title {
+  color: #0d7a6e;
+}
+
+.patient-card__sub {
+  font-size: 0.82rem;
+  color: #78909c;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+/* Arrow */
+.patient-card__arrow {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f0faf9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0d7a6e;
+  font-size: 0.8rem;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.patient-card:hover .patient-card__arrow {
+  background: #0d7a6e;
+  color: #fff;
+  transform: translateX(3px);
+}
+
+/* Card accent colours */
+.patient-card--booking {
+  border-left: 4px solid #0d7a6e;
+}
+
+.patient-card--health {
+  border-left: 4px solid #f5a623;
+}
+
+.patient-card--health .patient-card__icon-wrap {
+  background: #fff8ec;
+}
+
+.patient-card--health:hover .patient-card__icon-wrap {
+  background: #fde8be;
+}
+
+.patient-card--health .patient-card__arrow {
+  background: #fff8ec;
+  color: #c07c0a;
+}
+
+.patient-card--health:hover .patient-card__arrow {
+  background: #f5a623;
+  color: #fff;
+}
+
+.patient-card--health:hover .patient-card__title {
+  color: #c07c0a;
+}
+
+/* ── Animations ─────────────────────────────────── */
+@keyframes phFadeDown {
+  from { opacity: 0; transform: translateY(-14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes phFadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 480px) {
+  .patient-home {
+    padding: 32px 12px 60px;
+  }
+
+  .patient-home__name {
+    font-size: 1.55rem;
+  }
+
+  .patient-card {
+    max-width: 100%;
+    padding: 18px 18px;
+    gap: 14px;
+  }
+
+  .patient-card__icon-wrap {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+  }
+
+  .patient-card__emoji {
+    font-size: 1.65rem;
+  }
+
+  .patient-card__title {
+    font-size: 0.96rem;
+  }
+}

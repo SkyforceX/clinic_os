@@ -1,0 +1,692 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% load core_tags %}
+{% load humanize l10n %}
+{% load contract_tags %}
+
+
+{% block title %}Báo giá – {{ quotation.company_name }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'contract/css/proposal.css' %}">
+<style>
+.preview-toolbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:.75rem;
+  margin-bottom:1rem;
+  flex-wrap:wrap;
+}
+.preview-toolbar .toolbar-actions{
+  display:flex;
+  gap:.5rem;
+  flex-wrap:wrap;
+}
+@media print{
+  .no-print{display:none!important}
+}
+.preview-card{background:#fff;border:1px solid #dee2e6;border-radius:8px;padding:1.5rem;margin-bottom:1.25rem}
+.preview-card h6{font-weight:700;color:#1a5276;border-bottom:2px solid #1a5276;padding-bottom:.4rem;margin-bottom:1rem;font-size:.9rem;text-transform:uppercase;letter-spacing:.04em}
+.pkg-preview-block{border:2px solid #1a5276;border-radius:8px;margin-bottom:1.25rem;overflow:hidden}
+.pkg-preview-title{background:#1a5276;color:#fff;padding:.5rem 1rem;font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:.5rem}
+/* Catalog table */
+.qtable{width:100%;border-collapse:collapse;font-size:.82rem}
+.qtable th{background:#1a5276;color:#fff;padding:6px 8px;text-align:center;font-size:.75rem;line-height:1.3;white-space:nowrap}
+.qtable th.svc-col{text-align:left}
+.qtable td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:middle}
+.qtable tr:hover td{background:#f8fbff}
+.qtable .group-hdr td{background:#1a5276!important;color:#fff;font-weight:600;padding:5px 10px;font-size:.78rem}
+.qtable .subgroup-hdr td{background:#2e86c1!important;color:#fff;font-size:.76rem;padding:4px 10px}
+.qtable .total-row td{background:#fff8e1;font-weight:700;font-size:.82rem}
+.qtable .total-row-main td{background:#1a5276;color:#fff;font-weight:700;font-size:.83rem}
+/* Badge */
+.status-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:.73rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.status-draft{background:#f1f2f6;color:#555}
+.status-submitted{background:#fff3cd;color:#795548}
+.status-approved{background:#d4edda;color:#155724}
+.status-locked{background:#e9ecef;color:#555}
+.info-grid{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;font-size:.85rem}
+.info-grid dt{color:#777;font-weight:500}
+.info-grid dd{font-weight:600;margin:0}
+/* Action sidebar */
+.action-card{position:sticky;top:80px;background:#fff;border:1px solid #dee2e6;border-radius:8px;padding:1.2rem}
+.action-card .action-title{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:#888;font-weight:600;margin-bottom:.75rem;border-bottom:1px solid #eee;padding-bottom:.5rem}
+.action-btn{display:block;width:100%;margin-bottom:.5rem;text-align:left;font-size:.83rem}
+/* extra_content */
+.extra-content-block{
+  border:1px solid #e0e0e0;
+  border-radius:6px;
+  padding:1rem 1.25rem;
+  background:#fafafa;
+  font-size:.85rem;
+  line-height:1.6;
+  color:#212529;
+}
+.extra-content-block p,
+.extra-content-block div{
+  margin:0 0 .65rem 0;
+}
+.extra-content-block p:last-child,
+.extra-content-block div:last-child{
+  margin-bottom:0;
+}
+.extra-content-block h1,
+.extra-content-block h2,
+.extra-content-block h3,
+.extra-content-block h4,
+.extra-content-block h5,
+.extra-content-block h6{
+  margin:.9rem 0 .5rem;
+  font-weight:700;
+  line-height:1.35;
+  color:#1a5276;
+}
+.extra-content-block h1{font-size:1.35rem}
+.extra-content-block h2{font-size:1.2rem}
+.extra-content-block h3{font-size:1.05rem}
+.extra-content-block h4{font-size:1rem}
+.extra-content-block h5{font-size:.95rem}
+.extra-content-block h6{font-size:.9rem}
+
+.extra-content-block ul,
+.extra-content-block ol{
+  margin:.4rem 0 .8rem 0;
+  padding-left:1.4rem;
+}
+.extra-content-block li{
+  margin:.2rem 0;
+}
+.extra-content-block blockquote{
+  margin:.75rem 0;
+  padding:.5rem .85rem;
+  border-left:4px solid #bcd7ea;
+  background:#f4f9fc;
+  color:#4b5b67;
+  font-style:italic;
+}
+.extra-content-block a{
+  color:#0d6efd;
+  text-decoration:underline;
+}
+.extra-content-block strong{font-weight:700}
+.extra-content-block em{font-style:italic}
+.extra-content-block u{text-decoration:underline}
+.extra-content-block s{text-decoration:line-through}
+.extra-content-block img{
+  max-width:100%;
+  height:auto;
+  display:block;
+  margin:.5rem 0;
+}
+
+/* Quill classes */
+.extra-content-block .ql-align-center{text-align:center}
+.extra-content-block .ql-align-right{text-align:right}
+.extra-content-block .ql-align-justify{text-align:justify}
+
+.extra-content-block .ql-size-small{font-size:.78rem}
+.extra-content-block .ql-size-large{font-size:1.12rem}
+.extra-content-block .ql-size-huge{font-size:1.3rem}
+
+.extra-content-block .ql-indent-1{padding-left:1.5rem}
+.extra-content-block .ql-indent-2{padding-left:3rem}
+.extra-content-block .ql-indent-3{padding-left:4.5rem}
+.extra-content-block .ql-indent-4{padding-left:6rem}
+.extra-content-block .ql-indent-5{padding-left:7.5rem}
+.extra-content-block .ql-indent-6{padding-left:9rem}
+.extra-content-block .ql-indent-7{padding-left:10.5rem}
+.extra-content-block .ql-indent-8{padding-left:12rem}
+/* Discount/count summary */
+.col-summary-table{font-size:.8rem;width:100%;border-collapse:collapse}
+.col-summary-table th{background:#eaf2fb;color:#1a5276;padding:4px 8px;font-size:.75rem}
+.col-summary-table td{padding:4px 8px;border-bottom:1px solid #eee;text-align:center}
+.preview-price-stack{display:flex;flex-direction:column;align-items:center;gap:2px}
+.preview-price-base{color:#aaa;text-decoration:line-through;font-size:.75rem}
+.preview-price-list{font-size:.82rem;font-weight:600;color:#1f2d3d}
+/* Discount badge */
+.discount-badge{
+  display:inline-block;
+  background:#fff3e0;
+  color:#e65100;
+  border:1px solid #ffcc80;
+  border-radius:10px;
+  padding:0 5px;
+  font-size:.68rem;
+  font-weight:700;
+  line-height:1.5;
+  white-space:nowrap;
+}
+/* Commission block */
+.commission-info-block{
+  background:#f0f4ff;
+  border:1px solid #c7d2fe;
+  border-radius:8px;
+  padding:.9rem 1.1rem;
+}
+.commission-info-block .commission-info-title{
+  font-size:.78rem;
+  font-weight:700;
+  color:#3730a3;
+  margin-bottom:.55rem;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  <div class="col-12">
+    <div class="preview-toolbar no-print">
+      <h5 class="mb-0">
+        <i class="fa fa-file-invoice-dollar me-1"></i>
+        Xem trước báo giá – {{ quotation.company_name }}
+      </h5>
+
+      <div class="toolbar-actions">
+
+        <form method="post"
+              action="{% url 'contract:issue_quotation_document' quotation_id=quotation.pk %}"
+              class="d-inline mb-0"
+              id="issueQuotationForm">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-success" id="issueQuotationBtn">
+            <i class="fa fa-file-export me-1"></i> Phát hành PDF
+          </button>
+        </form>
+
+        {% if latest_issued %}
+          {% if latest_issued.pdf_file %}
+          <a href="{% url 'contract:download_issued_quotation_pdf' issued_id=latest_issued.pk %}"
+             class="btn btn-sm btn-danger">
+            <i class="fa fa-file-pdf me-1"></i> PDF
+          </a>
+          {% endif %}
+        {% endif %}
+
+        {% if can_edit_quotation %}
+        <a href="{% url 'contract:edit_quotation' quotation_id=quotation.pk %}"
+           class="btn btn-sm btn-outline-warning">
+          <i class="fa fa-pen me-1"></i> Sửa
+        </a>
+        {% endif %}
+
+        {% include "approvals/staff/includes/_submit_button.html" with document=quotation doc_type=doc_type doc_id=doc_id pending_ar=pending_ar can_submit=can_submit %}
+
+        {% if can_direct_approve and pending_ar %}
+        <a href="{% url 'approvals:detail' pk=pending_ar.pk %}"
+           class="btn btn-sm btn-outline-success">
+          <i class="fa fa-check-circle me-1"></i> Duyệt ngay
+        </a>
+        {% endif %}
+
+        {% if not linked_contract and quotation.status == 'APPROVED' and not quotation.is_locked %}
+        <a href="{% url 'contract:create_corporate_contract' %}?from_quotation={{ quotation.pk }}"
+           class="btn btn-sm btn-primary">
+          <i class="fa fa-file-signature me-1"></i> Tạo hợp đồng
+        </a>
+        {% elif linked_contract %}
+        <a href="{% url 'contract:corporate_contract_print' contract_id=linked_contract.pk %}"
+           class="btn btn-sm btn-outline-primary">
+          <i class="fa fa-file-contract me-1"></i> Xem hợp đồng
+        </a>
+        {% endif %}
+
+        <a href="{% url 'contract:quotation_list' %}" class="btn btn-sm btn-outline-secondary">
+          ← Danh sách
+        </a>
+
+        {% if not quotation.is_locked and not quotation.has_contract %}
+        <a href="{% url 'contract:delete_quotation' pk=quotation.pk %}"
+           class="btn btn-sm btn-outline-danger">
+          <i class="fa fa-trash me-1"></i> Xóa
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="preview-card">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+          <h4 class="mb-1 fw-bold" style="color:#1a5276">{{ quotation.company_name }}</h4>
+          <span class="status-badge {% if quotation.is_locked %}status-locked{% elif quotation.status == 'APPROVED' %}status-approved{% elif quotation.status == 'SUBMITTED' %}status-submitted{% else %}status-draft{% endif %}">
+            {% if quotation.is_locked %}🔒 Đã khóa{% elif quotation.status == 'APPROVED' %}✅ Đã duyệt{% elif quotation.status == 'SUBMITTED' %}⏳ Chờ duyệt{% else %}📝 Bản nháp{% endif %}
+          </span>
+          {% if quotation.linked_contract %}
+          <span class="status-badge ms-1" style="background:#d4edda;color:#155724">
+            🤝 <a href="{% url 'contract:corporate_contract_print' contract_id=quotation.linked_contract.pk %}" class="text-success fw-semibold text-decoration-none">Đã có hợp đồng #{{ quotation.linked_contract.pk }}</a>
+          </span>
+          {% endif %}
+        </div>
+        <div class="text-muted" style="font-size:.8rem">
+          <i class="fa fa-calendar-alt me-1"></i> Tạo: {{ quotation.created_at|date:"d/m/Y" }}
+          {% if quotation.valid_until %} &nbsp;|&nbsp; <i class="fa fa-hourglass-end me-1"></i> Hiệu lực: {{ quotation.valid_until|date:"d/m/Y" }}{% endif %}
+        </div>
+      </div>
+      <dl class="info-grid">
+        {% if quotation.contact_name %}<dt>Liên hệ</dt><dd>{{ quotation.contact_name }}</dd>{% endif %}
+        {% if quotation.company_address %}<dt>Địa chỉ</dt><dd>{{ quotation.company_address }}</dd>{% endif %}
+        {% if quotation.pax_from %}<dt>Ưu đãi từ</dt><dd>{{ quotation.pax_from }} người</dd>{% endif %}
+        {% if quotation.note %}<dt>Ghi chú</dt><dd>{{ quotation.note }}</dd>{% endif %}
+      </dl>
+    </div>
+
+    <!-- ── Hoa hồng nội bộ (no-print) ── -->
+    {% if quotation.commission_sale_pct or quotation.commission_co_pct %}
+    <div class="no-print mb-3">
+      <div class="commission-info-block">
+        <div class="commission-info-title">
+          🔒 Thông tin nội bộ – Hoa hồng ước tính
+        </div>
+        <div class="d-flex flex-wrap gap-4 align-items-center">
+          {% if quotation.commission_sale_pct %}
+          <div>
+            <span style="font-size:.8rem;color:#555">💼 HC Sale</span>
+            <strong style="color:#1a5276;font-size:.92rem;margin-left:.35rem">{{ quotation.commission_sale_pct|floatformat:"-2" }}%</strong>
+            {% if quotation.commission_sale_amount %}
+            <span class="ms-2 me-1 text-muted" style="font-size:.8rem">→</span>
+            <strong style="color:#1a5276;font-size:.92rem">{{ quotation.commission_sale_amount|vnd }} ₫</strong>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if quotation.commission_co_pct %}
+          <div style="border-left:1px solid #c7d2fe;padding-left:1rem">
+            <span style="font-size:.8rem;color:#555">🏢 HC Công ty</span>
+            <strong style="color:#00695c;font-size:.92rem;margin-left:.35rem">{{ quotation.commission_co_pct|floatformat:"-2" }}%</strong>
+            {% if quotation.commission_co_amount %}
+            <span class="ms-2 me-1 text-muted" style="font-size:.8rem">→</span>
+            <strong style="color:#00695c;font-size:.92rem">{{ quotation.commission_co_amount|vnd }} ₫</strong>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if quotation.commission_sale_amount and quotation.commission_co_amount %}
+          <div style="border-left:1px solid #c7d2fe;padding-left:1rem;margin-left:.25rem">
+            <span style="font-size:.8rem;color:#555">Σ Tổng hoa hồng</span>
+            <strong style="color:#7c3aed;font-size:.92rem;margin-left:.35rem">
+              {{ quotation.commission_sale_amount|add:quotation.commission_co_amount|vnd }} ₫
+            </strong>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ═══ MULTI-PACKAGE mode ═══ -->
+    {% if multi_package and packages %}
+      {% for pkg in packages %}
+      <div class="pkg-preview-block">
+        <div class="pkg-preview-title">
+          <i class="fa fa-box-open"></i> {{ pkg.name }}
+          <span class="ms-auto badge bg-light text-dark fw-normal" style="font-size:.72rem">{{ pkg.lines|length }} dịch vụ</span>
+        </div>
+
+        <!-- Column summary -->
+        {% if pkg.columns_json %}
+        <div class="px-3 pt-2 pb-1">
+          <table class="col-summary-table">
+            <thead><tr>
+              <th>Đối tượng</th>
+              <th>Số lượng</th>
+              <th>Giá/người</th>
+              <th>Thành tiền</th>
+            </tr></thead>
+            <tbody>
+              {% for col in pkg.columns_json %}
+              <tr>
+                <td class="fw-semibold">
+                  {{ col.label }}
+                  {% if col.discount_pct %}
+                  <span class="discount-badge ms-1">–{{ col.discount_pct|floatformat:"-2" }}%</span>
+                  {% endif %}
+                </td>
+                <td>{{ col.count }}</td>
+                <td>
+                  {% with col_totals=pkg.totals.by_col %}
+                  {% if col_totals %}
+                  {% for ck, cv in col_totals.items %}{% if ck == col.key %}{{ cv.per_person_display|default:"—" }}{% endif %}{% endfor %}
+                  {% endif %}
+                  {% endwith %}
+                </td>
+                <td class="fw-bold text-primary">
+                  {% with col_totals=pkg.totals.by_col %}
+                  {% if col_totals %}
+                  {% for ck, cv in col_totals.items %}{% if ck == col.key %}{{ cv.subtotal_display|default:"—" }}{% endif %}{% endfor %}
+                  {% endif %}
+                  {% endwith %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+
+        <!-- Service lines -->
+        <div class="table-responsive">
+          <table class="qtable">
+            <thead>
+              <tr>
+                <th style="width:36px">STT</th>
+                <th class="svc-col">DỊCH VỤ</th>
+                <th style="min-width:90px">GIÁ Niêm Yết</th>
+                {% for col in pkg.columns_json %}
+                <th style="min-width:90px">
+                  {{ col.label }}
+                  {% if col.discount_pct %}<br><span style="font-size:.65rem;opacity:.85;font-weight:400">(–{{ col.discount_pct|floatformat:"-2" }}%)</span>{% endif %}
+                </th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in pkg.display_rows %}
+                {% if row.row_type == 'group' %}
+                <tr class="group-hdr"><td colspan="{{ pkg.columns_json|length|add:3 }}">{{ row.label }}</td></tr>
+                {% elif row.row_type == 'subgroup' %}
+                <tr class="subgroup-hdr"><td colspan="{{ pkg.columns_json|length|add:3 }}">{{ row.label }}</td></tr>
+                {% elif row.row_type == 'item' %}
+                <tr>
+                  <td class="text-center text-muted">{{ row.line.stt }}</td>
+                  <td>
+                    <strong>{{ row.line.item_name }}</strong>
+                    {% if row.line.description %}<br><small class="text-muted">{{ row.line.description }}</small>{% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if row.line.price_type == 'free' %}
+                      <span class="text-success" style="font-size:.78rem;font-weight:700">
+                        {{ row.line.note|default:"Miễn phí" }}
+                      </span>
+                    {% elif row.line.price_type == 'gift' %}
+                      <span style="color:#e67e22;font-size:.78rem;font-weight:700">
+                        {{ row.line.note|default:"Tặng" }}
+                      </span>
+                    {% elif row.line.list_price %}
+                      <span class="{% if row.line.has_any_discount %}preview-price-base{% else %}preview-price-list{% endif %}">
+                        {{ row.line.list_price|vnd }}
+                      </span>
+                    {% else %}—{% endif %}
+                  </td>
+                  {% for col in pkg.columns_json %}
+                  <td class="text-center fw-semibold" style="color:#1a5276">
+                    {% if row.line.price_type == 'free' %}
+                      <span class="text-success" style="font-size:.75rem">{{ row.line.note|default:"Miễn phí" }}</span>
+                    {% elif row.line.price_type == 'gift' %}
+                      <span style="color:#e65100;font-size:.75rem">{{ row.line.note|default:"Tặng" }}</span>
+                    {% elif col.key == 'male' and row.line.price_male %}
+                      <div class="preview-price-stack">
+                        {% if row.line.has_discount_male and row.line.list_price %}
+                        <span class="preview-price-base">{{ row.line.list_price|vnd }}</span>
+                        {% endif %}
+                        <span>{{ row.line.price_male|vnd }}</span>
+                        {% if row.line.has_discount_male and row.line.discount_male_pct %}
+                        <span class="discount-badge">–{{ row.line.discount_male_pct|floatformat:"-2" }}%</span>
+                        {% endif %}
+                      </div>
+                    {% elif col.key == 'female_single' and row.line.price_female_single %}
+                      <div class="preview-price-stack">
+                        {% if row.line.has_discount_female_single and row.line.list_price %}
+                        <span class="preview-price-base">{{ row.line.list_price|vnd }}</span>
+                        {% endif %}
+                        <span>{{ row.line.price_female_single|vnd }}</span>
+                        {% if row.line.has_discount_female_single and row.line.discount_fs_pct %}
+                        <span class="discount-badge">–{{ row.line.discount_fs_pct|floatformat:"-2" }}%</span>
+                        {% endif %}
+                      </div>
+                    {% elif col.key == 'female_family' and row.line.price_female_family %}
+                      <div class="preview-price-stack">
+                        {% if row.line.has_discount_female_family and row.line.list_price %}
+                        <span class="preview-price-base">{{ row.line.list_price|vnd }}</span>
+                        {% endif %}
+                        <span>{{ row.line.price_female_family|vnd }}</span>
+                        {% if row.line.has_discount_female_family and row.line.discount_ff_pct %}
+                        <span class="discount-badge">–{{ row.line.discount_ff_pct|floatformat:"-2" }}%</span>
+                        {% endif %}
+                      </div>
+                    {% else %}—{% endif %}
+                  </td>
+                  {% endfor %}
+                </tr>
+                {% endif %}
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr class="total-row">
+                <td colspan="3" class="text-end">Giá ưu đãi / người (VND):</td>
+                {% for col in pkg.columns_json %}
+                <td class="text-center">
+                  {% for ck, cv in pkg.totals.by_col.items %}{% if ck == col.key %}{{ cv.per_person_display|default:"—" }}{% endif %}{% endfor %}
+                </td>
+                {% endfor %}
+              </tr>
+              <tr class="total-row-main">
+                <td colspan="3" class="text-end">Thành tiền (VND):</td>
+                {% for col in pkg.columns_json %}
+                <td class="text-center">
+                  {% for ck, cv in pkg.totals.by_col.items %}{% if ck == col.key %}{{ cv.subtotal_display|default:"—" }}{% endif %}{% endfor %}
+                </td>
+                {% endfor %}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Grand total all packages -->
+      <div class="preview-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <h6 class="mb-0">TỔNG GIÁ TRỊ TẤT CẢ GÓI</h6>
+          <span class="fw-bold" style="font-size:1.2rem;color:#1a5276">
+            {{ quotation_payload.totals.grand_total_display|default:"—" }} <small class="text-muted fw-normal" style="font-size:.7rem">VND</small>
+          </span>
+        </div>
+      </div>
+
+    {% else %}
+    <!-- ═══ LEGACY single-package mode ═══ -->
+    <div class="preview-card p-0">
+      <div class="table-responsive">
+        <table class="qtable">
+          <thead>
+            <tr>
+              <th style="width:36px">STT</th>
+              <th class="svc-col">DỊCH VỤ</th>
+              <th>GIÁ ƯU ĐÃI</th>
+              <th>NAM</th>
+              <th>NỮ ĐỘC THÂN</th>
+              <th>NỮ GIA ĐÌNH</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in display_rows %}
+              {% if row.row_type == 'group' %}
+              <tr class="group-hdr"><td colspan="6">{{ row.label }}</td></tr>
+              {% elif row.row_type == 'subgroup' %}
+              <tr class="subgroup-hdr"><td colspan="6">{{ row.label }}</td></tr>
+              {% elif row.row_type == 'item' %}
+              <tr>
+                <td class="text-center text-muted">{{ row.line.stt }}</td>
+                <td>
+                  <strong>{{ row.line.item_name }}</strong>
+                  {% if row.line.description %}<br><small class="text-muted">{{ row.line.description }}</small>{% endif %}
+                </td>
+                <td class="text-center fw-semibold" style="color:#1a5276">{{ row.line.display_unit_price|default:"—" }}</td>
+                <td class="text-center">
+                  {% if row.line.has_discount_male %}
+                  <div class="preview-price-stack">
+                    <span>✓</span>
+                    <span class="discount-badge">–{{ row.line.discount_male_pct|floatformat:"-2" }}%</span>
+                  </div>
+                  {% else %}
+                  {{ row.line.male_mark|default:"–" }}
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if row.line.has_discount_female_single %}
+                  <div class="preview-price-stack">
+                    <span>✓</span>
+                    <span class="discount-badge">–{{ row.line.discount_fs_pct|floatformat:"-2" }}%</span>
+                  </div>
+                  {% else %}
+                  {{ row.line.female_single_mark|default:"–" }}
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if row.line.has_discount_female_family %}
+                  <div class="preview-price-stack">
+                    <span>✓</span>
+                    <span class="discount-badge">–{{ row.line.discount_ff_pct|floatformat:"-2" }}%</span>
+                  </div>
+                  {% else %}
+                  {{ row.line.female_family_mark|default:"–" }}
+                  {% endif %}
+                </td>
+              </tr>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="3" class="text-end">Giá niêm yết / người:</td>
+              <td class="text-center">{{ quotation_payload.totals.base_total_male_display|default:"—" }}</td>
+              <td class="text-center">{{ quotation_payload.totals.base_total_female_single_display|default:"—" }}</td>
+              <td class="text-center">{{ quotation_payload.totals.base_total_female_family_display|default:"—" }}</td>
+            </tr>
+            <tr class="total-row-main">
+              <td colspan="3" class="text-end">Giá ưu đãi / người:</td>
+              <td class="text-center">{{ quotation_payload.totals.discounted_total_male_display|default:"—" }}</td>
+              <td class="text-center">{{ quotation_payload.totals.discounted_total_female_single_display|default:"—" }}</td>
+              <td class="text-center">{{ quotation_payload.totals.discounted_total_female_family_display|default:"—" }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Legacy totals card -->
+    <div class="preview-card">
+      <h6>Tổng giá trị</h6>
+      <div class="row g-2 text-center">
+        <div class="col-4">
+          <div class="p-2 rounded" style="background:#eaf2fb">
+            <div style="font-size:.7rem;color:#555;margin-bottom:2px">Nam ({{ quotation.male_count|default:0 }} người)</div>
+            <div class="fw-bold" style="color:#1a5276">{{ quotation_payload.totals.discounted_total_male_display|default:"—" }}</div>
+            <div style="font-size:.72rem;color:#aaa;text-decoration:line-through">{{ quotation_payload.totals.base_total_male_display|default:"" }}</div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="p-2 rounded" style="background:#eaf2fb">
+            <div style="font-size:.7rem;color:#555;margin-bottom:2px">Nữ ĐT ({{ quotation.female_single_count|default:0 }} người)</div>
+            <div class="fw-bold" style="color:#1a5276">{{ quotation_payload.totals.discounted_total_female_single_display|default:"—" }}</div>
+            <div style="font-size:.72rem;color:#aaa;text-decoration:line-through">{{ quotation_payload.totals.base_total_female_single_display|default:"" }}</div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="p-2 rounded" style="background:#eaf2fb">
+            <div style="font-size:.7rem;color:#555;margin-bottom:2px">Nữ GĐ ({{ quotation.female_family_count|default:0 }} người)</div>
+            <div class="fw-bold" style="color:#1a5276">{{ quotation_payload.totals.discounted_total_female_family_display|default:"—" }}</div>
+            <div style="font-size:.72rem;color:#aaa;text-decoration:line-through">{{ quotation_payload.totals.base_total_female_family_display|default:"" }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="text-end mt-2 fw-bold" style="font-size:1.1rem;color:#1a5276">
+        Tổng: {{ quotation_payload.totals.grand_total_display|default:"—" }} VND
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Extra content (Quill HTML) -->
+    {% if quotation.extra_content %}
+    <div class="preview-card">
+      <h6><i class="fa fa-file-alt me-1"></i>Nội dung bổ sung</h6>
+      <div class="extra-content-block">{{ quotation.extra_content|safe }}</div>
+    </div>
+    {% endif %}
+
+  </div>
+
+</div>
+
+<!-- Issue progress overlay -->
+<div class="issue-progress-overlay" id="issueProgressOverlay" aria-hidden="true">
+  <div class="issue-progress-card">
+    <div class="issue-progress-head">
+      <div class="issue-progress-title">Đang phát hành báo giá</div>
+      <p class="issue-progress-subtitle">Hệ thống đang tạo PDF. Vui lòng chờ trong giây lát.</p>
+    </div>
+    <div class="issue-progress-body">
+      <div class="issue-progress-row">
+        <div class="issue-progress-label">Tiến trình xử lý</div>
+        <div class="issue-progress-percent" id="issueProgressPercent">0%</div>
+      </div>
+
+      <div class="issue-progress-bar-wrap">
+        <div class="issue-progress-bar" id="issueProgressBar"></div>
+      </div>
+
+      <div class="issue-progress-status" id="issueProgressStatus">
+        Đang khởi tạo phát hành báo giá...
+      </div>
+
+      <ul class="issue-progress-steps" id="issueProgressSteps">
+        <li data-step="1" class="active"><span class="dot"></span><span>Chuẩn bị dữ liệu báo giá</span></li>
+        <li data-step="2"><span class="dot"></span><span>Chuyển đổi sang PDF</span></li>
+        <li data-step="3"><span class="dot"></span><span>Hoàn tất và tải lại trang</span></li>
+      </ul>
+
+      <div class="issue-progress-note">
+        Đã khóa trang. Vui lòng không đóng cửa sổ trình duyệt cho đến khi hoàn tất.
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if issue_error_modal %}
+<div class="modal" id="issueErrorModal" tabindex="-1" aria-labelledby="issueErrorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="issueErrorModalLabel">{{ issue_error_modal.title|default:"Khong the phat hanh PDF" }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">{{ issue_error_modal.body }}</p>
+        <p class="mb-0 text-muted">
+          He thong dang phat hanh bao gia PDF bang LibreOffice de giu dung form chuan. Neu loi van tiep dien, vui long bao quan tri he thong de kiem tra may chu va tien trinh soffice.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Da hieu</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+
+{% block extra_scripts %}
+  <script src="{% static 'contract/js/proposal_progressbar.js' %}"></script>
+  {% if issue_error_modal %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const modalEl = document.getElementById("issueErrorModal");
+      if (!modalEl) {
+        return;
+      }
+      if (window.bootstrap && window.bootstrap.Modal) {
+        window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        return;
+      }
+      modalEl.style.display = "block";
+      modalEl.classList.add("show");
+      modalEl.removeAttribute("aria-hidden");
+    });
+  </script>
+  {% endif %}
+{% endblock %}
+

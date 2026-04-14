@@ -1,0 +1,1368 @@
+{% extends "base_admin.html" %}
+{% load static %}
+
+{% block title %}Thống kê lượt khám — Vietmedi{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Layout ─────────────────────────────────────────────────────── */
+.stats-page { max-width: 1400px; margin: 0 auto; }
+
+/* ── Period filter bar ──────────────────────────────────────────── */
+.period-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.period-btn {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all .15s;
+}
+.period-btn:hover { border-color: #0f4c81; color: #0f4c81; }
+.period-btn.active {
+  background: #0f4c81;
+  border-color: #0f4c81;
+  color: white;
+}
+.custom-range-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.custom-range-form input[type="date"] {
+  padding: 6px 10px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1e293b;
+  outline: none;
+}
+.custom-range-form input[type="date"]:focus { border-color: #0f4c81; }
+.btn-apply {
+  padding: 6px 14px;
+  background: #0f4c81;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-apply:hover { background: #0d3f6e; }
+
+/* ── Metric cards ───────────────────────────────────────────────── */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.metric-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.04);
+}
+.metric-card.blue   { border-top: 3px solid #0f4c81; }
+.metric-card.green  { border-top: 3px solid #16a34a; }
+.metric-card.orange { border-top: 3px solid #d97706; }
+.metric-card.red    { border-top: 3px solid #dc2626; }
+.metric-card.teal   { border-top: 3px solid #0891b2; }
+.metric-card.purple { border-top: 3px solid #7c3aed; }
+.metric-val {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  color: #1e293b;
+}
+.metric-lbl {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-top: 5px;
+}
+.metric-sub {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+
+/* ── Period pills (hôm nay / tuần / tháng) ──────────────────────── */
+.period-summary-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.period-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.04);
+}
+.period-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: #94a3b8;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.period-kpi-row { display: flex; gap: 10px; }
+.period-kpi {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  border-radius: 8px;
+}
+.period-kpi.ci  { background: #dcfce7; }
+.period-kpi.co  { background: #dbeafe; }
+.period-kpi.df  { background: #fef3c7; }
+.period-kpi.tot { background: #f1f5f9; }
+.period-kpi-val { font-size: 20px; font-weight: 800; }
+.period-kpi.ci  .period-kpi-val { color: #16a34a; }
+.period-kpi.co  .period-kpi-val { color: #0f4c81; }
+.period-kpi.df  .period-kpi-val { color: #d97706; }
+.period-kpi.tot .period-kpi-val { color: #1e293b; }
+.period-kpi-lbl { font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; margin-top: 2px; }
+
+/* ── Section card ───────────────────────────────────────────────── */
+.section-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.04);
+  margin-bottom: 16px;
+}
+.section-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-icon {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.si-blue   { background: #dbeafe; color: #0f4c81; }
+.si-green  { background: #dcfce7; color: #16a34a; }
+.si-orange { background: #fef3c7; color: #d97706; }
+.si-purple { background: #ede9fe; color: #7c3aed; }
+.si-teal   { background: #e0f2fe; color: #0891b2; }
+.section-title { font-size: 14px; font-weight: 700; color: #1e293b; flex: 1; }
+.section-body  { padding: 16px 20px; }
+
+/* ── Chart canvas ───────────────────────────────────────────────── */
+.chart-wrap { position: relative; height: 260px; }
+
+/* ── Active companies table ─────────────────────────────────────── */
+.company-progress-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.cpc-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+.cpc-status-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-active   { background: #16a34a; box-shadow: 0 0 0 3px #dcfce7; }
+.dot-upcoming { background: #0891b2; box-shadow: 0 0 0 3px #e0f2fe; }
+.cpc-name  { font-size: 14px; font-weight: 700; color: #1e293b; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cpc-date  { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+.cpc-badge {
+  font-size: 11px; font-weight: 700; padding: 2px 8px;
+  border-radius: 10px; white-space: nowrap;
+}
+.badge-active   { background: #dcfce7; color: #16a34a; }
+.badge-upcoming { background: #e0f2fe; color: #0891b2; }
+.cpc-body {
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr) 2fr;
+  gap: 8px;
+  align-items: center;
+}
+.cpc-stat { text-align: center; }
+.cpc-stat-val { font-size: 18px; font-weight: 800; }
+.cpc-stat-lbl { font-size: 10.5px; font-weight: 600; text-transform: uppercase; color: #94a3b8; margin-top: 1px; }
+.cpc-stat.planned  .cpc-stat-val { color: #1e293b; }
+.cpc-stat.arrived  .cpc-stat-val { color: #0f4c81; }
+.cpc-stat.done     .cpc-stat-val { color: #16a34a; }
+.cpc-stat.deferred .cpc-stat-val { color: #d97706; }
+.cpc-stat.missing  .cpc-stat-val { color: #dc2626; }
+.cpc-progress-col {}
+.cpc-prog-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+.cpc-prog-track {
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+.cpc-prog-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width .4s;
+  background: linear-gradient(90deg, #16a34a 0%, #0f4c81 100%);
+}
+
+/* ── Table styles ───────────────────────────────────────────────── */
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.stats-table th {
+  background: #f8fafc;
+  padding: 9px 12px;
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+.stats-table th.right, .stats-table td.right { text-align: right; }
+.stats-table th.center, .stats-table td.center { text-align: center; }
+.stats-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+.stats-table tr:last-child td { border-bottom: none; }
+.stats-table tr:hover td { background: #f8fbff; }
+.stats-table .total-row td {
+  font-weight: 700;
+  background: #f0f6ff;
+  color: #0f4c81;
+  border-top: 2px solid #e2e8f0;
+}
+.pill-ci  { display:inline-block; background:#dcfce7; color:#16a34a; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; }
+.pill-co  { display:inline-block; background:#dbeafe; color:#0f4c81; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; }
+.pill-df  { display:inline-block; background:#fef3c7; color:#d97706; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; }
+.pill-na  { display:inline-block; background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; }
+.td-today { background: #eff6ff !important; font-weight: 600; }
+
+/* ── Nút danh sách KH ───────────────────────────────────────────── */
+.btn-patient-list {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  color: #7c3aed;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .18s;
+  flex-shrink: 0;
+}
+.btn-patient-list:hover {
+  background: #ede9fe;
+  border-color: #7c3aed;
+  transform: scale(1.08);
+}
+.btn-patient-list:active { transform: scale(1); }
+
+/* ── Modal DS KH ────────────────────────────────────────────────── */
+#patientListModal .modal-dialog {
+  max-width: min(900px, calc(100vw - 24px));
+}
+#patientListModal .modal-header {
+  background: linear-gradient(135deg, #ede9fe, #f5f3ff);
+  border-bottom: 1px solid #ddd6fe;
+}
+#patientListModal .modal-title {
+  color: #4c1d95;
+  font-size: 15px;
+}
+.plist-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #fafbfc;
+  border-bottom: 1px solid #e2e8f0;
+}
+.plist-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all .15s;
+}
+.plist-pill.all     { background:#f1f5f9; color:#475569; }
+.plist-pill.ci-pill { background:#dcfce7; color:#15803d; }
+.plist-pill.co-pill { background:#dbeafe; color:#1d4ed8; }
+.plist-pill.df-pill { background:#fef3c7; color:#b45309; }
+.plist-pill.na-pill { background:#fee2e2; color:#b91c1c; }
+.plist-pill.active, .plist-pill:hover {
+  border-color: currentColor;
+  filter: brightness(0.95);
+}
+#plist-table-wrap { max-height: 52vh; overflow-y: auto; }
+.plist-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.plist-table th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+  z-index: 1;
+}
+.plist-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+.plist-table tr:last-child td { border-bottom: none; }
+.plist-table tr:hover td { background: #f8f5ff; }
+.plist-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.plist-status-badge.ci  { background:#dcfce7; color:#15803d; }
+.plist-status-badge.co  { background:#dbeafe; color:#1d4ed8; }
+.plist-status-badge.df  { background:#fef3c7; color:#b45309; }
+.plist-status-badge.na  { background:#fee2e2; color:#b91c1c; }
+.plist-empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+.plist-loading {
+  text-align: center;
+  padding: 40px 16px;
+  color: #94a3b8;
+}
+
+/* ── Peak hours bar chart ───────────────────────────────────────── */
+.peak-chart-wrap { height: 140px; }
+
+/* ── Insight cards ──────────────────────────────────────────────── */
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+.insight-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.insight-icon {
+  width: 38px; height: 38px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+.insight-val   { font-size: 18px; font-weight: 800; color: #1e293b; }
+.insight-label { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+/* ── Section label ──────────────────────────────────────────────── */
+.sec-sep {
+  font-size: 11.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: #94a3b8;
+  display: flex; align-items: center; gap: 8px;
+  margin: 20px 0 12px;
+}
+.sec-sep::after { content:''; flex:1; height:1px; background:#e2e8f0; }
+
+/* ── Progress mini inline ───────────────────────────────────────── */
+.mini-prog-wrap { min-width: 80px; }
+.mini-prog-track {
+  height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden;
+}
+.mini-prog-bar  { height:100%; border-radius:3px; background:#0f4c81; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .period-summary-row { grid-template-columns: 1fr; }
+  .cpc-body           { grid-template-columns: repeat(3,1fr); }
+  .metric-grid        { grid-template-columns: repeat(2,1fr); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stats-page">
+
+  <!-- ══ Page header ══════════════════════════════════════════════ -->
+  <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+    <div>
+      <h4 class="mb-0 fw-bold">Thống kê lượt khám doanh nghiệp</h4>
+      <p class="text-muted small mb-0">
+        Theo dõi tiến độ check-in/check-out của khách hàng doanh nghiệp
+      </p>
+    </div>
+    <a href="{% url 'reception:checkin_tool' %}" target="_blank"
+       class="btn btn-sm btn-outline-primary">
+      <i class="fa-solid fa-qrcode me-1"></i>Mở công cụ Check-in
+    </a>
+  </div>
+
+  <!-- ══ Period filter ════════════════════════════════════════════ -->
+  <div class="period-bar">
+    <a href="?period=today"
+       class="period-btn {% if period == 'today' %}active{% endif %}">
+      <i class="fa-regular fa-calendar-day me-1"></i>Hôm nay
+    </a>
+    <a href="?period=week"
+       class="period-btn {% if period == 'week' %}active{% endif %}">
+      <i class="fa-regular fa-calendar-week me-1"></i>7 ngày qua
+    </a>
+    <a href="?period=month"
+       class="period-btn {% if period == 'month' %}active{% endif %}">
+      <i class="fa-regular fa-calendar me-1"></i>Tháng này
+    </a>
+
+    <form method="get" class="custom-range-form">
+      <input type="hidden" name="period" value="custom">
+      <input type="date" name="date_from"
+             value="{{ date_from_str }}"
+             max="{{ today|date:'Y-m-d' }}">
+      <span style="font-size:13px;color:#94a3b8">–</span>
+      <input type="date" name="date_to"
+             value="{{ date_to_str }}"
+             max="{{ today|date:'Y-m-d' }}">
+      <button type="submit" class="btn-apply">Áp dụng</button>
+    </form>
+
+    <div style="margin-left:auto; font-size:12.5px; color:#94a3b8">
+      <i class="fa-solid fa-calendar-range me-1"></i>
+      {{ date_from|date:"d/m/Y" }}
+      {% if date_from != date_to %}– {{ date_to|date:"d/m/Y" }}{% endif %}
+    </div>
+  </div>
+
+  <!-- ══ Period aggregate (Today / Week / Month) ══════════════════ -->
+  <div class="period-summary-row">
+    <!-- Hôm nay -->
+    <div class="period-card">
+      <div class="period-card-title">
+        <i class="fa-solid fa-sun"></i> Hôm nay — {{ today|date:"d/m/Y" }}
+      </div>
+      <div class="period-kpi-row">
+        <div class="period-kpi ci">
+          <div class="period-kpi-val">{{ period_agg.today.checkin }}</div>
+          <div class="period-kpi-lbl">Check-in</div>
+        </div>
+        <div class="period-kpi co">
+          <div class="period-kpi-val">{{ period_agg.today.checkout }}</div>
+          <div class="period-kpi-lbl">Check-out</div>
+        </div>
+        <div class="period-kpi df">
+          <div class="period-kpi-val">{{ period_agg.today.deferred }}</div>
+          <div class="period-kpi-lbl">Hoãn</div>
+        </div>
+        <div class="period-kpi tot">
+          <div class="period-kpi-val">{{ period_agg.today.total }}</div>
+          <div class="period-kpi-lbl">Tổng</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:#94a3b8">
+        <i class="fa-solid fa-building me-1"></i>
+        {{ period_agg.today.companies }} công ty hôm nay
+      </div>
+    </div>
+
+    <!-- Tuần này -->
+    <div class="period-card">
+      <div class="period-card-title">
+        <i class="fa-solid fa-calendar-week"></i> Tuần này
+      </div>
+      <div class="period-kpi-row">
+        <div class="period-kpi ci">
+          <div class="period-kpi-val">{{ period_agg.week.checkin }}</div>
+          <div class="period-kpi-lbl">Check-in</div>
+        </div>
+        <div class="period-kpi co">
+          <div class="period-kpi-val">{{ period_agg.week.checkout }}</div>
+          <div class="period-kpi-lbl">Check-out</div>
+        </div>
+        <div class="period-kpi df">
+          <div class="period-kpi-val">{{ period_agg.week.deferred }}</div>
+          <div class="period-kpi-lbl">Hoãn</div>
+        </div>
+        <div class="period-kpi tot">
+          <div class="period-kpi-val">{{ period_agg.week.total }}</div>
+          <div class="period-kpi-lbl">Tổng</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:#94a3b8">
+        <i class="fa-solid fa-building me-1"></i>
+        {{ period_agg.week.companies }} công ty trong tuần
+      </div>
+    </div>
+
+    <!-- Tháng này -->
+    <div class="period-card">
+      <div class="period-card-title">
+        <i class="fa-solid fa-calendar"></i> Tháng {{ today|date:"n/Y" }}
+      </div>
+      <div class="period-kpi-row">
+        <div class="period-kpi ci">
+          <div class="period-kpi-val">{{ period_agg.month.checkin }}</div>
+          <div class="period-kpi-lbl">Check-in</div>
+        </div>
+        <div class="period-kpi co">
+          <div class="period-kpi-val">{{ period_agg.month.checkout }}</div>
+          <div class="period-kpi-lbl">Check-out</div>
+        </div>
+        <div class="period-kpi df">
+          <div class="period-kpi-val">{{ period_agg.month.deferred }}</div>
+          <div class="period-kpi-lbl">Hoãn</div>
+        </div>
+        <div class="period-kpi tot">
+          <div class="period-kpi-val">{{ period_agg.month.total }}</div>
+          <div class="period-kpi-lbl">Tổng</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:#94a3b8">
+        <i class="fa-solid fa-building me-1"></i>
+        {{ period_agg.month.companies }} công ty trong tháng
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- ══ CỘT CHÍNH ══════════════════════════════════════════════ -->
+    <div class="col-12 col-xl-8">
+
+      <!-- ── Biểu đồ xu hướng theo ngày ─────────────────────────── -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon si-blue">
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+          <div class="section-title">
+            Xu hướng lượt khám theo ngày
+          </div>
+          <div style="font-size:12px;color:#94a3b8">
+            {{ date_from|date:"d/m" }} – {{ date_to|date:"d/m/Y" }}
+          </div>
+        </div>
+        <div class="section-body">
+
+          <!-- Legend -->
+          <div class="d-flex flex-wrap gap-3 mb-3" style="font-size:12.5px">
+            <span>
+              <span style="display:inline-block;width:12px;height:12px;background:#16a34a;border-radius:3px;margin-right:4px;vertical-align:middle"></span>
+              Check-in
+            </span>
+            <span>
+              <span style="display:inline-block;width:12px;height:12px;background:#0f4c81;border-radius:3px;margin-right:4px;vertical-align:middle"></span>
+              Check-out
+            </span>
+            <span>
+              <span style="display:inline-block;width:12px;height:12px;background:#d97706;border-radius:3px;margin-right:4px;vertical-align:middle"></span>
+              Hoãn
+            </span>
+          </div>
+
+          <div class="chart-wrap">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Bảng chi tiết theo ngày ─────────────────────────────── -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon si-teal">
+            <i class="fa-solid fa-table-list"></i>
+          </div>
+          <div class="section-title">Chi tiết theo ngày</div>
+          <div style="font-size:12px;color:#94a3b8">
+            Tổng: <strong>{{ daily_totals.total }}</strong> lượt
+          </div>
+        </div>
+        <div class="section-body" style="padding:0">
+          <div style="overflow-x:auto">
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th>Ngày</th>
+                  <th>Thứ</th>
+                  <th class="right">Công ty</th>
+                  <th class="right">Check-in</th>
+                  <th class="right">Check-out</th>
+                  <th class="right">Hoãn</th>
+                  <th class="right">Tổng</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in daily_rows %}
+                <tr {% if row.date == today %}class="td-today"{% endif %}>
+                  <td class="fw-semibold">{{ row.date|date:"d/m/Y" }}</td>
+                  <td style="color:#94a3b8">
+                    {% with wd=row.date.weekday %}
+                    {% if wd == 0 %}T2{% elif wd == 1 %}T3{% elif wd == 2 %}T4
+                    {% elif wd == 3 %}T5{% elif wd == 4 %}T6{% elif wd == 5 %}T7{% else %}CN{% endif %}
+                    {% endwith %}
+                  </td>
+                  <td class="right">
+                    {% if row.companies > 0 %}
+                    <span style="font-size:13px;font-weight:600;color:#0f4c81">{{ row.companies }}</span>
+                    {% else %}<span style="color:#cbd5e1">—</span>{% endif %}
+                  </td>
+                  <td class="right">
+                    {% if row.checkin > 0 %}
+                    <span class="pill-ci">{{ row.checkin }}</span>
+                    {% else %}<span style="color:#cbd5e1">—</span>{% endif %}
+                  </td>
+                  <td class="right">
+                    {% if row.checkout > 0 %}
+                    <span class="pill-co">{{ row.checkout }}</span>
+                    {% else %}<span style="color:#cbd5e1">—</span>{% endif %}
+                  </td>
+                  <td class="right">
+                    {% if row.deferred > 0 %}
+                    <span class="pill-df">{{ row.deferred }}</span>
+                    {% else %}<span style="color:#cbd5e1">—</span>{% endif %}
+                  </td>
+                  <td class="right fw-semibold">
+                    {% if row.total > 0 %}{{ row.total }}{% else %}—{% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center py-4" style="color:#94a3b8">
+                    Chưa có dữ liệu check-in trong kỳ này
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+              {% if daily_totals.total > 0 %}
+              <tfoot>
+                <tr class="total-row">
+                  <td colspan="2">Tổng cộng</td>
+                  <td class="right">{{ daily_totals.unique_companies }}</td>
+                  <td class="right">{{ daily_totals.checkin }}</td>
+                  <td class="right">{{ daily_totals.checkout }}</td>
+                  <td class="right">{{ daily_totals.deferred }}</td>
+                  <td class="right">{{ daily_totals.total }}</td>
+                </tr>
+              </tfoot>
+              {% endif %}
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Bảng theo công ty ────────────────────────────────────── -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon si-purple">
+            <i class="fa-solid fa-building-columns"></i>
+          </div>
+          <div class="section-title">Thống kê theo công ty</div>
+          <div style="font-size:12px;color:#94a3b8">
+            Kỳ lọc: {{ date_from|date:"d/m" }} – {{ date_to|date:"d/m/Y" }}
+          </div>
+        </div>
+        <div class="section-body" style="padding:0">
+          <div style="overflow-x:auto">
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th>Công ty</th>
+                  <th class="right">Đăng ký</th>
+                  <th class="right">Đã đến</th>
+                  <th class="right">Check-in</th>
+                  <th class="right">Check-out</th>
+                  <th class="right">Hoãn</th>
+                  <th class="right">Chưa đến</th>
+                  <th style="min-width:100px">Hoàn thành</th>
+                  <th class="right">TB/ngày</th>
+                  <th class="center" style="width:48px" title="Danh sách KH">DS KH</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in company_table %}
+                <tr>
+                  <td class="fw-semibold"
+                      style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                      title="{{ row.company }}">{{ row.company }}</td>
+                  <td class="right" style="color:#64748b">
+                    {% if row.planned %}{{ row.planned }}{% else %}—{% endif %}
+                  </td>
+                  <td class="right fw-semibold">{{ row.arrived }}</td>
+                  <td class="right">
+                    {% if row.checked_in > 0 %}<span class="pill-ci">{{ row.checked_in }}</span>{% else %}—{% endif %}
+                  </td>
+                  <td class="right">
+                    {% if row.checked_out > 0 %}<span class="pill-co">{{ row.checked_out }}</span>{% else %}—{% endif %}
+                  </td>
+                  <td class="right">
+                    {% if row.deferred > 0 %}<span class="pill-df">{{ row.deferred }}</span>{% else %}—{% endif %}
+                  </td>
+                  <td class="right" style="color:{% if row.not_arrived > 0 %}#dc2626{% else %}#16a34a{% endif %}">
+                    {% if row.not_arrived > 0 %}{{ row.not_arrived }}{% else %}—{% endif %}
+                  </td>
+                  <td>
+                    <div class="mini-prog-wrap">
+                      <div style="font-size:11.5px;color:#64748b;margin-bottom:3px">{{ row.completion_pct }}%</div>
+                      <div class="mini-prog-track">
+                        <div class="mini-prog-bar" style="width:{{ row.completion_pct }}%"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="right" style="color:#64748b">{{ row.avg_per_day }}</td>
+                  <!-- ★ Cột mới: icon danh sách KH -->
+                  <td class="center">
+                    <button
+                      class="btn-patient-list"
+                      title="Xem danh sách KH: {{ row.company }}"
+                      data-company="{{ row.company }}"
+                      data-date-from="{{ date_from_str }}"
+                      data-date-to="{{ date_to_str }}"
+                      onclick="openPatientListModal(this)"
+                      type="button">
+                      <i class="fa-solid fa-users"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="10" class="text-center py-4" style="color:#94a3b8">
+                    Chưa có dữ liệu trong kỳ này
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /col-xl-8 -->
+
+    <!-- ══ CỘT PHỤ ════════════════════════════════════════════════ -->
+    <div class="col-12 col-xl-4">
+
+      <!-- ── Công ty đang có lịch khám ─────────────────────────────── -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon si-green">
+            <i class="fa-solid fa-calendar-check"></i>
+          </div>
+          <div class="section-title">Công ty đang khám</div>
+          <span class="badge bg-primary" style="font-size:.7rem">{{ active_companies|length }}</span>
+        </div>
+        <div class="section-body" style="padding:12px">
+          {% for co in active_companies %}
+          <div class="company-progress-card">
+            <div class="cpc-header">
+              <div class="cpc-status-dot {% if co.is_active_today %}dot-active{% else %}dot-upcoming{% endif %}"></div>
+              <div class="cpc-name" title="{{ co.company_name }}">{{ co.company_name }}</div>
+              <span class="cpc-badge {% if co.is_active_today %}badge-active{% else %}badge-upcoming{% endif %}">
+                {% if co.is_active_today %}
+                  {% if co.remaining_days > 0 %}Còn {{ co.remaining_days }}d{% else %}Hôm nay cuối{% endif %}
+                {% else %}
+                  Sắp tới
+                {% endif %}
+              </span>
+            </div>
+            <div style="padding:10px 14px">
+              <div style="font-size:11.5px;color:#94a3b8;margin-bottom:8px">
+                <i class="fa-regular fa-calendar me-1"></i>
+                {{ co.exam_start|date:"d/m/Y" }} – {{ co.exam_end|date:"d/m/Y" }}
+              </div>
+              <div class="d-flex gap-3 mb-2">
+                <div style="text-align:center">
+                  <div style="font-size:17px;font-weight:800;color:#1e293b">{{ co.planned }}</div>
+                  <div style="font-size:10.5px;color:#94a3b8;text-transform:uppercase;font-weight:600">Đăng ký</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:17px;font-weight:800;color:#0f4c81">{{ co.total_arrived }}</div>
+                  <div style="font-size:10.5px;color:#94a3b8;text-transform:uppercase;font-weight:600">Đã đến</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:17px;font-weight:800;color:#16a34a">{{ co.checked_out }}</div>
+                  <div style="font-size:10.5px;color:#94a3b8;text-transform:uppercase;font-weight:600">Xong</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:17px;font-weight:800;color:{% if co.not_arrived > 0 %}#dc2626{% else %}#16a34a{% endif %}">
+                    {{ co.not_arrived }}
+                  </div>
+                  <div style="font-size:10.5px;color:#94a3b8;text-transform:uppercase;font-weight:600">Chưa đến</div>
+                </div>
+              </div>
+              {% if co.planned > 0 %}
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11.5px;color:#64748b;margin-bottom:4px">
+                  <span>Tiến độ check-out</span>
+                  <span>{{ co.completion_pct }}%</span>
+                </div>
+                <div style="height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden">
+                  <div style="height:100%;width:{{ co.completion_pct }}%;background:linear-gradient(90deg,#16a34a,#0f4c81);border-radius:4px;transition:width .4s"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:4px">
+                  <span>Đã đến: {{ co.arrival_pct }}%</span>
+                  <span style="color:{% if co.checked_in > 0 %}#16a34a{% else %}#94a3b8{% endif %}">
+                    Đang khám: {{ co.checked_in }}
+                  </span>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% empty %}
+          <div style="text-align:center;color:#94a3b8;padding:24px;font-size:13px">
+            <i class="fa-regular fa-calendar-xmark" style="font-size:28px;opacity:.3;display:block;margin-bottom:8px"></i>
+            Không có công ty nào đang có lịch khám
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ── Admin insights ──────────────────────────────────────── -->
+      {% if insights %}
+      <div class="section-card mb-3">
+        <div class="section-header">
+          <div class="section-icon si-orange">
+            <i class="fa-solid fa-lightbulb"></i>
+          </div>
+          <div class="section-title">Insights</div>
+        </div>
+        <div class="section-body">
+          <div class="insight-grid">
+            <div class="insight-card">
+              <div class="insight-icon" style="background:#dcfce7;color:#16a34a">
+                <i class="fa-solid fa-users"></i>
+              </div>
+              <div>
+                <div class="insight-val">{{ insights.total }}</div>
+                <div class="insight-label">Tổng lượt tiếp nhận</div>
+              </div>
+            </div>
+            <div class="insight-card">
+              <div class="insight-icon" style="background:#dbeafe;color:#0f4c81">
+                <i class="fa-solid fa-percent"></i>
+              </div>
+              <div>
+                <div class="insight-val">{{ insights.checkout_rate }}%</div>
+                <div class="insight-label">Tỷ lệ check-out</div>
+              </div>
+            </div>
+            <div class="insight-card">
+              <div class="insight-icon" style="background:#fef3c7;color:#d97706">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+              </div>
+              <div>
+                <div class="insight-val">{{ insights.deferred_rate }}%</div>
+                <div class="insight-label">Tỷ lệ hoãn</div>
+              </div>
+            </div>
+            <div class="insight-card">
+              <div class="insight-icon" style="background:#ede9fe;color:#7c3aed">
+                <i class="fa-solid fa-chart-simple"></i>
+              </div>
+              <div>
+                <div class="insight-val">{{ insights.avg_per_day }}</div>
+                <div class="insight-label">TB lượt/ngày có KH</div>
+              </div>
+            </div>
+            {% if insights.busiest_day %}
+            <div class="insight-card" style="grid-column: span 2">
+              <div class="insight-icon" style="background:#fee2e2;color:#dc2626">
+                <i class="fa-solid fa-fire"></i>
+              </div>
+              <div>
+                <div class="insight-val">{{ insights.busiest_day|date:"d/m/Y" }}</div>
+                <div class="insight-label">Ngày bận nhất — {{ insights.busiest_day_count }} lượt</div>
+              </div>
+            </div>
+            {% endif %}
+            {% if insights.top_company %}
+            <div class="insight-card" style="grid-column: span 2">
+              <div class="insight-icon" style="background:#e0f2fe;color:#0891b2">
+                <i class="fa-solid fa-building"></i>
+              </div>
+              <div>
+                <div class="insight-val"
+                     style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px"
+                     title="{{ insights.top_company }}">{{ insights.top_company }}</div>
+                <div class="insight-label">Công ty nhiều KH nhất — {{ insights.top_company_count }} lượt</div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- ── Phân bổ theo giờ ────────────────────────────────────── -->
+      <div class="section-card mb-3">
+        <div class="section-header">
+          <div class="section-icon si-teal">
+            <i class="fa-solid fa-clock"></i>
+          </div>
+          <div class="section-title">Phân bổ check-in theo giờ</div>
+        </div>
+        <div class="section-body">
+          <div class="peak-chart-wrap">
+            <canvas id="peakChart"></canvas>
+          </div>
+          <div style="font-size:11.5px;color:#94a3b8;text-align:center;margin-top:6px">
+            Giờ làm việc 7:00 – 19:00
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /col-xl-4 -->
+  </div><!-- /row -->
+</div><!-- /stats-page -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL DANH SÁCH KH THEO CÔNG TY
+     ══════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="patientListModal" tabindex="-1"
+     aria-labelledby="patientListModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <!-- Header -->
+      <div class="modal-header">
+        <h5 class="modal-title" id="patientListModalLabel">
+          <i class="fa-solid fa-users me-2"></i>
+          <span id="plist-company-name">Danh sách KH</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+      </div>
+
+      <!-- Summary pills + filter -->
+      <div class="plist-summary" id="plist-summary" style="display:none">
+        <span class="plist-pill all active" data-filter="all">
+          <i class="fa-solid fa-list"></i>
+          Tất cả: <strong id="pcount-total">0</strong>
+        </span>
+        <span class="plist-pill ci-pill" data-filter="CHECKED_IN">
+          <i class="fa-solid fa-circle-check"></i>
+          Đang khám: <strong id="pcount-ci">0</strong>
+        </span>
+        <span class="plist-pill co-pill" data-filter="CHECKED_OUT">
+          <i class="fa-solid fa-flag-checkered"></i>
+          Hoàn thành: <strong id="pcount-co">0</strong>
+        </span>
+        <span class="plist-pill df-pill" data-filter="DEFERRED">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          Quay lại sau: <strong id="pcount-df">0</strong>
+        </span>
+        <span class="plist-pill na-pill" data-filter="NOT_ARRIVED">
+          <i class="fa-solid fa-circle-xmark"></i>
+          Chưa đến: <strong id="pcount-na">0</strong>
+        </span>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body" style="padding:0">
+        <!-- Loading state -->
+        <div id="plist-loading" class="plist-loading">
+          <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+          Đang tải dữ liệu...
+        </div>
+
+        <!-- Error state -->
+        <div id="plist-error" style="display:none" class="plist-empty">
+          <i class="fa-solid fa-triangle-exclamation text-warning" style="font-size:24px;display:block;margin-bottom:8px"></i>
+          <span id="plist-error-msg">Không thể tải dữ liệu.</span>
+        </div>
+
+        <!-- Table -->
+        <div id="plist-table-wrap" style="display:none">
+          <table class="plist-table">
+            <thead>
+              <tr>
+                <th style="width:36px">STT</th>
+                <th>Mã BN</th>
+                <th>Họ và tên</th>
+                <th>Ngày sinh</th>
+                <th>Giới tính</th>
+                <th>Ngày khám</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="plist-tbody"></tbody>
+          </table>
+
+          <!-- Empty state inside table -->
+          <div id="plist-empty" style="display:none" class="plist-empty">
+            <i class="fa-regular fa-folder-open" style="font-size:28px;opacity:.3;display:block;margin-bottom:8px"></i>
+            Không có bệnh nhân nào phù hợp với bộ lọc này.
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer" style="padding:10px 16px">
+        <div id="plist-date-range" style="font-size:12px;color:#94a3b8;flex:1;text-align:left"></div>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const CHART_DATA  = {{ chart_data_json|safe }};
+const PEAK_HOURS  = {{ peak_hours_json|safe }};
+const API_URL     = "{% url 'reception:patient_list_api' %}";
+
+Chart.defaults.font.family = "'Plus Jakarta Sans', 'Segoe UI', sans-serif";
+Chart.defaults.font.size   = 12;
+Chart.defaults.color       = "#64748b";
+
+/* ── Trend chart ─────────────────────────────────────────────────── */
+(function buildTrendChart() {
+  const ctx = document.getElementById("trendChart");
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: CHART_DATA.labels,
+      datasets: [
+        {
+          label: "Check-in",
+          data:  CHART_DATA.checkin,
+          backgroundColor: "rgba(22,163,74,.75)",
+          borderColor:     "#16a34a",
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+        {
+          label: "Check-out",
+          data:  CHART_DATA.checkout,
+          backgroundColor: "rgba(15,76,129,.75)",
+          borderColor:     "#0f4c81",
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+        {
+          label: "Hoãn",
+          data:  CHART_DATA.deferred,
+          backgroundColor: "rgba(217,119,6,.7)",
+          borderColor:     "#d97706",
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: function(ctx) { return "Ngày " + ctx[0].label; },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxRotation: 45 },
+          stacked: false,
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: "#f1f5f9" },
+          ticks: { stepSize: 1, precision: 0 },
+        },
+      },
+    },
+  });
+})();
+
+/* ── Peak hours chart ────────────────────────────────────────────── */
+(function buildPeakChart() {
+  const ctx = document.getElementById("peakChart");
+  if (!ctx) return;
+
+  const maxVal = Math.max(...PEAK_HOURS.map(h => h.count), 1);
+  const colors = PEAK_HOURS.map(h => {
+    const ratio = h.count / maxVal;
+    if (ratio > 0.75)  return "rgba(220,38,38,.8)";
+    if (ratio > 0.4)   return "rgba(217,119,6,.75)";
+    return "rgba(15,76,129,.6)";
+  });
+
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: PEAK_HOURS.map(h => h.hour + "h"),
+      datasets: [{
+        data:            PEAK_HOURS.map(h => h.count),
+        backgroundColor: colors,
+        borderRadius: 4,
+        borderWidth: 0,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: function(ctx) { return "Lúc " + ctx[0].label; },
+            label: function(ctx) { return ctx.parsed.y + " lượt check-in"; },
+          },
+        },
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          beginAtZero: true,
+          grid: { color: "#f1f5f9" },
+          ticks: { precision: 0, stepSize: 1 },
+        },
+      },
+    },
+  });
+})();
+
+/* ══════════════════════════════════════════════════════════════════
+   MODAL DANH SÁCH KH
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+  "use strict";
+
+  var allPatients   = [];   // full data from API
+  var activeFilter  = "all"; // current pill filter
+
+  /* ── Status metadata ──────────────────────────────────────────── */
+  var STATUS_META = {
+    "CHECKED_IN":  { cls: "ci",  icon: "fa-circle-check",         label: "Đang khám"     },
+    "CHECKED_OUT": { cls: "co",  icon: "fa-flag-checkered",        label: "Đã hoàn thành" },
+    "DEFERRED":    { cls: "df",  icon: "fa-clock-rotate-left",     label: "Quay lại sau"  },
+    "NOT_ARRIVED": { cls: "na",  icon: "fa-circle-xmark",          label: "Chưa đến"      },
+  };
+
+  /* ── Open modal ───────────────────────────────────────────────── */
+  window.openPatientListModal = function (btn) {
+    var companyName = btn.getAttribute("data-company");
+    var dateFrom    = btn.getAttribute("data-date-from");
+    var dateTo      = btn.getAttribute("data-date-to");
+
+    // Reset UI
+    resetModal(companyName, dateFrom, dateTo);
+
+    // Show modal
+    var modalEl = document.getElementById("patientListModal");
+    var bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    bsModal.show();
+
+    // Fetch data
+    fetchPatients(companyName, dateFrom, dateTo);
+  };
+
+  function resetModal(companyName, dateFrom, dateTo) {
+    allPatients  = [];
+    activeFilter = "all";
+
+    document.getElementById("plist-company-name").textContent = companyName;
+    document.getElementById("plist-loading").style.display    = "block";
+    document.getElementById("plist-error").style.display      = "none";
+    document.getElementById("plist-table-wrap").style.display = "none";
+    document.getElementById("plist-summary").style.display    = "none";
+
+    // Format date range footer
+    var rangeText = dateFrom === dateTo
+      ? "Ngày: " + formatDate(dateFrom)
+      : "Từ " + formatDate(dateFrom) + " đến " + formatDate(dateTo);
+    document.getElementById("plist-date-range").textContent = rangeText;
+
+    // Reset pills
+    document.querySelectorAll(".plist-pill").forEach(function (p) {
+      p.classList.remove("active");
+    });
+    document.querySelector(".plist-pill.all").classList.add("active");
+  }
+
+  function formatDate(iso) {
+    if (!iso) return "";
+    var parts = iso.split("-");
+    return parts[2] + "/" + parts[1] + "/" + parts[0];
+  }
+
+  /* ── Fetch ────────────────────────────────────────────────────── */
+  function fetchPatients(companyName, dateFrom, dateTo) {
+    var url = API_URL
+      + "?company_name=" + encodeURIComponent(companyName)
+      + "&date_from="    + encodeURIComponent(dateFrom)
+      + "&date_to="      + encodeURIComponent(dateTo);
+
+    fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || "Lỗi không xác định");
+        allPatients = data.patients || [];
+        updateCounts(data.counts);
+        renderTable("all");
+        document.getElementById("plist-loading").style.display    = "none";
+        document.getElementById("plist-summary").style.display    = "";
+        document.getElementById("plist-table-wrap").style.display = "";
+      })
+      .catch(function (err) {
+        document.getElementById("plist-loading").style.display  = "none";
+        document.getElementById("plist-error-msg").textContent  = err.message || "Không thể tải dữ liệu.";
+        document.getElementById("plist-error").style.display    = "block";
+      });
+  }
+
+  /* ── Update summary counts ────────────────────────────────────── */
+  function updateCounts(counts) {
+    document.getElementById("pcount-total").textContent = counts.total       || 0;
+    document.getElementById("pcount-ci").textContent    = counts.checked_in  || 0;
+    document.getElementById("pcount-co").textContent    = counts.checked_out || 0;
+    document.getElementById("pcount-df").textContent    = counts.deferred    || 0;
+    document.getElementById("pcount-na").textContent    = counts.not_arrived || 0;
+  }
+
+  /* ── Render table ────────────────────────────────────────────── */
+  function renderTable(filter) {
+    activeFilter = filter;
+
+    var rows = filter === "all"
+      ? allPatients
+      : allPatients.filter(function (p) { return p.status === filter; });
+
+    var tbody  = document.getElementById("plist-tbody");
+    var empty  = document.getElementById("plist-empty");
+    tbody.innerHTML = "";
+
+    if (rows.length === 0) {
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+
+    var html = "";
+    rows.forEach(function (p, idx) {
+      var meta    = STATUS_META[p.status] || { cls: "", icon: "fa-question", label: p.status };
+      var genderColor = p.gioi_tinh === "Nam" ? "#0f4c81" : "#db2777";
+      html += '<tr data-status="' + p.status + '">'
+        + '<td style="color:#94a3b8;font-size:12px">' + (idx + 1) + '</td>'
+        + '<td><code style="font-size:12px;color:#7c3aed">' + escHtml(p.ma_bn) + '</code></td>'
+        + '<td class="fw-semibold">' + escHtml(p.ho_ten) + '</td>'
+        + '<td style="color:#64748b">' + escHtml(p.ngay_sinh) + '</td>'
+        + '<td style="color:' + genderColor + ';font-weight:600">' + escHtml(p.gioi_tinh) + '</td>'
+        + '<td style="color:#64748b">' + escHtml(p.exam_date) + '</td>'
+        + '<td>'
+        +   '<span class="plist-status-badge ' + meta.cls + '">'
+        +     '<i class="fa-solid ' + meta.icon + '"></i> ' + meta.label
+        +   '</span>'
+        + '</td>'
+        + '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  function escHtml(str) {
+    if (!str) return "—";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  /* ── Pill filter clicks ──────────────────────────────────────── */
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".plist-pill").forEach(function (pill) {
+      pill.addEventListener("click", function () {
+        document.querySelectorAll(".plist-pill").forEach(function (p) {
+          p.classList.remove("active");
+        });
+        pill.classList.add("active");
+        renderTable(pill.getAttribute("data-filter"));
+      });
+    });
+  });
+})();
+</script>
+{% endblock %}

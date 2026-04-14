@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Cảm ơn{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'quality/css/incident.css' %}">
+<style>
+  :root{
+    --t-bg1:#f6f9ff;
+    --t-bg2:#eef4ff;
+    --t-card:#ffffff;
+    --t-text:#0f172a;
+    --t-muted:#64748b;
+    --t-primary:#2563eb;
+    --t-primary2:#3b82f6;
+    --t-border:rgba(15, 23, 42, .10);
+    --t-shadow: 0 18px 45px rgba(15, 23, 42, .10);
+  }
+
+  /* Nền trang: nhẹ, sạch, hợp QR mobile */
+  body{
+    background: radial-gradient(1000px 600px at 20% 0%, var(--t-bg2), transparent 60%),
+                radial-gradient(900px 520px at 90% 20%, #eaf2ff, transparent 55%),
+                linear-gradient(180deg, var(--t-bg1), #ffffff 60%);
+  }
+
+  .thanks-wrap{
+    max-width: 760px;
+    padding-top: 22px;
+    padding-bottom: 28px;
+  }
+
+  .thanks-card{
+    border-radius: 18px;
+    border: 1px solid var(--t-border);
+    background: var(--t-card);
+    box-shadow: var(--t-shadow);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Header strip tạo điểm nhấn */
+  .thanks-card::before{
+    content:"";
+    position:absolute;
+    inset:0 0 auto 0;
+    height: 8px;
+    background: linear-gradient(90deg, #22c55e, #06b6d4, var(--t-primary2));
+  }
+
+  /* Badge thành công */
+  .thanks-badge{
+    width: 62px;
+    height: 62px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at 30% 30%, #86efac, #22c55e);
+    box-shadow: 0 10px 24px rgba(34,197,94,.25);
+    flex: 0 0 auto;
+  }
+
+  .thanks-badge svg{
+    width: 34px;
+    height: 34px;
+    color: #063;
+    filter: drop-shadow(0 1px 0 rgba(255,255,255,.45));
+  }
+
+  .thanks-title{
+    color: var(--t-text);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0;
+    font-size: clamp(20px, 3.5vw, 28px);
+  }
+
+  .thanks-sub{
+    color: var(--t-muted);
+    margin: 6px 0 0;
+    line-height: 1.55;
+    font-size: 15px;
+  }
+
+  /* Card body spacing */
+  .thanks-card .card-body{
+    padding: 22px 18px;
+  }
+  @media (min-width: 576px){
+    .thanks-card .card-body{
+      padding: 26px 26px;
+    }
+  }
+
+  /* Hàng top: icon + text */
+  .thanks-top{
+    display:flex;
+    gap: 14px;
+    align-items:flex-start;
+    margin-bottom: 16px;
+  }
+
+  /* Nút lớn, dễ bấm (mobile first) */
+  .thanks-actions{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+  .thanks-actions .btn{
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-weight: 700;
+    min-height: 44px;
+  }
+  .thanks-actions .btn-primary{
+    background: linear-gradient(180deg, var(--t-primary2), var(--t-primary));
+    border: none;
+    box-shadow: 0 10px 22px rgba(37,99,235,.22);
+  }
+  .thanks-actions .btn-primary:active{
+    transform: translateY(1px);
+  }
+  .thanks-actions .btn-outline-secondary{
+    border-color: rgba(100,116,139,.35);
+    color: #334155;
+    background: #fff;
+  }
+
+  /* Hint note: rõ nhưng không rối */
+  .thanks-note{
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px dashed rgba(100,116,139,.35);
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Focus ring đẹp cho accessibility */
+  .thanks-actions .btn:focus{
+    box-shadow: 0 0 0 3px rgba(59,130,246,.18);
+  }
+</style>
+
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 thanks-wrap">
+  <div class="card thanks-card">
+    <div class="card-body p-4">
+      <h3 class="mb-2">Đã gửi báo cáo thành công</h3>
+      <p class="text-muted mb-4">
+        Cảm ơn anh/chị. Bộ phận liên quan sẽ tiếp nhận và xử lý.
+      </p>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-primary" href="{% url 'quality:incident_report_public' %}">
+          Gửi báo cáo khác
+        </a>
+        {% if request.user.is_authenticated and request.user.is_staff %}
+          <!-- STAFF LOGIN: về trang chủ staff -->
+          <a class="btn btn-outline-primary"
+             href="{% url 'clinical:clinic_dashboard' %}">
+            <i class="fa fa-house me-1"></i>
+            Về trang chủ
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

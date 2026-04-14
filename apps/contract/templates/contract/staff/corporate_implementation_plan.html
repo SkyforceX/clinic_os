@@ -1,0 +1,878 @@
+{% extends "base_admin.html" %}
+{% load static %}
+
+{% block title %}Kế hoạch triển khai - {{ contract.contract_number }}{% endblock %}
+
+{% block content %}
+<style>
+.impl-page-card{
+  border:1px solid #d9e2ec;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 8px 24px rgba(15,23,42,.05);
+}
+.impl-hero{
+  background:linear-gradient(135deg,var(--crm-table-header-bg,#0f4c81) 0%,var(--crm-table-header-bg-2,#1f6aa5) 100%);
+  color:#fff;
+  border-radius:16px;
+  padding:20px 22px;
+  margin-bottom:16px;
+  box-shadow:0 12px 28px rgba(15,76,129,.18);
+}
+.impl-hero .sub{
+  opacity:.92;
+  font-size:.96rem;
+}
+.impl-tabs .nav-link{
+  font-weight:600;
+  border-radius:10px 10px 0 0;
+}
+.impl-tabs .nav-link.active{
+  background:var(--crm-table-header-bg,#0f4c81);
+  color:#fff;
+  border-color:var(--crm-table-header-bg,#0f4c81);
+}
+.impl-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  font-size:.95rem;
+}
+.impl-table th,
+.impl-table td{
+  border-bottom:1px solid #e5ebf2;
+  padding:12px 12px;
+  vertical-align:top;
+}
+.impl-table thead th{
+  background:var(--crm-table-header-bg,#0f4c81);
+  color:#fff;
+  text-align:center;
+  font-size:.88rem;
+  letter-spacing:.2px;
+  border:none;
+}
+.impl-table thead th:first-child{border-top-left-radius:12px;}
+.impl-table thead th:last-child{border-top-right-radius:12px;}
+.impl-table .readonly-cell{
+  background:#f8fbff;
+  font-weight:600;
+}
+.impl-table textarea{
+  width:100%;
+  min-height:92px;
+  border:1px solid #cfd8e3;
+  border-radius:10px;
+  padding:12px 14px;
+  font-size:.95rem;
+  line-height:1.5;
+  resize:vertical;
+  background:#fff;
+}
+.impl-table textarea:focus{
+  outline:none;
+  border-color:#2d7bd0;
+  box-shadow:0 0 0 3px rgba(45,123,208,.12);
+}
+.impl-table textarea[disabled]{
+  background:#f8fafc;
+  color:#334155;
+  cursor:not-allowed;
+  opacity:1;
+}
+.impl-table .text-view{
+  white-space:pre-line;
+}
+.package-group-row td{
+  background:#eaf3fb;
+  font-weight:700;
+  color:#0f4c81;
+}
+.package-check{
+  text-align:center;
+  font-weight:700;
+  font-size:1.05rem;
+}
+.top-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.meta-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(160px,1fr));
+  gap:10px;
+  margin-top:14px;
+}
+.meta-box{
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:12px;
+  padding:10px 12px;
+}
+.meta-box .label{
+  font-size:.8rem;
+  opacity:.88;
+}
+.meta-box .value{
+  font-weight:700;
+  margin-top:2px;
+}
+.impl-note{
+  font-size:.9rem;
+  color:#64748b;
+}
+.impl-owner-lock{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:.86rem;
+  color:#64748b;
+  background:#f8fafc;
+  border:1px solid #e2e8f0;
+  padding:8px 10px;
+  border-radius:10px;
+}
+.impl-confirm-col{
+  min-width:260px;
+}
+.impl-confirm-stack{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.impl-confirm-btn,
+.impl-confirm-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border-radius:999px;
+  padding:7px 12px;
+  font-size:.82rem;
+  font-weight:700;
+  line-height:1.1;
+  border:1px solid transparent;
+}
+.impl-confirm-btn{
+  cursor:pointer;
+  transition:all .15s ease;
+}
+.impl-confirm-btn:hover{transform:translateY(-1px);}
+.impl-confirm-btn.is-pending,
+.impl-confirm-pill.is-pending{
+  background:#fff5f5;
+  border-color:#f2b8b5;
+  color:#c0392b;
+}
+.impl-confirm-btn.is-confirmed,
+.impl-confirm-pill.is-confirmed{
+  background:#ecfdf3;
+  border-color:#b7ebc6;
+  color:#15803d;
+}
+.impl-confirm-btn[disabled]{
+  cursor:default;
+  opacity:1;
+}
+.impl-confirm-meta{
+  font-size:.76rem;
+  color:#64748b;
+  white-space:normal;
+}
+.impl-lock-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:#eff6ff;
+  color:#0f4c81;
+  border:1px solid #bfd6ee;
+  border-radius:999px;
+  padding:5px 10px;
+  font-size:.78rem;
+  font-weight:700;
+}
+.impl-unlock-btn{
+  border-radius:999px;
+}
+.impl-log-card{
+  border:1px solid #d9e2ec;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 8px 24px rgba(15,23,42,.05);
+}
+.impl-log-item{
+  border:1px solid #e5ebf2;
+  border-radius:14px;
+  padding:14px 16px;
+  background:#fbfdff;
+}
+.impl-log-item + .impl-log-item{margin-top:12px;}
+.impl-log-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:8px;
+}
+.impl-log-title{
+  font-weight:700;
+  color:#0f172a;
+}
+.impl-log-time{
+  color:#64748b;
+  font-size:.86rem;
+}
+.impl-log-rowmeta{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:8px;
+}
+.impl-log-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:.78rem;
+  background:#eef2ff;
+  color:#334155;
+  border:1px solid #dbe4ff;
+}
+.impl-log-diff{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(220px,1fr));
+  gap:10px;
+  margin-top:10px;
+}
+.impl-log-box{
+  border:1px solid #e2e8f0;
+  border-radius:12px;
+  background:#fff;
+  padding:10px 12px;
+}
+.impl-log-box .label{
+  font-size:.78rem;
+  font-weight:700;
+  color:#64748b;
+  margin-bottom:6px;
+}
+.impl-log-box .value{
+  white-space:pre-line;
+  color:#0f172a;
+  min-height:24px;
+}
+@media (max-width: 992px){
+  .meta-grid{grid-template-columns:repeat(2,minmax(140px,1fr));}
+  .impl-log-diff{grid-template-columns:1fr;}
+}
+@media (max-width: 768px){
+  .meta-grid{grid-template-columns:1fr;}
+  .impl-table{font-size:.9rem;}
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h5 class="mb-0">
+    <i class="fa fa-clipboard-list"></i>
+    Kế hoạch triển khai - {{ contract.contract_number }}
+  </h5>
+
+  <div class="top-actions">
+    {% if can_view_contract_link %}
+    <a href="{% url 'contract:corporate_contract_print' contract.id %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fa fa-arrow-left"></i> Về hợp đồng
+    </a>
+    {% endif %}
+
+    <a href="{% url 'contract:implementation_plan_list' %}" class="btn btn-sm btn-outline-primary">
+      <i class="fa fa-list"></i> Danh sách triển khai
+    </a>
+
+    <a href="{% url 'contract:implementation_plan_export_excel' contract.id %}" class="btn btn-sm btn-success">
+      <i class="fa fa-file-excel"></i> Xuất Excel
+    </a>
+  </div>
+</div>
+
+<div class="impl-hero">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+      <div class="h5 mb-1">TRIỂN KHAI {{ plan_year }} - {{ company_name }}</div>
+      <div class="sub">Trang vận hành nội bộ lấy dữ liệu từ hợp đồng đã chốt và form triển khai.</div>
+    </div>
+    <div class="text-end">
+      <div><strong>Số hợp đồng:</strong> {{ contract.contract_number }}</div>
+      <div><strong>Người tạo:</strong> {{ contract.created_by.get_full_name|default:contract.created_by.username|default:"-" }}</div>
+    </div>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-box">
+      <div class="label">Thời gian khám</div>
+      <div class="value">
+        {% if contract.start_date %}{{ contract.start_date|date:"d/m/Y" }}{% else %}-{% endif %}
+        {% if contract.end_date %} - {{ contract.end_date|date:"d/m/Y" }}{% endif %}
+      </div>
+    </div>
+    <div class="meta-box">
+      <div class="label">Số lượng</div>
+      <div class="value">{{ contract.employee_count|default:"-" }} người</div>
+    </div>
+    <div class="meta-box">
+      <div class="label">Trạng thái</div>
+      <div class="value">
+        {% if contract.is_locked %}Đã chốt{% else %}Chưa chốt{% endif %}
+      </div>
+    </div>
+    <div class="meta-box">
+      <div class="label">Cập nhật</div>
+      <div class="value">{{ plan.updated_at|date:"d/m/Y H:i" }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="impl-page-card">
+  <div class="card-body p-3 p-lg-4">
+    <ul class="nav nav-tabs impl-tabs mb-3" id="implementationTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active"
+                id="tab-plan-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#tab-plan"
+                type="button"
+                role="tab">
+          TRIỂN KHAI {{ plan_year }}
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link"
+                id="tab-package-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#tab-package"
+                type="button"
+                role="tab">
+          GÓI KHÁM {{ plan_year }}
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="tab-plan" role="tabpanel">
+        <form method="post" id="implementation-plan-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" id="impl-action-input" value="save">
+          <input type="hidden" name="row_stt" id="impl-row-stt-input" value="">
+          <input type="hidden" name="department_key" id="impl-department-key-input" value="">
+
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+              <h6 class="mb-1">TRIỂN KHAI KHÁM SỨC KHỎE NĂM {{ plan_year }}</h6>
+              <div class="impl-note">Sale quản lý kế hoạch được chỉnh nội dung khi dòng chưa có xác nhận. Phòng ban phụ trách bấm xác nhận theo nhiệm vụ của mình.</div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              {% if can_edit_plan %}
+
+              {% if plan.is_published %}
+                <span class="badge"
+                      style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;
+                             font-size:.78rem;padding:5px 12px;border-radius:8px">
+                  <i class="fa fa-globe me-1"></i>Đang công khai
+                </span>
+              {% else %}
+                <span class="badge"
+                      style="background:#fff3cd;color:#856404;border:1px solid #ffc107;
+                             font-size:.78rem;padding:5px 12px;border-radius:8px">
+                  <i class="fa fa-pen me-1"></i>Bản nháp
+                </span>
+              {% endif %}
+
+              <button type="submit"
+                      class="btn btn-outline-secondary btn-sm"
+                      onclick="setPlanAction('save_draft')"
+                      title="Lưu dữ liệu nhưng chưa hiển thị ra danh sách kế hoạch triển khai chung">
+                <i class="fa fa-file-alt me-1"></i>Lưu nháp
+              </button>
+
+              <button type="submit"
+                      class="btn btn-primary btn-sm"
+                      onclick="setPlanAction('save')"
+                      {% if not plan.is_published %}
+                      title="Lưu và hiển thị ra danh sách kế hoạch triển khai chung"
+                      {% else %}
+                      title="Lưu thay đổi (kế hoạch đang công khai)"
+                      {% endif %}>
+                <i class="fa fa-{% if plan.is_published %}save{% else %}globe{% endif %} me-1"></i>
+                {% if plan.is_published %}Lưu{% else %}Lưu & Công khai{% endif %}
+              </button>
+
+              {% else %}
+              <div class="impl-owner-lock">
+                <i class="fa fa-lock"></i>
+                {% if is_executive %}
+                  Tài khoản Executive chỉ theo dõi tiến độ và log xác nhận.
+                {% else %}
+                  Tài khoản phòng ban chỉ thực hiện xác nhận theo dòng được phân công.
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="impl-table">
+              <thead>
+                <tr>
+                  <th style="width:56px;">STT</th>
+                  <th style="width:140px;">PHỤ TRÁCH</th>
+                  <th style="width:220px;">DANH MỤC</th>
+                  <th style="min-width:360px;">CHI TIẾT</th>
+                  <th style="min-width:280px;">GHI CHÚ / GIẢI THÍCH</th>
+                  <th class="impl-confirm-col">XÁC NHẬN</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in plan_rows %}
+                <tr data-row-stt="{{ row.stt }}">
+                  <td class="text-center readonly-cell">{{ row.stt }}</td>
+                  <td class="readonly-cell">{{ row.owner }}</td>
+                  <td class="readonly-cell js-category-cell">
+                    <div>{{ row.category }}</div>
+                    {% if row.is_locked %}
+                      <div class="mt-2 js-lock-badge-wrap">
+                        <span class="impl-lock-badge">
+                          <i class="fa fa-lock"></i>
+                          Đã khóa sau xác nhận
+                        </span>
+                      </div>
+                    {% endif %}
+                  </td>
+
+                  <td>
+                    <textarea
+                      name="row_detail[]"
+                      class="js-row-detail"
+                      {% if not row.is_editable %}disabled{% endif %}
+                    >{{ row.detail }}</textarea>
+                  </td>
+
+                  <td>
+                    <textarea
+                      name="row_note[]"
+                      class="js-row-note"
+                      {% if not row.is_editable %}disabled{% endif %}
+                    >{{ row.note }}</textarea>
+                  </td>
+
+                  <td class="js-confirm-cell">
+                    {% if row.department_items %}
+                      <div class="impl-confirm-stack">
+                        {% for dept in row.department_items %}
+                          {% if dept.can_click %}
+                            <button
+                              type="button"
+                              class="impl-confirm-btn js-impl-confirm-btn {% if dept.is_confirmed %}is-confirmed{% else %}is-pending{% endif %}"
+                              data-row-stt="{{ row.stt }}"
+                              data-department-key="{{ dept.key }}"
+                              {% if dept.is_confirmed %}disabled{% endif %}
+                            >
+                              <i class="fa {% if dept.is_confirmed %}fa-check-circle{% else %}fa-clock{% endif %}"></i>
+                              {{ dept.label }}
+                            </button>
+                          {% else %}
+                            <span class="impl-confirm-pill {% if dept.is_confirmed %}is-confirmed{% else %}is-pending{% endif %}">
+                              <i class="fa {% if dept.is_confirmed %}fa-check-circle{% else %}fa-clock{% endif %}"></i>
+                              {{ dept.label }}
+                            </span>
+                          {% endif %}
+
+                          {% if dept.is_confirmed %}
+                            <div class="impl-confirm-meta w-100">
+                              {{ dept.confirmed_by_name|default:"-" }}
+                              {% if dept.confirmed_at %} · {{ dept.confirmed_at|date:"d/m/Y H:i" }}{% endif %}
+                            </div>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <div class="text-muted small">Không có xác nhận cho vai trò hiện tại.</div>
+                    {% endif %}
+
+                    {% if can_manage_unlock and row.is_locked %}
+                    <div class="mt-2">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-warning impl-unlock-btn js-impl-unlock-btn"
+                        data-row-stt="{{ row.stt }}"
+                      >
+                        <i class="fa fa-unlock-alt"></i> Gỡ xác nhận để sửa
+                      </button>
+                    </div>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </form>
+      </div>
+
+      <div class="tab-pane fade" id="tab-package" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h6 class="mb-1">GÓI KHÁM {{ plan_year }}</h6>
+            <div class="impl-note">Gói khám chi tiết từ hợp đồng đã chốt</div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="impl-table">
+            <thead>
+              <tr>
+                <th style="width:70px;">STT</th>
+                <th>DANH MỤC KHÁM</th>
+                <th style="width:100px;">NAM</th>
+                <th style="width:130px;">NỮ ĐỘC THÂN</th>
+                <th style="width:150px;">NỮ CÓ GIA ĐÌNH</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% regroup package_rows by group_name as grouped_packages %}
+              {% for group in grouped_packages %}
+                <tr class="package-group-row">
+                  <td colspan="5">{{ group.grouper }}</td>
+                </tr>
+                {% for item in group.list %}
+                <tr>
+                  <td class="text-center">{{ item.stt }}</td>
+                  <td>
+                    <div><strong>{{ item.item_name }}</strong></div>
+                    {% if item.description %}
+                      <div class="text-muted mt-1" style="white-space:pre-line;font-size:.88rem;">{{ item.description }}</div>
+                    {% endif %}
+                  </td>
+                  <td class="package-check">{% if item.male %}✓{% endif %}</td>
+                  <td class="package-check">{% if item.female_single %}✓{% endif %}</td>
+                  <td class="package-check">{% if item.female_family %}✓{% endif %}</td>
+                </tr>
+                {% endfor %}
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted py-4">Chưa có dữ liệu gói khám trong hợp đồng.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if can_view_logs %}
+<div class="impl-log-card mt-4">
+  <div class="card-body p-3 p-lg-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div>
+        <h6 class="mb-1"><i class="fa fa-history"></i> Nhật ký xác nhận / chỉnh sửa</h6>
+        <div class="impl-note">Chỉ sale quản lý kế hoạch, Executive và superadmin được xem toàn bộ log.</div>
+      </div>
+      <div class="impl-owner-lock">
+        <i class="fa fa-list-alt"></i>
+        Tổng log: {{ log_entries|length }}
+      </div>
+    </div>
+
+    {% if log_entries %}
+      {% for log in log_entries %}
+      <div class="impl-log-item">
+        <div class="impl-log-head">
+          <div class="impl-log-title">{{ log.description }}</div>
+          <div class="impl-log-time">{{ log.created_at|date:"d/m/Y H:i:s" }}</div>
+        </div>
+
+        <div class="impl-log-rowmeta">
+          <span class="impl-log-chip"><i class="fa fa-hashtag"></i> Dòng {{ log.row_stt|default:"-" }}</span>
+          <span class="impl-log-chip"><i class="fa fa-user"></i> {{ log.actor_name|default:"-" }}</span>
+          {% if log.department_label %}
+          <span class="impl-log-chip"><i class="fa fa-sitemap"></i> {{ log.department_label }}</span>
+          {% endif %}
+          <span class="impl-log-chip"><i class="fa fa-tag"></i> {{ log.action_label }}</span>
+        </div>
+
+        <div class="mb-2"><strong>{{ log.row_category|default:"-" }}</strong></div>
+
+        {% if log.action == 'edit' %}
+        <div class="impl-log-diff">
+          <div class="impl-log-box">
+            <div class="label">Chi tiết trước sửa</div>
+            <div class="value">{{ log.detail_before|default:"-" }}</div>
+          </div>
+          <div class="impl-log-box">
+            <div class="label">Chi tiết sau sửa</div>
+            <div class="value">{{ log.detail_after|default:"-" }}</div>
+          </div>
+          <div class="impl-log-box">
+            <div class="label">Ghi chú trước sửa</div>
+            <div class="value">{{ log.note_before|default:"-" }}</div>
+          </div>
+          <div class="impl-log-box">
+            <div class="label">Ghi chú sau sửa</div>
+            <div class="value">{{ log.note_after|default:"-" }}</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="impl-log-diff">
+          <div class="impl-log-box">
+            <div class="label">Chi tiết tại thời điểm log</div>
+            <div class="value">{{ log.detail_after|default:"-" }}</div>
+          </div>
+          <div class="impl-log-box">
+            <div class="label">Ghi chú tại thời điểm log</div>
+            <div class="value">{{ log.note_after|default:"-" }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="text-center text-muted py-4">Chưa có log nào cho kế hoạch này.</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+function setPlanAction(action, rowStt = '', departmentKey = '') {
+  const actionInput = document.getElementById('impl-action-input');
+  const rowInput = document.getElementById('impl-row-stt-input');
+  const departmentInput = document.getElementById('impl-department-key-input');
+  if (actionInput) actionInput.value = action;
+  if (rowInput) rowInput.value = rowStt;
+  if (departmentInput) departmentInput.value = departmentKey;
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function showImplAlert(message, type = 'success') {
+  const form = document.getElementById('implementation-plan-form');
+  if (!form) return;
+
+  let box = document.getElementById('impl-ajax-alert');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'impl-ajax-alert';
+    box.className = 'mb-3';
+    form.prepend(box);
+  }
+
+  box.innerHTML = `
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+      ${escapeHtml(message)}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  `;
+}
+
+function renderConfirmItem(rowStt, item) {
+  const icon = item.is_confirmed ? 'fa-check-circle' : 'fa-clock';
+  const stateClass = item.is_confirmed ? 'is-confirmed' : 'is-pending';
+
+  let html = '';
+  if (item.can_click) {
+    html += `
+      <button
+        type="button"
+        class="impl-confirm-btn js-impl-confirm-btn ${stateClass}"
+        data-row-stt="${escapeHtml(rowStt)}"
+        data-department-key="${escapeHtml(item.key)}"
+        ${item.is_confirmed ? 'disabled' : ''}
+      >
+        <i class="fa ${icon}"></i>
+        ${escapeHtml(item.label)}
+      </button>
+    `;
+  } else {
+    html += `
+      <span class="impl-confirm-pill ${stateClass}">
+        <i class="fa ${icon}"></i>
+        ${escapeHtml(item.label)}
+      </span>
+    `;
+  }
+
+  if (item.is_confirmed) {
+    html += `
+      <div class="impl-confirm-meta w-100">
+        ${escapeHtml(item.confirmed_by_name || '-')}
+        ${item.confirmed_at ? ' · ' + escapeHtml(item.confirmed_at) : ''}
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+function renderConfirmCell(rowData, canManageUnlock) {
+  let html = '';
+
+  if (rowData.department_items && rowData.department_items.length) {
+    html += `<div class="impl-confirm-stack">`;
+    rowData.department_items.forEach(function(item) {
+      html += renderConfirmItem(rowData.stt, item);
+    });
+    html += `</div>`;
+  } else {
+    html += `<div class="text-muted small">Không có xác nhận cho vai trò hiện tại.</div>`;
+  }
+
+  if (canManageUnlock && rowData.is_locked) {
+    html += `
+      <div class="mt-2">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-warning impl-unlock-btn js-impl-unlock-btn"
+          data-row-stt="${escapeHtml(rowData.stt)}"
+        >
+          <i class="fa fa-unlock-alt"></i> Gỡ xác nhận để sửa
+        </button>
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+function updateRowDom(rowData) {
+  const rowEl = document.querySelector(`tr[data-row-stt="${rowData.stt}"]`);
+  if (!rowEl) return;
+
+  const confirmCell = rowEl.querySelector('.js-confirm-cell');
+  if (confirmCell) {
+    confirmCell.innerHTML = renderConfirmCell(
+      rowData,
+      {{ can_manage_unlock|yesno:"true,false" }}
+    );
+  }
+
+  rowEl.querySelectorAll('.js-row-detail, .js-row-note').forEach(function(el) {
+    el.disabled = !rowData.is_editable;
+  });
+
+  const categoryCell = rowEl.querySelector('.js-category-cell');
+  if (categoryCell) {
+    let badgeWrap = categoryCell.querySelector('.js-lock-badge-wrap');
+
+    if (rowData.is_locked) {
+      if (!badgeWrap) {
+        badgeWrap = document.createElement('div');
+        badgeWrap.className = 'mt-2 js-lock-badge-wrap';
+        categoryCell.appendChild(badgeWrap);
+      }
+      badgeWrap.innerHTML = `
+        <span class="impl-lock-badge">
+          <i class="fa fa-lock"></i>
+          Đã khóa sau xác nhận
+        </span>
+      `;
+    } else if (badgeWrap) {
+      badgeWrap.remove();
+    }
+  }
+}
+
+async function postPlanAjax(payload, loadingButton, loadingHtml) {
+  const form = document.getElementById('implementation-plan-form');
+  if (!form) return;
+
+  const formData = new FormData(form);
+  Object.keys(payload).forEach(function(key) {
+    formData.set(key, payload[key]);
+  });
+
+  const oldHtml = loadingButton.innerHTML;
+  loadingButton.disabled = true;
+  loadingButton.innerHTML = loadingHtml;
+
+  try {
+    const response = await fetch(window.location.href, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: formData,
+      credentials: 'same-origin'
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.message || 'Thao tác không thành công.');
+    }
+
+    if (data.row) {
+      updateRowDom(data.row);
+    }
+
+    showImplAlert(data.message || 'Đã cập nhật.', 'success');
+  } catch (error) {
+    loadingButton.disabled = false;
+    loadingButton.innerHTML = oldHtml;
+    showImplAlert(error.message || 'Có lỗi xảy ra.', 'danger');
+  }
+}
+
+async function submitConfirmAjax(button) {
+  const rowStt = button.dataset.rowStt || '';
+  const departmentKey = button.dataset.departmentKey || '';
+
+  await postPlanAjax(
+    {
+      action: 'confirm',
+      row_stt: rowStt,
+      department_key: departmentKey,
+    },
+    button,
+    '<i class="fa fa-spinner fa-spin"></i> Đang xác nhận'
+  );
+}
+
+async function submitUnlockAjax(button) {
+  const rowStt = button.dataset.rowStt || '';
+
+  await postPlanAjax(
+    {
+      action: 'unlock',
+      row_stt: rowStt,
+      department_key: '',
+    },
+    button,
+    '<i class="fa fa-spinner fa-spin"></i> Đang mở khóa'
+  );
+}
+
+document.addEventListener('click', function(event) {
+  const confirmBtn = event.target.closest('.js-impl-confirm-btn');
+  if (confirmBtn) {
+    event.preventDefault();
+    submitConfirmAjax(confirmBtn);
+    return;
+  }
+
+  const unlockBtn = event.target.closest('.js-impl-unlock-btn');
+  if (unlockBtn) {
+    event.preventDefault();
+    submitUnlockAjax(unlockBtn);
+  }
+});
+</script>
+{% endblock %}

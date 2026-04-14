@@ -1,0 +1,1304 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Công cụ Check-in / Check-out — Vietmedi</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --brand:        #0f4c81;
+  --brand-light:  #e8f0fb;
+  --green:        #16a34a;
+  --green-light:  #dcfce7;
+  --orange:       #d97706;
+  --orange-light: #fef3c7;
+  --red:          #dc2626;
+  --red-light:    #fee2e2;
+  --gray-100:     #f8fafc;
+  --gray-200:     #e9edf3;
+  --gray-400:     #94a3b8;
+  --gray-600:     #64748b;
+  --gray-800:     #1e293b;
+  --radius:       12px;
+  --shadow:       0 2px 12px rgba(0,0,0,.07);
+}
+
+body {
+  font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+  background: #f0f4fa;
+  min-height: 100vh;
+  color: var(--gray-800);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════════════════════════════ */
+.topbar {
+  background: var(--brand);
+  color: white;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: .02em;
+}
+.topbar-brand i { font-size: 18px; opacity: .9; }
+.topbar-divider { width: 1px; height: 20px; background: rgba(255,255,255,.25); }
+.topbar-label {
+  font-size: 13px;
+  opacity: .85;
+  font-weight: 500;
+}
+.topbar-date {
+  margin-left: auto;
+  font-size: 13px;
+  opacity: .8;
+  font-weight: 500;
+}
+.topbar-operator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,.12);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+}
+.topbar-operator i { font-size: 13px; opacity: .8; }
+.btn-topbar-logout {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.25);
+  color: white;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-topbar-logout:hover { background: rgba(255,255,255,.25); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN LAYOUT — two columns
+═══════════════════════════════════════════════════════════════════ */
+.tool-layout {
+  display: grid;
+  grid-template-columns: 480px 1fr;
+  gap: 16px;
+  padding: 16px;
+  min-height: calc(100vh - 52px);
+}
+
+@media (max-width: 900px) {
+  .tool-layout { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PANEL CARD
+═══════════════════════════════════════════════════════════════════ */
+.panel {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+}
+.panel-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.panel-header-icon {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.panel-header-icon.blue  { background: var(--brand-light); color: var(--brand); }
+.panel-header-icon.green { background: var(--green-light); color: var(--green); }
+.panel-title { font-size: 15px; font-weight: 700; color: var(--gray-800); }
+.panel-subtitle { font-size: 12px; color: var(--gray-400); margin-top: 1px; }
+.panel-body { padding: 20px; flex: 1; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LOGIN OVERLAY (khi chưa xác thực)
+═══════════════════════════════════════════════════════════════════ */
+.login-overlay {
+  min-height: calc(100vh - 52px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.login-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.1);
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+.login-icon {
+  width: 64px; height: 64px;
+  background: var(--brand-light);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  color: var(--brand);
+  margin: 0 auto 20px;
+}
+.login-card h2 { font-size: 20px; font-weight: 700; color: var(--gray-800); margin-bottom: 6px; }
+.login-card p  { font-size: 13px; color: var(--gray-400); margin-bottom: 24px; }
+.form-label-sm { font-size: 12.5px; font-weight: 600; color: var(--gray-600); margin-bottom: 5px; display: block; }
+.form-control-reception {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 9px;
+  font-size: 14px;
+  color: var(--gray-800);
+  outline: none;
+  transition: border-color .15s;
+  margin-bottom: 14px;
+}
+.form-control-reception:focus { border-color: var(--brand); }
+.btn-login-submit {
+  width: 100%;
+  background: var(--brand);
+  color: white;
+  border: none;
+  border-radius: 9px;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-login-submit:hover { background: #0d4070; }
+.alert-login-err {
+  background: var(--red-light);
+  border: 1px solid #fca5a5;
+  color: var(--red);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCAN INPUT
+═══════════════════════════════════════════════════════════════════ */
+.scan-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+.scan-input {
+  width: 100%;
+  padding: 14px 50px 14px 48px;
+  border: 2px solid var(--gray-200);
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  font-family: monospace;
+  letter-spacing: .05em;
+  color: var(--brand);
+  text-transform: uppercase;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.scan-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(15,76,129,.12);
+}
+.scan-icon-left {
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray-400);
+  font-size: 18px;
+  pointer-events: none;
+}
+.scan-clear-btn {
+  position: absolute;
+  right: 12px; top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  display: none;
+}
+.scan-clear-btn:hover { color: var(--red); }
+.scan-hint {
+  font-size: 11.5px;
+  color: var(--gray-400);
+  text-align: center;
+  margin-top: -8px;
+  margin-bottom: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PATIENT CARD (kết quả tra cứu)
+═══════════════════════════════════════════════════════════════════ */
+.patient-card {
+  background: var(--gray-100);
+  border: 1.5px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  display: none;
+}
+.patient-card.visible { display: block; }
+.patient-card.has-checkin  { border-color: #86efac; background: #f0fdf4; }
+.patient-card.has-checkout { border-color: #93c5fd; background: #eff6ff; }
+.patient-card.has-deferred { border-color: #fcd34d; background: #fffbeb; }
+
+.patient-code {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  background: var(--brand-light);
+  border-radius: 5px;
+  padding: 2px 8px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.patient-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+.patient-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--gray-200);
+}
+.meta-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.meta-icon { font-size: 12px; color: var(--gray-400); width: 14px; text-align: center; }
+.meta-label { color: var(--gray-400); font-size: 11.5px; }
+.meta-value { color: var(--gray-800); font-weight: 500; }
+
+.company-row {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: white;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  border: 1px solid var(--gray-200);
+}
+.company-row i { color: var(--brand); font-size: 13px; }
+.company-name  { font-weight: 600; color: var(--gray-800); }
+.company-range { color: var(--gray-400); font-size: 12px; margin-left: auto; }
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+.badge-checkin  { background: var(--green-light); color: var(--green); }
+.badge-checkout { background: var(--brand-light);  color: var(--brand); }
+.badge-deferred { background: var(--orange-light); color: var(--orange); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   NOTE FIELD
+═══════════════════════════════════════════════════════════════════ */
+.note-field {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 13px;
+  resize: none;
+  height: 70px;
+  outline: none;
+  transition: border-color .15s;
+  margin-bottom: 14px;
+}
+.note-field:focus { border-color: var(--brand); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ACTION BUTTONS
+═══════════════════════════════════════════════════════════════════ */
+.action-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.btn-action {
+  flex: 1;
+  min-width: 120px;
+  padding: 12px 16px;
+  border-radius: 9px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: opacity .15s, transform .1s;
+}
+.btn-action:active { transform: scale(.97); }
+.btn-action:disabled { opacity: .45; cursor: not-allowed; }
+.btn-checkin  { background: var(--green);  color: white; }
+.btn-checkin:hover  { background: #15803d; }
+.btn-checkout { background: var(--brand);  color: white; }
+.btn-checkout:hover { background: #0d3f6e; }
+.btn-defer    { background: var(--orange-light); color: var(--orange); border: 1.5px solid #fcd34d; }
+.btn-defer:hover { background: #fde68a; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ALERT / FEEDBACK
+═══════════════════════════════════════════════════════════════════ */
+.feedback-alert {
+  border-radius: 9px;
+  padding: 12px 15px;
+  font-size: 13.5px;
+  font-weight: 500;
+  display: none;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+.feedback-alert.show { display: flex; }
+.feedback-success { background: var(--green-light); color: var(--green); border: 1px solid #86efac; }
+.feedback-error   { background: var(--red-light);   color: var(--red);   border: 1px solid #fca5a5; }
+.feedback-info    { background: var(--brand-light);  color: var(--brand); border: 1px solid #bfdbfe; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   STATS PANEL (right column)
+═══════════════════════════════════════════════════════════════════ */
+.stats-panel { display: flex; flex-direction: column; gap: 12px; }
+
+.summary-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.summary-chip {
+  flex: 1;
+  text-align: center;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+.chip-total    { background: var(--brand-light); border-color: #bfdbfe; }
+.chip-checkin  { background: var(--green-light); border-color: #86efac; }
+.chip-checkout { background: #eff6ff;            border-color: #93c5fd; }
+.chip-deferred { background: var(--orange-light);border-color: #fcd34d; }
+.chip-val  { font-size: 24px; font-weight: 800; line-height: 1; }
+.chip-lbl  { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-top: 3px; }
+.chip-total    .chip-val { color: var(--brand); }
+.chip-checkin  .chip-val { color: var(--green); }
+.chip-checkout .chip-val { color: #1d4ed8; }
+.chip-deferred .chip-val { color: var(--orange); }
+.chip-total    .chip-lbl { color: var(--brand); }
+.chip-checkin  .chip-lbl { color: var(--green); }
+.chip-checkout .chip-lbl { color: #1d4ed8; }
+.chip-deferred .chip-lbl { color: var(--orange); }
+
+.company-stat-card {
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.csc-header {
+  background: var(--gray-100);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--gray-200);
+}
+.csc-name  { font-weight: 700; font-size: 13.5px; color: var(--gray-800); flex: 1; min-width: 0; }
+.csc-range { font-size: 11px; color: var(--gray-400); white-space: nowrap; }
+.csc-body  { padding: 10px 14px; display: flex; gap: 12px; }
+.csc-stat  { text-align: center; }
+.csc-stat-val { font-size: 20px; font-weight: 800; }
+.csc-stat-lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; margin-top: 1px; }
+.csc-stat.ci  .csc-stat-val { color: var(--green);  } .csc-stat.ci  .csc-stat-lbl { color: var(--green); }
+.csc-stat.co  .csc-stat-val { color: #1d4ed8; }       .csc-stat.co  .csc-stat-lbl { color: #1d4ed8; }
+.csc-stat.df  .csc-stat-val { color: var(--orange); } .csc-stat.df  .csc-stat-lbl { color: var(--orange); }
+.csc-stat.tt  .csc-stat-val { color: var(--gray-600);} .csc-stat.tt  .csc-stat-lbl { color: var(--gray-400); }
+.csc-progress-wrap {
+  margin: 0 14px 10px;
+  height: 5px;
+  background: var(--gray-200);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.csc-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green) 0%, var(--brand) 100%);
+  border-radius: 3px;
+  transition: width .4s;
+}
+
+/* ── Recent list ────────────────────────────────────────────────── */
+.recent-list { max-height: 320px; overflow-y: auto; }
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gray-100);
+  font-size: 13px;
+}
+.recent-item:last-child { border-bottom: none; }
+.recent-status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.dot-ci { background: var(--green); }
+.dot-co { background: var(--brand); }
+.dot-df { background: var(--orange); }
+.recent-name { flex: 1; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-company { font-size: 11.5px; color: var(--gray-400); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+.recent-time { font-size: 11.5px; color: var(--gray-400); white-space: nowrap; }
+.recent-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
+.rb-ci { background: var(--green-light); color: var(--green); }
+.rb-co { background: var(--brand-light); color: var(--brand); }
+.rb-df { background: var(--orange-light); color: var(--orange); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LOADING SPINNER
+═══════════════════════════════════════════════════════════════════ */
+.scan-spinner {
+  text-align: center;
+  padding: 20px;
+  color: var(--gray-400);
+  font-size: 13px;
+  display: none;
+}
+.scan-spinner.show { display: block; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════════════════════════ */
+.empty-prompt {
+  text-align: center;
+  padding: 32px 20px;
+  color: var(--gray-400);
+}
+.empty-prompt-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  opacity: .4;
+}
+.empty-prompt p { font-size: 13.5px; line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SECTION LABEL
+═══════════════════════════════════════════════════════════════════ */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--gray-400);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--gray-200); }
+
+/* auto refresh indicator */
+.refresh-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .4; transform: scale(.8); }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ══ TOPBAR ══════════════════════════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <i class="fa-solid fa-heart-pulse"></i>
+    Vietmedi
+  </div>
+  <div class="topbar-divider"></div>
+  <span class="topbar-label">
+    <i class="fa-solid fa-qrcode" style="margin-right:5px;opacity:.7"></i>
+    Công cụ Check-in / Check-out
+  </span>
+  <div class="topbar-date" id="topbarClock"></div>
+
+  {% if operator %}
+  <!-- Hiển thị thông tin thư ký đang đăng nhập -->
+  <div class="topbar-operator">
+    <i class="fa-regular fa-user-circle"></i>
+    <span>{{ operator.get_full_name|default:operator.username }}</span>
+  </div>
+  <form method="post" style="margin:0">
+    {% csrf_token %}
+    <input type="hidden" name="operator_logout" value="1">
+    <button type="submit" class="btn-topbar-logout">
+      <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+<!-- ══ LOGIN OVERLAY — hiện khi chưa xác thực ═══════════════════════════ -->
+{% if not operator %}
+<div class="login-overlay">
+  <div class="login-card">
+    <div class="login-icon">
+      <i class="fa-solid fa-shield-check"></i>
+    </div>
+    <h2>Xác nhận tài khoản</h2>
+    <p>Nhập thông tin thư ký y khoa để truy cập công cụ check-in</p>
+
+    {% if login_error %}
+    <div class="alert-login-err">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      {{ login_error }}
+    </div>
+    {% endif %}
+
+    <form method="post" autocomplete="off">
+      {% csrf_token %}
+      <input type="hidden" name="operator_login" value="1">
+      <label class="form-label-sm" for="login_username">Tên đăng nhập</label>
+      <input
+        type="text"
+        id="login_username"
+        name="username"
+        class="form-control-reception"
+        placeholder="username"
+        autocomplete="username"
+        autofocus
+        required
+      >
+      <label class="form-label-sm" for="login_password">Mật khẩu</label>
+      <input
+        type="password"
+        id="login_password"
+        name="password"
+        class="form-control-reception"
+        placeholder="••••••••"
+        autocomplete="current-password"
+        required
+      >
+      <button type="submit" class="btn-login-submit">
+        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+        Xác nhận và vào hệ thống
+      </button>
+    </form>
+
+    <div style="margin-top:20px; font-size:12px; color:var(--gray-400)">
+      <i class="fa-solid fa-circle-info" style="margin-right:4px"></i>
+      Công cụ dành riêng cho thư ký y khoa.
+      Liên hệ quản trị viên nếu không có tài khoản.
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- ══ TOOL LAYOUT — hiện khi đã xác thực ══════════════════════════════ -->
+<div class="tool-layout">
+
+  <!-- ── CỘT TRÁI: CHECK-IN / CHECK-OUT FORM ──────────────────────────── -->
+  <div class="panel" id="checkinPanel">
+    <div class="panel-header">
+      <div class="panel-header-icon blue">
+        <i class="fa-solid fa-qrcode"></i>
+      </div>
+      <div>
+        <div class="panel-title">Quét mã / Nhập mã bệnh nhân</div>
+        <div class="panel-subtitle">Quét barcode hoặc nhập tay mã KH để check-in</div>
+      </div>
+    </div>
+
+    <div class="panel-body">
+
+      <!-- Feedback alert -->
+      <div class="feedback-alert" id="feedbackAlert">
+        <i class="fa-solid fa-circle-check" id="feedbackIcon"></i>
+        <span id="feedbackMsg"></span>
+      </div>
+
+      <!-- Scan input -->
+      <div class="section-label">
+        <i class="fa-solid fa-barcode"></i>
+        Mã bệnh nhân
+      </div>
+      <div class="scan-wrap">
+        <i class="fa-solid fa-barcode scan-icon-left"></i>
+        <input
+          type="text"
+          id="scanInput"
+          class="scan-input"
+          placeholder="VMDBNNHH... hoặc quét barcode"
+          autofocus
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <button class="scan-clear-btn" id="scanClearBtn" type="button" title="Xóa">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="scan-hint">
+        <i class="fa-regular fa-keyboard" style="margin-right:4px"></i>
+        Nhấn <kbd style="font-size:11px;padding:1px 5px;border:1px solid #ccc;border-radius:4px">Enter</kbd>
+        để tra cứu &nbsp;|&nbsp; Focus tự động sau mỗi thao tác
+      </div>
+
+      <!-- Loading indicator -->
+      <div class="scan-spinner" id="scanSpinner">
+        <i class="fa-solid fa-circle-notch fa-spin" style="margin-right:6px"></i>
+        Đang tra cứu...
+      </div>
+
+      <!-- Patient card (hidden until lookup) -->
+      <div class="patient-card" id="patientCard">
+        <span class="patient-code" id="pcCode"></span>
+        <div class="patient-name" id="pcName"></div>
+
+        <div class="patient-meta">
+          <div class="meta-item">
+            <i class="fa-solid fa-venus-mars meta-icon"></i>
+            <div>
+              <div class="meta-label">Giới tính</div>
+              <div class="meta-value" id="pcGioiTinh"></div>
+            </div>
+          </div>
+          <div class="meta-item">
+            <i class="fa-regular fa-calendar meta-icon"></i>
+            <div>
+              <div class="meta-label">Ngày sinh</div>
+              <div class="meta-value" id="pcNgaySinh"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="company-row" id="pcCompanyRow" style="display:none">
+          <i class="fa-solid fa-building"></i>
+          <span class="company-name" id="pcCompanyName"></span>
+          <span class="company-range" id="pcExamRange"></span>
+        </div>
+
+        <!-- Trạng thái hiện tại (nếu đã check-in/out hôm nay) -->
+        <div id="pcStatusBadge" style="display:none"></div>
+      </div>
+
+      <!-- Empty prompt (khi chưa quét) -->
+      <div class="empty-prompt" id="emptyPrompt">
+        <div class="empty-prompt-icon">
+          <i class="fa-solid fa-qrcode"></i>
+        </div>
+        <p>
+          Quét barcode hoặc nhập mã bệnh nhân
+        </p>
+      </div>
+
+      <!-- Ghi chú -->
+      <div id="noteSection" style="display:none">
+        <div class="section-label" style="margin-top:16px">
+          <i class="fa-regular fa-note-sticky"></i>
+          Ghi chú (không bắt buộc)
+        </div>
+        <textarea
+          id="noteInput"
+          class="note-field"
+          placeholder="Ghi chú thêm cho thư ký y khoa..."
+        ></textarea>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="action-row" id="actionRow" style="display:none">
+        <!-- Nút check-in: hiển thị khi chưa check-in -->
+        <button class="btn-action btn-checkin" id="btnCheckin" type="button" style="display:none">
+          <i class="fa-solid fa-circle-check"></i>
+          Check-in
+        </button>
+        <!-- Nút check-out: hiển thị khi đã check-in -->
+        <button class="btn-action btn-checkout" id="btnCheckout" type="button" style="display:none">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          Check-out
+        </button>
+        <!-- Nút quay lại sau: hiển thị khi đã check-in -->
+        <button class="btn-action btn-defer" id="btnDefer" type="button" style="display:none">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          Quay lại sau
+        </button>
+      </div>
+
+    </div><!-- /panel-body -->
+  </div><!-- /checkin panel -->
+
+  <!-- ── CỘT PHẢI: THỐNG KÊ HÔM NAY ──────────────────────────────────── -->
+  <div class="panel" id="statsPanel">
+    <div class="panel-header">
+      <div class="panel-header-icon green">
+        <i class="fa-solid fa-chart-bar"></i>
+      </div>
+      <div style="flex:1">
+        <div class="panel-title">Thống kê hôm nay</div>
+        <div class="panel-subtitle" id="statsDate">
+          {{ today|date:"l, d/m/Y" }}
+        </div>
+      </div>
+      <!-- Auto-refresh indicator -->
+      <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--gray-400)">
+        <div class="refresh-dot"></div>
+        Tự cập nhật
+      </div>
+    </div>
+
+    <div class="panel-body" style="overflow-y:auto;max-height:calc(100vh - 120px)">
+
+      <!-- Summary chips -->
+      <div class="summary-row" id="summaryRow">
+        <div class="summary-chip chip-total">
+          <div class="chip-val" id="chipTotal">{{ total_today }}</div>
+          <div class="chip-lbl">Tổng KH</div>
+        </div>
+        <div class="summary-chip chip-checkin">
+          <div class="chip-val" id="chipCheckin">
+            {% with ns=0 %}
+            {% for cs in company_stats %}{% for rec in cs.records %}{% if rec.status == 'CHECKED_IN' %}{% with ns=ns|add:1 %}{% endwith %}{% endif %}{% endfor %}{% endfor %}
+            {% endwith %}
+            0
+          </div>
+          <div class="chip-lbl">Đang khám</div>
+        </div>
+        <div class="summary-chip chip-checkout">
+          <div class="chip-val" id="chipCheckout">0</div>
+          <div class="chip-lbl">Đã ra về</div>
+        </div>
+        <div class="summary-chip chip-deferred">
+          <div class="chip-val" id="chipDeferred">0</div>
+          <div class="chip-lbl">Quay lại sau</div>
+        </div>
+      </div>
+
+      <!-- Company breakdown -->
+      <div class="section-label" style="margin-top:8px">
+        <i class="fa-solid fa-building"></i>
+        Theo công ty
+      </div>
+      <div id="companyList">
+        {% for cs in company_stats %}
+        {% with tot=cs.total_checkin|add:cs.total_checkout|add:cs.total_deferred %}
+        <div class="company-stat-card">
+          <div class="csc-header">
+            <div class="csc-name">{{ cs.company_name }}</div>
+            {% if cs.exam_start and cs.exam_end %}
+            <div class="csc-range">
+              {{ cs.exam_start|date:"d/m" }} – {{ cs.exam_end|date:"d/m/Y" }}
+            </div>
+            {% endif %}
+          </div>
+          <div class="csc-body">
+            <div class="csc-stat ci">
+              <div class="csc-stat-val">{{ cs.total_checkin }}</div>
+              <div class="csc-stat-lbl">Check-in</div>
+            </div>
+            <div class="csc-stat co">
+              <div class="csc-stat-val">{{ cs.total_checkout }}</div>
+              <div class="csc-stat-lbl">Check-out</div>
+            </div>
+            <div class="csc-stat df">
+              <div class="csc-stat-val">{{ cs.total_deferred }}</div>
+              <div class="csc-stat-lbl">Hoãn</div>
+            </div>
+            <div class="csc-stat tt" style="margin-left:auto">
+              <div class="csc-stat-val">{{ tot }}</div>
+              <div class="csc-stat-lbl">Tổng</div>
+            </div>
+          </div>
+          {% if tot > 0 %}
+          <div class="csc-progress-wrap">
+            <div class="csc-progress-bar"
+                 style="width:{% widthratio cs.total_checkout|add:cs.total_deferred tot 100 %}%">
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div style="text-align:center;color:var(--gray-400);padding:24px;font-size:13px">
+          <i class="fa-regular fa-building" style="font-size:28px;opacity:.3;margin-bottom:8px;display:block"></i>
+          Chưa có khách hàng check-in hôm nay
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Recent checkins -->
+      <div class="section-label" style="margin-top:16px">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        Hoạt động gần nhất
+      </div>
+      <div class="recent-list" id="recentList">
+        {% for rec in recent %}
+        <div class="recent-item">
+          <div class="recent-status-dot
+            {% if rec.status == 'CHECKED_IN' %}dot-ci
+            {% elif rec.status == 'CHECKED_OUT' %}dot-co
+            {% else %}dot-df{% endif %}">
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="recent-name">{{ rec.snapshot_ho_ten }}</div>
+            <div class="recent-company">{{ rec.snapshot_ma_bn }}</div>
+          </div>
+          <div class="recent-company" style="max-width:100px">
+            {{ rec.snapshot_company_name|truncatechars:16 }}
+          </div>
+          <div class="recent-badge
+            {% if rec.status == 'CHECKED_IN' %}rb-ci
+            {% elif rec.status == 'CHECKED_OUT' %}rb-co
+            {% else %}rb-df{% endif %}">
+            {{ rec.get_status_display }}
+          </div>
+          {% if rec.checked_in_at %}
+          <div class="recent-time">
+            {{ rec.checked_in_at|date:"H:i" }}
+          </div>
+          {% endif %}
+        </div>
+        {% empty %}
+        <div style="color:var(--gray-400);font-size:13px;padding:12px 0;text-align:center">
+          Chưa có hoạt động nào hôm nay
+        </div>
+        {% endfor %}
+      </div>
+
+    </div><!-- /panel-body -->
+  </div><!-- /stats panel -->
+
+</div><!-- /tool-layout -->
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   CHECK-IN TOOL SCRIPT
+   Không dùng jQuery. Vanilla JS thuần.
+════════════════════════════════════════════════════════════════════════ */
+{% if operator %}
+
+const CSRF = "{{ csrf_token }}";
+const URL_LOOKUP = "{% url 'reception:ajax_lookup' %}";
+const URL_ACTION = "{% url 'reception:ajax_action' %}";
+const URL_STATS  = "{% url 'reception:ajax_stats' %}";
+
+/* ── State ─────────────────────────────────────────────────────────── */
+let currentMaBN    = "";
+let currentRecord  = null;   /* existing record data từ server */
+let lookupTimeout  = null;
+
+/* ── DOM refs ──────────────────────────────────────────────────────── */
+const scanInput    = document.getElementById("scanInput");
+const scanClearBtn = document.getElementById("scanClearBtn");
+const scanSpinner  = document.getElementById("scanSpinner");
+const patientCard  = document.getElementById("patientCard");
+const emptyPrompt  = document.getElementById("emptyPrompt");
+const noteSection  = document.getElementById("noteSection");
+const noteInput    = document.getElementById("noteInput");
+const actionRow    = document.getElementById("actionRow");
+const btnCheckin   = document.getElementById("btnCheckin");
+const btnCheckout  = document.getElementById("btnCheckout");
+const btnDefer     = document.getElementById("btnDefer");
+const feedbackAlert= document.getElementById("feedbackAlert");
+
+/* ── Clock ─────────────────────────────────────────────────────────── */
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, "0");
+  const m = String(now.getMinutes()).padStart(2, "0");
+  const s = String(now.getSeconds()).padStart(2, "0");
+  const el = document.getElementById("topbarClock");
+  if (el) el.textContent = `${h}:${m}:${s}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ── Scan input handlers ────────────────────────────────────────────── */
+scanInput.addEventListener("input", function() {
+  const val = this.value.trim();
+  scanClearBtn.style.display = val ? "flex" : "none";
+  hideFeedback();
+  if (!val) { resetPatientCard(); return; }
+
+  /* Debounce để tránh lookup quá nhiều khi đang gõ */
+  clearTimeout(lookupTimeout);
+  lookupTimeout = setTimeout(() => {
+    if (this.value.trim().length >= 3) doLookup(this.value.trim().toUpperCase());
+  }, 300);
+});
+
+scanInput.addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    clearTimeout(lookupTimeout);
+    const val = this.value.trim().toUpperCase();
+    if (val) doLookup(val);
+  }
+});
+
+scanClearBtn.addEventListener("click", function() {
+  scanInput.value = "";
+  scanClearBtn.style.display = "none";
+  resetPatientCard();
+  hideFeedback();
+  refocusScan();
+});
+
+/* ── Lookup ─────────────────────────────────────────────────────────── */
+async function doLookup(maBN) {
+  currentMaBN = maBN;
+  showSpinner();
+  resetPatientCard();
+
+  try {
+    const res = await fetch(URL_LOOKUP, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+      body: JSON.stringify({ ma_bn: maBN }),
+    });
+    const data = await res.json();
+    hideSpinner();
+
+    if (!data.ok) {
+      showFeedback("error", data.error || "Không tìm thấy.");
+      return;
+    }
+
+    renderPatientCard(data);
+  } catch (e) {
+    hideSpinner();
+    showFeedback("error", "Lỗi kết nối. Vui lòng thử lại.");
+  }
+}
+
+function renderPatientCard(data) {
+  const p = data.patient;
+  const rec = data.existing_record;
+  currentRecord = rec;
+  emptyPrompt.style.display = "none";
+
+  /* Populate card */
+  document.getElementById("pcCode").textContent     = p.ma_bn;
+  document.getElementById("pcName").textContent     = p.ho_ten;
+  document.getElementById("pcGioiTinh").textContent = p.gioi_tinh || "—";
+  document.getElementById("pcNgaySinh").textContent = p.ngay_sinh || "—";
+
+  /* Company row */
+  const companyRow = document.getElementById("pcCompanyRow");
+  if (p.company_name) {
+    document.getElementById("pcCompanyName").textContent = p.company_name;
+    document.getElementById("pcExamRange").textContent   = p.exam_range || "";
+    companyRow.style.display = "flex";
+  } else {
+    companyRow.style.display = "none";
+  }
+
+  /* Card style */
+  patientCard.className = "patient-card visible";
+  if (data.already_checked_in)  patientCard.classList.add("has-checkin");
+  if (data.already_checked_out) patientCard.classList.add("has-checkout");
+  if (data.is_deferred)         patientCard.classList.add("has-deferred");
+
+  /* Status badge */
+  const badgeEl = document.getElementById("pcStatusBadge");
+  if (rec) {
+    let cls = "", icon = "", lbl = "";
+    if (rec.status === "CHECKED_IN") {
+      cls = "badge-checkin"; icon = "fa-circle-check"; lbl = `Đã check-in lúc ${rec.checkin_time}`;
+    } else if (rec.status === "CHECKED_OUT") {
+      cls = "badge-checkout"; icon = "fa-right-from-bracket"; lbl = "Đã check-out";
+    } else {
+      cls = "badge-deferred"; icon = "fa-clock-rotate-left"; lbl = "Đã đánh dấu quay lại sau";
+    }
+    badgeEl.innerHTML = `<span class="status-badge ${cls}"><i class="fa-solid ${icon}"></i>${lbl}</span>`;
+    badgeEl.style.display = "block";
+  } else {
+    badgeEl.style.display = "none";
+  }
+
+  /* Show note & action */
+  noteSection.style.display = "block";
+  actionRow.style.display = "flex";
+
+  /* Buttons logic */
+  btnCheckin.style.display  = "none";
+  btnCheckout.style.display = "none";
+  btnDefer.style.display    = "none";
+
+  if (!rec || data.is_deferred) {
+    /* Chưa check-in hoặc đã hoãn → cho check-in mới */
+    btnCheckin.style.display = "flex";
+  } else if (data.already_checked_in) {
+    /* Đã check-in → cho check-out hoặc hoãn */
+    btnCheckout.style.display = "flex";
+    btnDefer.style.display    = "flex";
+  } else if (data.already_checked_out) {
+    /* Đã check-out rồi → chỉ info, không có nút */
+    showFeedback("info", `${p.ho_ten} đã check-out rồi.`);
+  }
+}
+
+function resetPatientCard() {
+  patientCard.className    = "patient-card";
+  emptyPrompt.style.display = "block";
+  noteSection.style.display = "none";
+  actionRow.style.display   = "none";
+  currentRecord = null;
+  noteInput.value = "";
+}
+
+/* ── Actions ─────────────────────────────────────────────────────────── */
+btnCheckin.addEventListener("click", () => doAction("checkin"));
+btnCheckout.addEventListener("click", () => doAction("checkout"));
+btnDefer.addEventListener("click", () => doAction("defer"));
+
+async function doAction(action) {
+  if (!currentMaBN) return;
+  setButtonsLoading(true);
+
+  const payload = {
+    action,
+    ma_bn:    currentMaBN,
+    note:     noteInput.value.trim(),
+  };
+  if (currentRecord) payload.record_id = currentRecord.id;
+
+  try {
+    const res = await fetch(URL_ACTION, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    setButtonsLoading(false);
+
+    if (!data.ok) {
+      showFeedback("error", data.error || "Lỗi không xác định.");
+      return;
+    }
+
+    showFeedback("success", data.message);
+
+    /* Update stats panel từ response */
+    if (data.stats) updateStatsPanelFromData(data.stats, data.total_today);
+
+    /* Reset form sau 1.8s để thư ký tiếp tục quét */
+    setTimeout(() => {
+      scanInput.value = "";
+      scanClearBtn.style.display = "none";
+      resetPatientCard();
+      hideFeedback();
+      refocusScan();
+    }, 1800);
+
+  } catch (e) {
+    setButtonsLoading(false);
+    showFeedback("error", "Lỗi kết nối. Vui lòng thử lại.");
+  }
+}
+
+/* ── UI helpers ─────────────────────────────────────────────────────── */
+function showSpinner() {
+  scanSpinner.classList.add("show");
+  emptyPrompt.style.display = "none";
+}
+function hideSpinner() { scanSpinner.classList.remove("show"); }
+
+function showFeedback(type, msg) {
+  feedbackAlert.className = "feedback-alert show";
+  if (type === "success") {
+    feedbackAlert.classList.add("feedback-success");
+    document.getElementById("feedbackIcon").className = "fa-solid fa-circle-check";
+  } else if (type === "error") {
+    feedbackAlert.classList.add("feedback-error");
+    document.getElementById("feedbackIcon").className = "fa-solid fa-circle-exclamation";
+  } else {
+    feedbackAlert.classList.add("feedback-info");
+    document.getElementById("feedbackIcon").className = "fa-solid fa-circle-info";
+  }
+  document.getElementById("feedbackMsg").textContent = msg;
+}
+function hideFeedback() {
+  feedbackAlert.className = "feedback-alert";
+}
+
+function setButtonsLoading(loading) {
+  [btnCheckin, btnCheckout, btnDefer].forEach(btn => {
+    btn.disabled = loading;
+  });
+}
+
+function refocusScan() {
+  setTimeout(() => scanInput.focus(), 100);
+}
+
+/* ── Stats panel update (from AJAX response) ────────────────────────── */
+function updateStatsPanelFromData(stats, totalToday) {
+  document.getElementById("chipTotal").textContent = totalToday;
+
+  let ciTotal = 0, coTotal = 0, dfTotal = 0;
+  stats.forEach(s => {
+    ciTotal += s.total_checkin;
+    coTotal += s.total_checkout;
+    dfTotal += s.total_deferred;
+  });
+  document.getElementById("chipCheckin").textContent  = ciTotal;
+  document.getElementById("chipCheckout").textContent = coTotal;
+  document.getElementById("chipDeferred").textContent = dfTotal;
+
+  /* Rebuild company cards */
+  const list = document.getElementById("companyList");
+  if (!stats.length) {
+    list.innerHTML = `<div style="text-align:center;color:var(--gray-400);padding:24px;font-size:13px">
+      <i class="fa-regular fa-building" style="font-size:28px;opacity:.3;margin-bottom:8px;display:block"></i>
+      Chưa có khách hàng check-in hôm nay
+    </div>`;
+    return;
+  }
+  list.innerHTML = stats.map(s => {
+    const tot = s.total_checkin + s.total_checkout + s.total_deferred;
+    const pct = tot > 0 ? Math.round((s.total_checkout + s.total_deferred) / tot * 100) : 0;
+    return `
+      <div class="company-stat-card">
+        <div class="csc-header">
+          <div class="csc-name">${s.company_name}</div>
+          ${s.exam_start ? `<div class="csc-range">${s.exam_start}${s.exam_end ? ' – ' + s.exam_end : ''}</div>` : ''}
+        </div>
+        <div class="csc-body">
+          <div class="csc-stat ci"><div class="csc-stat-val">${s.total_checkin}</div><div class="csc-stat-lbl">Check-in</div></div>
+          <div class="csc-stat co"><div class="csc-stat-val">${s.total_checkout}</div><div class="csc-stat-lbl">Check-out</div></div>
+          <div class="csc-stat df"><div class="csc-stat-val">${s.total_deferred}</div><div class="csc-stat-lbl">Hoãn</div></div>
+          <div class="csc-stat tt" style="margin-left:auto"><div class="csc-stat-val">${tot}</div><div class="csc-stat-lbl">Tổng</div></div>
+        </div>
+        ${tot > 0 ? `<div class="csc-progress-wrap"><div class="csc-progress-bar" style="width:${pct}%"></div></div>` : ''}
+      </div>`;
+  }).join("");
+}
+
+/* ── Auto refresh stats every 30s ──────────────────────────────────── */
+async function autoRefreshStats() {
+  try {
+    const res = await fetch(URL_STATS);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.ok) return;
+    updateStatsPanelFromData(data.stats, data.total_today);
+
+    /* Update recent list */
+    const recentEl = document.getElementById("recentList");
+    if (!data.recent.length) {
+      recentEl.innerHTML = `<div style="color:var(--gray-400);font-size:13px;padding:12px 0;text-align:center">
+        Chưa có hoạt động nào hôm nay</div>`;
+      return;
+    }
+    const statusMap = {
+      CHECKED_IN:  { dot: "dot-ci", badge: "rb-ci", label: "Đã check-in" },
+      CHECKED_OUT: { dot: "dot-co", badge: "rb-co", label: "Đã check-out" },
+      DEFERRED:    { dot: "dot-df", badge: "rb-df", label: "Quay lại sau" },
+    };
+    recentEl.innerHTML = data.recent.map(r => {
+      const sm = statusMap[r.status] || { dot:"dot-ci", badge:"rb-ci", label: r.status_label };
+      return `
+        <div class="recent-item">
+          <div class="recent-status-dot ${sm.dot}"></div>
+          <div style="flex:1;min-width:0">
+            <div class="recent-name">${r.ho_ten}</div>
+            <div class="recent-company">${r.ma_bn}</div>
+          </div>
+          <div class="recent-company" style="max-width:100px">${r.company_name.substring(0,16)}</div>
+          <div class="recent-badge ${sm.badge}">${sm.label}</div>
+          ${r.time ? `<div class="recent-time">${r.time}</div>` : ''}
+        </div>`;
+    }).join("");
+  } catch (e) { /* silent fail */ }
+}
+setInterval(autoRefreshStats, 30000);
+
+/* ── Init: update chips from server-rendered data ──────────────────── */
+(function initChips() {
+  let ci = 0, co = 0, df = 0;
+  {% for cs in company_stats %}
+  ci += {{ cs.total_checkin }};
+  co += {{ cs.total_checkout }};
+  df += {{ cs.total_deferred }};
+  {% endfor %}
+  document.getElementById("chipCheckin").textContent  = ci;
+  document.getElementById("chipCheckout").textContent = co;
+  document.getElementById("chipDeferred").textContent = df;
+})();
+
+/* Auto-focus scan input on load */
+refocusScan();
+
+/* Re-focus khi click bất kỳ đâu trên trang (trừ các input khác) */
+document.addEventListener("click", function(e) {
+  const tag = e.target.tagName;
+  if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "BUTTON") {
+    refocusScan();
+  }
+});
+
+{% endif %}
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+/* ── Media Library UI ──────────────────────────────────────────────────── */
+
+/* Filter bar */
+.ml-filter-bar {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: .65rem 1rem;
+}
+
+/* Drop zone */
+.ml-dropzone {
+  border: 2px dashed #a0aec0;
+  border-radius: 10px;
+  background: #f7faff;
+  transition: border-color .2s, background .2s;
+  margin-bottom: 1.5rem;
+}
+.ml-dropzone--over {
+  border-color: #2b6cb0;
+  background: #ebf4ff;
+}
+.ml-dropzone-inner {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+/* Grid */
+.ml-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1rem;
+}
+
+/* Card */
+.ml-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: box-shadow .18s, transform .18s;
+  display: flex;
+  flex-direction: column;
+}
+.ml-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.11);
+  transform: translateY(-2px);
+}
+
+/* Thumbnail */
+.ml-thumb {
+  width: 100%;
+  height: 130px;
+  overflow: hidden;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.ml-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* File type icon thumbnails */
+.ml-thumb-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: .04em;
+  color: #fff;
+}
+.ml-icon-pdf   { background: linear-gradient(135deg,#e53e3e,#c53030); }
+.ml-icon-docx  { background: linear-gradient(135deg,#3182ce,#2b6cb0); }
+.ml-icon-excel { background: linear-gradient(135deg,#38a169,#276749); }
+.ml-icon-other { background: linear-gradient(135deg,#718096,#4a5568); font-size: 1.5rem; }
+
+/* Card body */
+.ml-card-body {
+  padding: .55rem .65rem .6rem;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  flex: 1;
+}
+.ml-name {
+  font-size: .78rem;
+  font-weight: 600;
+  color: #2d3748;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ml-meta {
+  font-size: .7rem;
+  color: #a0aec0;
+}
+.ml-actions {
+  display: flex;
+  gap: .3rem;
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+/* Extra-small buttons */
+.btn-xs {
+  padding: .15rem .4rem;
+  font-size: .72rem;
+  line-height: 1.4;
+  border-radius: 4px;
+}
+
+/* Progress bar inside dropzone */
+#mlUploadProgress .progress {
+  border-radius: 3px;
+  background: #e2e8f0;
+}
+#mlUploadProgress .progress-bar {
+  background: #3182ce;
+}

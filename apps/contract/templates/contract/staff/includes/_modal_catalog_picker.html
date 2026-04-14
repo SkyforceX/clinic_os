@@ -1,0 +1,290 @@
+
+<!--  _modal_catalog_picker.html-->
+<!--  ===========================-->
+<!--  Modal chọn danh mục theo tab nhóm.-->
+<!--  - Check = addItemToTable, uncheck = removeItemFromTable-->
+<!--  - Yêu cầu: CATALOG_JSON + _proposal_table_js.html đã được load-->
+
+
+<!-- Modal: Chọn danh mục -->
+<div class="modal" id="modalCatalogPicker" tabindex="-1" aria-labelledby="catalogPickerLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <div class="modal-header py-2" style="background:#1a5276;color:#fff">
+        <h6 class="modal-title mb-0" id="catalogPickerLabel">
+          <i class="fa fa-list-check me-1"></i> Chọn danh mục dịch vụ
+        </h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+      </div>
+
+      <div class="modal-body p-0">
+        <div style="background:#f8f9fa;border-bottom:1px solid #dee2e6;padding:.4rem .75rem 0">
+          <ul class="nav nav-tabs border-0 flex-nowrap overflow-auto" id="cpTabNav" role="tablist"
+              style="gap:2px;scrollbar-width:thin"></ul>
+        </div>
+        <div class="tab-content p-0" id="cpTabContent" style="min-height:340px"></div>
+      </div>
+
+      <div class="modal-footer py-2 justify-content-between align-items-center">
+        <span class="text-muted" style="font-size:.82rem">
+          Đang có trong báo giá: <strong id="cpTotalBadge" class="text-primary">0</strong> dịch vụ
+        </span>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+          <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">
+            <i class="fa fa-check me-1"></i> Xong
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Catalog Picker Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+let cpBuilt = false;
+
+function buildCatalogPickerOnce() {
+  if (cpBuilt) return;
+  cpBuilt = true;
+
+  if (typeof CATALOG_JSON === 'undefined' || !CATALOG_JSON.length) return;
+
+  // Gom nhóm giữ đúng thứ tự
+  const groupMap   = {};
+  const groupOrder = [];
+  for (const item of CATALOG_JSON) {
+    const g = item.group || 'Khác';
+    if (!groupMap[g]) { groupMap[g] = []; groupOrder.push(g); }
+    groupMap[g].push(item);
+  }
+
+  const tabNav     = document.getElementById('cpTabNav');
+  const tabContent = document.getElementById('cpTabContent');
+
+  groupOrder.forEach((groupName, idx) => {
+    const items    = groupMap[groupName];
+    const tabId    = 'cpPane_' + idx;
+
+    // Nav tab button
+    const li = document.createElement('li');
+    li.className = 'nav-item';
+    li.innerHTML =
+      '<button class="nav-link px-3 py-2 ' + (idx === 0 ? 'active' : '') + '" ' +
+        'data-bs-toggle="tab" data-bs-target="#' + tabId + '" type="button" role="tab" ' +
+        'style="font-size:.8rem;white-space:nowrap">' +
+        groupName +
+        ' <span class="badge rounded-pill ms-1 cp-tab-badge" data-tab="' + tabId + '" ' +
+               'style="background:#1a5276;font-size:.7rem">0</span>' +
+      '</button>';
+    tabNav.appendChild(li);
+
+    // Tab pane
+    const pane = document.createElement('div');
+    pane.className = 'tab-pane fade ' + (idx === 0 ? 'show active' : '');
+    pane.id        = tabId;
+
+    // Subgroup structure
+    const subgroupMap   = {};
+    const subgroupOrder = [];
+    const noSubgroup    = [];
+    for (const item of items) {
+      const sg = item.subgroup || '';
+      if (sg) {
+        if (!subgroupMap[sg]) { subgroupMap[sg] = []; subgroupOrder.push(sg); }
+        subgroupMap[sg].push(item);
+      } else {
+        noSubgroup.push(item);
+      }
+    }
+
+    let html =
+      '<div class="d-flex align-items-center gap-2 p-2 border-bottom bg-light sticky-top" style="top:0;z-index:10">' +
+        '<input type="text" class="form-control form-control-sm" style="max-width:260px" ' +
+               'placeholder="Tìm trong nhóm..." oninput="filterCpPane(\'' + tabId + '\', this.value)">' +
+        '<button type="button" class="btn btn-sm btn-outline-primary" ' +
+                'onclick="selectAllCpPane(\'' + tabId + '\', true)">Chọn tất cả</button>' +
+        '<button type="button" class="btn btn-sm btn-outline-secondary" ' +
+                'onclick="selectAllCpPane(\'' + tabId + '\', false)">Bỏ chọn</button>' +
+        '<span class="text-muted ms-auto" style="font-size:.75rem">' + items.length + ' mục</span>' +
+      '</div>' +
+      '<div class="cp-item-list" id="cpList_' + tabId + '">';
+
+    for (const item of noSubgroup) html += renderCpItem(item);
+    for (const sg of [...new Set(subgroupOrder)]) {
+      html += '<div class="cp-subgroup-hdr px-3 py-1" style="background:#e8f4f8;font-size:.75rem;font-weight:600;color:#2e86c1;border-top:1px solid #dee2e6">' + sg + '</div>';
+      for (const item of subgroupMap[sg]) html += renderCpItem(item);
+    }
+
+    html += '</div>';
+    pane.innerHTML = html;
+    tabContent.appendChild(pane);
+  });
+}
+
+function renderCpItem(item) {
+  let priceHtml;
+  if (item.price_type === 'free') {
+    priceHtml = '<span style="color:#27ae60;font-size:.75rem">Miễn phí</span>';
+  } else if (item.price_type === 'gift') {
+    priceHtml = '<span style="color:#e65100;font-size:.75rem">TẶNG</span>';
+  } else {
+    const p = item.price_male || item.price_female_single || item.price_female_family || 0;
+    priceHtml = p > 0
+      ? '<span style="color:#1a5276;font-size:.78rem;white-space:nowrap">' + p.toLocaleString('vi-VN') + ' ₫</span>'
+      : '<span style="color:#aaa;font-size:.75rem">—</span>';
+  }
+  return (
+    '<div class="cp-item d-flex align-items-center px-3 py-2 border-bottom" ' +
+         'data-id="' + item.id + '" data-name="' + (item.name || '').toLowerCase().replace(/"/g,'&quot;') + '" ' +
+         'style="gap:.6rem;cursor:pointer" onclick="toggleCpItem(this)">' +
+      '<input type="checkbox" class="form-check-input flex-shrink-0 cp-row-check" ' +
+             'data-id="' + item.id + '" onclick="event.stopPropagation();onCpCheckChange(this)">' +
+      '<div class="flex-grow-1 min-w-0">' +
+        '<div style="font-size:.84rem;font-weight:500;line-height:1.3">' + (item.name || '') + '</div>' +
+        (item.description
+          ? '<div class="text-muted text-truncate" style="font-size:.74rem;max-width:420px">' + item.description + '</div>'
+          : '') +
+      '</div>' +
+      '<div class="flex-shrink-0">' + priceHtml + '</div>' +
+    '</div>'
+  );
+}
+
+function toggleCpItem(div) {
+  const cb = div.querySelector('.cp-row-check');
+  if (!cb) return;
+  cb.checked = !cb.checked;
+  onCpCheckChange(cb);
+}
+
+function onCpCheckChange(cpCb) {
+  const id   = parseInt(cpCb.dataset.id);
+  const item = CATALOG_MAP[id];
+  if (!item) return;
+
+  // Multi-package mode
+  if (typeof currentPkgId !== 'undefined' && currentPkgId) {
+    if (cpCb.checked) {
+      if (typeof addItemToPkg === 'function') addItemToPkg(currentPkgId, id);
+    } else {
+      if (typeof removeItemFromPkg === 'function') removeItemFromPkg(currentPkgId, id);
+    }
+  }
+  // Legacy single-table mode
+  else {
+    if (cpCb.checked) {
+      if (typeof addItemToTable === 'function') addItemToTable(item);
+    } else {
+      if (typeof removeItemFromTable === 'function') removeItemFromTable(id);
+    }
+  }
+
+  updateCpBadges();
+}
+
+function syncTableToCp() {
+  document.querySelectorAll('.cp-row-check').forEach(function(cpCb) {
+    const cid = parseInt(cpCb.dataset.id);
+
+    // Multi-package mode
+    if (typeof currentPkgId !== 'undefined' && currentPkgId && typeof isItemInPkg === 'function') {
+      cpCb.checked = isItemInPkg(currentPkgId, cid);
+    }
+    // Legacy single-table mode
+    else if (typeof getTableItemIds === 'function') {
+      const inTable = getTableItemIds();
+      cpCb.checked = inTable.has(String(cpCb.dataset.id));
+    } else {
+      cpCb.checked = false;
+    }
+  });
+
+  updateCpBadges();
+}
+
+function updateCpBadges() {
+  let totalSelected = 0;
+
+  document.querySelectorAll('[id^="cpPane_"]').forEach(pane => {
+    const count = pane.querySelectorAll('.cp-row-check:checked').length;
+    totalSelected += count;
+
+    const badge = document.querySelector('.cp-tab-badge[data-tab="' + pane.id + '"]');
+    if (badge) {
+      badge.textContent = count;
+      badge.style.background = count > 0 ? '#1a5276' : '#adb5bd';
+    }
+  });
+
+  const totalEl = document.getElementById('cpTotalBadge');
+  if (totalEl) totalEl.textContent = totalSelected;
+}
+
+function filterCpPane(paneId, query) {
+  const q    = (query || '').toLowerCase().trim();
+  const pane = document.getElementById(paneId);
+  if (!pane) return;
+  pane.querySelectorAll('.cp-item').forEach(div => {
+    div.style.display = (!q || (div.dataset.name || '').includes(q)) ? '' : 'none';
+  });
+}
+
+function selectAllCpPane(paneId, checked) {
+  const pane = document.getElementById(paneId);
+  if (!pane) return;
+
+  pane.querySelectorAll('.cp-item').forEach(function(div) {
+    if (div.style.display === 'none') return; // bỏ qua items bị filter
+
+    const cb = div.querySelector('.cp-row-check');
+    const id = cb ? parseInt(cb.dataset.id) : null;
+    const item = id ? CATALOG_MAP[id] : null;
+    if (!cb || !item) return;
+
+    cb.checked = checked;
+
+    // Multi-package mode
+    if (typeof currentPkgId !== 'undefined' && currentPkgId) {
+      if (checked) {
+        if (typeof addItemToPkg === 'function') addItemToPkg(currentPkgId, id);
+      } else {
+        if (typeof removeItemFromPkg === 'function') removeItemFromPkg(currentPkgId, id);
+      }
+    }
+    // Legacy single-table mode
+    else {
+      if (checked) {
+        if (typeof addItemToTable === 'function') addItemToTable(item, {}, true);
+      } else {
+        if (typeof removeItemFromTable === 'function') removeItemFromTable(id);
+      }
+    }
+  });
+
+  if (typeof currentPkgId !== 'undefined' && currentPkgId) {
+    if (typeof renderPackageTable === 'function') renderPackageTable(currentPkgId);
+  } else {
+    if (typeof recalcAll === 'function') recalcAll();
+  }
+
+  updateCpBadges();
+}
+
+// Khởi tạo event listeners sau khi DOM ready (tránh lỗi ordering với functions từ _proposal_table_js.html)
+window.addEventListener('DOMContentLoaded', function() {
+  const modalEl = document.getElementById('modalCatalogPicker');
+  if (modalEl) {
+    modalEl.addEventListener('show.bs.modal', function() {
+      buildCatalogPickerOnce();
+      // Đồng bộ trạng thái bảng → modal (setTimeout để DOM render xong)
+      setTimeout(syncTableToCp, 40);
+    });
+  }
+});
+</script>

@@ -1,0 +1,515 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% load hrm_tags %}
+
+{% block title %}Lịch làm việc {{ month_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Grid layout ──────────────────────────────────────────────────── */
+.sched-wrap {
+  overflow-x: auto;
+  overflow-y: visible;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.sched-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: max-content;
+  font-size: 13px;
+  width: 100%;
+}
+.sched-table th,
+.sched-table td {
+  padding: 0;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+/* Sticky columns */
+.col-stt { width: 36px; min-width: 36px; text-align: center; }
+.col-emp { width: 200px; min-width: 160px; }
+.col-pos { width: 170px; min-width: 120px; }
+.sched-table .sticky-col {
+  position: sticky;
+  left: 0;
+  background: white;
+  z-index: 2;
+}
+.sched-table .sticky-col-2 { left: 36px; }
+.sched-table .sticky-col-3 { left: 236px; }
+/* Header */
+.sched-table thead th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #475569;
+  text-align: center;
+  font-size: 11.5px;
+  padding: 6px 4px;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.sched-table thead th.sticky-col {
+  z-index: 5;
+}
+.col-day { width: 38px; min-width: 38px; text-align: center; }
+.col-day.is-sunday  { background: #fef2f2 !important; }
+.col-day.is-saturday{ background: #fefce8 !important; }
+.col-day.is-today   { background: #eff6ff !important; }
+.col-day.is-today .day-num { color: #2563eb; font-weight: 800; }
+/* Dept header row */
+.dept-row td {
+  background: #1e293b;
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 12px;
+  letter-spacing: .03em;
+}
+/* Employee name cell */
+.emp-cell {
+  padding: 4px 10px;
+  font-size: 12.5px;
+  color: #1e293b;
+  font-weight: 500;
+}
+.emp-cell .emp-pos {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 400;
+}
+/* Shift cell */
+.shift-cell {
+  text-align: center;
+  vertical-align: middle;
+  height: 36px;
+  cursor: default;
+  position: relative;
+  transition: background .1s;
+}
+.shift-cell.editable { cursor: pointer; }
+.shift-cell:hover.editable { background: #f1f5f9; }
+/* Shift badges */
+.shift-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0;
+  transition: transform .1s, box-shadow .1s;
+}
+.editable .shift-badge:hover {
+  transform: scale(1.12);
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+}
+.shift-f { background: #dbeafe; color: #1d4ed8; }
+.shift-s { background: #dcfce7; color: #15803d; }
+.shift-c { background: #ffedd5; color: #c2410c; }
+.shift-l { background: #fef9c3; color: #854d0e; }
+.shift-o { background: #f1f5f9; color: #94a3b8; }
+.shift-empty { color: #cbd5e1; font-size: 11px; }
+
+/* My row highlight */
+tr.my-row .emp-cell { background: #f0fdf4; }
+tr.my-row .emp-cell .emp-name { color: #15803d; }
+
+/* ── Popover picker ─────────────────────────────────────────────── */
+.shift-picker {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  padding: 10px;
+  min-width: 200px;
+}
+.shift-picker.show { display: block; }
+.shift-picker-title {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.shift-opts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.shift-opt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: white;
+  transition: all .12s;
+  width: 100%;
+}
+.shift-opt-btn:hover { border-color: #94a3b8; background: #f8fafc; }
+.shift-opt-btn.active { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+.shift-opt-btn .badge-sm {
+  width: 22px; height: 22px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.picker-clear-btn {
+  width: 100%;
+  border: 1.5px dashed #e2e8f0;
+  border-radius: 7px;
+  padding: 5px;
+  font-size: 12px;
+  color: #ef4444;
+  background: white;
+  cursor: pointer;
+  text-align: center;
+}
+.picker-clear-btn:hover { background: #fef2f2; }
+
+/* ── Stats bar ─────────────────────────────────────────────────── */
+.stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+  <div>
+    <h4 class="mb-0 fw-bold">Lịch làm việc phòng khám</h4>
+    <p class="text-muted small mb-0">Đăng ký và quản lý lịch làm việc theo tháng cho toàn bộ nhân viên</p>
+  </div>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    {% if is_admin %}
+    <a href="{% url 'hrm:work_schedule_log' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-clock-history me-1"></i>Lịch sử thay đổi
+    </a>
+    {% endif %}
+    <div class="d-flex align-items-center gap-1">
+      <a href="?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-sm btn-outline-primary px-2">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-primary dropdown-toggle fw-semibold px-3" data-bs-toggle="dropdown">
+          {{ month_name }}
+        </button>
+        <div class="dropdown-menu p-3" style="min-width:240px">
+          <div class="row g-1">
+            {% for m in "123456789101112"|make_list %}{% endfor %}
+            {% for m_val in "1,2,3,4,5,6,7,8,9,10,11,12"|split:"," %}
+            <div class="col-4">
+              <a href="?year={{ year }}&month={{ m_val }}"
+                 class="btn btn-sm w-100 {% if m_val == month|stringformat:'s' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                Tháng {{ m_val }}
+              </a>
+            </div>
+            {% endfor %}
+          </div>
+          <hr class="my-2">
+          <div class="d-flex gap-1 justify-content-center">
+            {% for y in "2024,2025,2026,2027"|split:"," %}
+            <a href="?year={{ y }}&month={{ month }}"
+               class="btn btn-sm {% if y == year|stringformat:'s' %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ y }}</a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <a href="?year={{ next_year }}&month={{ next_month }}" class="btn btn-sm btn-outline-primary px-2">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Legend + stats ───────────────────────────────────────────────────── -->
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+  <span class="stat-pill" style="background:#dbeafe;border-color:#bfdbfe;color:#1d4ed8">
+    <strong>F</strong> Cả ngày
+    <span class="badge bg-primary bg-opacity-20 text-primary ms-1">{{ shift_stats.F|default:0 }}</span>
+  </span>
+  <span class="stat-pill" style="background:#dcfce7;border-color:#bbf7d0;color:#15803d">
+    <strong>S</strong> Ca sáng
+    <span class="badge bg-success bg-opacity-20 text-success ms-1">{{ shift_stats.S|default:0 }}</span>
+  </span>
+  <span class="stat-pill" style="background:#ffedd5;border-color:#fed7aa;color:#c2410c">
+    <strong>C</strong> Ca chiều
+    <span class="badge bg-warning bg-opacity-20 text-warning ms-1">{{ shift_stats.C|default:0 }}</span>
+  </span>
+  <span class="stat-pill" style="background:#fef9c3;border-color:#fde68a;color:#854d0e">
+    <strong>L</strong> Nghỉ lễ
+    <span class="badge bg-warning bg-opacity-20 ms-1" style="color:#854d0e">{{ shift_stats.L|default:0 }}</span>
+  </span>
+  <span class="stat-pill" style="background:#f1f5f9;border-color:#e2e8f0;color:#94a3b8">
+    <strong>O</strong> Không làm
+    <span class="badge bg-secondary bg-opacity-10 text-secondary ms-1">{{ shift_stats.O|default:0 }}</span>
+  </span>
+  {% if is_admin %}
+  <span class="ms-auto text-muted small fst-italic">
+    <i class="bi bi-pencil-square me-1"></i>Click ô để chỉnh sửa ca làm việc
+  </span>
+  {% elif my_emp_id %}
+  <span class="ms-auto text-muted small fst-italic">
+    <i class="bi bi-info-circle me-1"></i>Click ô hàng của bạn để đăng ký ca
+  </span>
+  {% endif %}
+</div>
+
+<!-- ── Schedule grid ────────────────────────────────────────────────────── -->
+<div class="sched-wrap">
+<table class="sched-table" id="schedTable">
+<thead>
+  <tr>
+    <th class="col-stt sticky-col" style="left:0">#</th>
+    <th class="col-emp sticky-col sticky-col-2" style="left:36px">Họ và tên</th>
+    <th class="col-pos sticky-col sticky-col-3" style="left:236px">Chức danh</th>
+    {% for dl in day_labels %}
+    <th class="col-day {% if dl.is_sunday %}is-sunday{% elif dl.is_saturday %}is-saturday{% endif %} {% if dl.is_today %}is-today{% endif %}">
+      <div class="day-wd" style="font-size:10px;color:#94a3b8">{{ dl.weekday }}</div>
+      <div class="day-num" style="font-size:13px">{{ dl.day }}</div>
+    </th>
+    {% endfor %}
+  </tr>
+</thead>
+<tbody>
+{% for dept in departments %}
+  <!-- Dept header -->
+  <tr class="dept-row">
+    <td colspan="{{ dates|length|add:3 }}" class="sticky-col" style="left:0">
+      <i class="bi bi-building me-2 opacity-60"></i>{{ dept.dept_name }}
+      <span class="opacity-50 ms-2 small fw-normal">({{ dept.employees|length }} người)</span>
+    </td>
+  </tr>
+  <!-- Employee rows -->
+  {% for emp in dept.employees %}
+  {% with is_me=emp.pk|stringformat:'s'|add:''|make_list %}
+  <tr class="emp-row {% if emp.pk == my_emp_id %}my-row{% endif %}"
+      data-emp-id="{{ emp.pk }}" data-emp-name="{{ emp.full_name|escapejs }}">
+    <td class="col-stt sticky-col text-muted" style="left:0;padding:6px 2px">
+      <span style="font-size:11px">{{ forloop.counter }}</span>
+    </td>
+    <td class="col-emp sticky-col sticky-col-2 emp-cell" style="left:36px">
+      <div class="emp-name fw-semibold text-truncate" style="max-width:155px" title="{{ emp.full_name }}">
+        {{ emp.full_name }}
+        {% if emp.pk == my_emp_id %}
+        <span class="badge bg-success bg-opacity-20 text-success" style="font-size:9px;vertical-align:middle">Tôi</span>
+        {% endif %}
+      </div>
+      {% if emp.employee_code %}
+      <div class="emp-pos text-truncate" style="max-width:155px">{{ emp.employee_code }}</div>
+      {% endif %}
+    </td>
+    <td class="col-pos sticky-col sticky-col-3 emp-cell" style="left:236px">
+      <div class="text-truncate" style="max-width:160px;font-size:12px" title="{{ emp.position.name|default:'' }}">
+        {{ emp.position.name|default:"—" }}
+      </div>
+    </td>
+    {% for d in dates %}
+    {% with emp_lookup=lookup|dict_get:emp.pk %}
+    {% with shift=emp_lookup|dict_get:d %}
+    <td class="shift-cell {% if is_admin or emp.pk == my_emp_id %}editable{% endif %}
+               {% if d.weekday == 6 %}is-sunday{% elif d.weekday == 5 %}is-saturday{% endif %}
+               {% if d == today %}is-today{% endif %}"
+        data-emp="{{ emp.pk }}"
+        data-date="{{ d|date:'Y-m-d' }}"
+        data-shift="{{ shift|default:'' }}"
+        data-is-past="{% if d < today %}1{% else %}0{% endif %}"
+        onclick="handleCellClick(this)">
+      {% if shift %}
+      <span class="shift-badge shift-{{ shift|lower }}">{{ shift }}</span>
+      {% else %}
+      <span class="shift-empty" style="font-size:16px; line-height:36px">·</span>
+      {% endif %}
+    </td>
+    {% endwith %}
+    {% endwith %}
+    {% endfor %}
+  </tr>
+  {% endwith %}
+  {% endfor %}
+{% endfor %}
+</tbody>
+</table>
+</div>
+
+<!-- ── Shift picker popover ─────────────────────────────────────────────── -->
+<div id="shiftPicker" class="shift-picker">
+  <div class="shift-picker-title" id="pickerTitle">Chọn ca làm việc</div>
+  <div class="shift-opts" id="pickerOpts">
+    {% for val, label in shift_choices %}
+    {% if val %}
+    <button class="shift-opt-btn" data-shift="{{ val }}" onclick="selectShift('{{ val }}')">
+      <span class="badge-sm shift-{{ val|lower }}">{{ val }}</span>
+      {{ label }}
+    </button>
+    {% endif %}
+    {% endfor %}
+  </div>
+  <button class="picker-clear-btn" onclick="selectShift('')">
+    <i class="bi bi-x-circle me-1"></i>Xóa / Chưa đăng ký
+  </button>
+</div>
+
+<!-- Toast ─────────────────────────────────────────────────────────────────── -->
+<div id="schedToast" class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="schedToastEl" class="toast align-items-center border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body fw-semibold" id="schedToastMsg"></div>
+      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const IS_ADMIN = {% if is_admin %}true{% else %}false{% endif %};
+const MY_EMP_ID = {{ my_emp_id|default:"null" }};
+const TODAY_STR = "{{ today|date:'Y-m-d' }}";
+const CSRF = "{{ csrf_token }}";
+
+const SHIFT_CSS = {
+  'F': 'shift-f', 'S': 'shift-s', 'C': 'shift-c',
+  'L': 'shift-l', 'O': 'shift-o', '': 'shift-empty',
+};
+
+let activeCell = null;
+const picker = document.getElementById('shiftPicker');
+let toastEl = null;
+
+// ── Toast ──────────────────────────────────────────────────────────────
+function showToast(msg, type='success') {
+  const el = document.getElementById('schedToastEl');
+  el.className = `toast align-items-center border-0 text-bg-${type}`;
+  document.getElementById('schedToastMsg').textContent = msg;
+  if (!toastEl) toastEl = new bootstrap.Toast(el, {delay: 2500});
+  toastEl.show();
+}
+
+// ── Cell click ─────────────────────────────────────────────────────────
+function handleCellClick(cell) {
+  const empId  = parseInt(cell.dataset.emp);
+  const dateStr = cell.dataset.date;
+  const isPast  = cell.dataset.isPast === '1';
+  const isEditable = cell.classList.contains('editable');
+
+  if (!isEditable) return;
+
+  // Nhân viên tự sửa: không cho ngày đã qua
+  if (!IS_ADMIN && isPast) {
+    showToast('Không thể sửa lịch ngày đã qua', 'danger');
+    return;
+  }
+
+  // Close if same cell
+  if (activeCell === cell && picker.classList.contains('show')) {
+    closePicker();
+    return;
+  }
+
+  activeCell = cell;
+  const currentShift = cell.dataset.shift || '';
+
+  // Set title
+  const empName = cell.closest('tr').dataset.empName || 'Nhân viên';
+  const d = new Date(dateStr + 'T00:00:00');
+  const dFmt = d.toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit', year:'numeric'});
+  document.getElementById('pickerTitle').textContent = `${empName} — ${dFmt}`;
+
+  // Highlight current
+  document.querySelectorAll('.shift-opt-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.shift === currentShift);
+  });
+
+  // Position picker
+  const rect = cell.getBoundingClientRect();
+  const pw = 210;
+  let left = rect.left + window.scrollX;
+  let top  = rect.bottom + window.scrollY + 4;
+  if (left + pw > window.innerWidth - 16) left = window.innerWidth - pw - 16;
+  picker.style.left = left + 'px';
+  picker.style.top  = top  + 'px';
+  picker.classList.add('show');
+}
+
+function closePicker() {
+  picker.classList.remove('show');
+  activeCell = null;
+}
+
+// Close on outside click
+document.addEventListener('click', e => {
+  if (!picker.contains(e.target) && e.target !== activeCell && !e.target.closest('.shift-cell')) {
+    closePicker();
+  }
+}, true);
+
+// ── Select shift ───────────────────────────────────────────────────────
+async function selectShift(shift) {
+  if (!activeCell) return;
+  const cell = activeCell;
+  const empId = parseInt(cell.dataset.emp);
+  const dateStr = cell.dataset.date;
+
+  closePicker();
+
+  try {
+    const res = await fetch('{% url "hrm:work_schedule_set_shift" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': CSRF,
+      },
+      body: JSON.stringify({ employee_id: empId, date: dateStr, shift }),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      // Update cell
+      cell.dataset.shift = shift;
+      if (shift) {
+        cell.innerHTML = `<span class="shift-badge ${data.css}">${data.label}</span>`;
+      } else {
+        cell.innerHTML = `<span class="shift-empty" style="font-size:16px;line-height:36px">·</span>`;
+      }
+      showToast(shift ? `Đã đăng ký ca ${data.title}` : 'Đã xóa ca làm việc', 'success');
+    } else {
+      showToast(data.error || 'Lỗi không xác định', 'danger');
+    }
+  } catch (e) {
+    showToast('Lỗi kết nối máy chủ', 'danger');
+  }
+}
+
+// ── Keyboard: Escape closes picker ────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePicker();
+});
+</script>
+{% endblock %}
+

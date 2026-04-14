@@ -1,0 +1,556 @@
+{% extends "base_admin.html" %}
+
+
+{% load static %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'booking/css/styles.css' %}">
+  <meta name="description" content="Lịch khám sức khẻo công ty">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-12">
+
+      <div class="text-center mb-4">
+        <h4 class="fw-bold">🗓️ lịch khám sức khỏe công ty</h4>
+      </div>
+    </div>
+  </div>
+
+<div class="row justify-content-center mb-3">
+  <div class="col-auto">
+    <div class="d-flex flex-wrap align-items-end gap-2">
+      {% if show_staff_filter %}
+      <div>
+        <label for="staff-filter" class="form-label mb-1">Sales Team:</label>
+        <select id="staff-filter" class="form-control form-select form-select-sm">
+          <option value="">-- Tất cả --</option>
+          {% for user in sale_team_users %}
+            <option value="{{ user.id }}" {% if current_staff_id == user.id|stringformat:"s" %}selected{% endif %}>
+              {{ user.get_full_name|default:user.username }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div>
+        <label for="start-date" class="form-label mb-1">Từ ngày:</label>
+        <input type="date" id="start-date" class="form-control" style="width: 140px;">
+      </div>
+
+      <div>
+        <label for="end-date" class="form-label mb-1">Đến ngày:</label>
+        <input type="date" id="end-date" class="form-control" style="width: 140px;">
+      </div>
+
+      <div class="d-flex flex-column">
+        <label class="form-label invisible">Lọc</label>
+        <button class="btn btn-primary btn-sm" onclick="filterByDate()">Lọc</button>
+      </div>
+
+      <div class="d-flex flex-column">
+        <label class="form-label invisible">Đặt lại</label>
+        <button class="btn btn-secondary btn-sm" onclick="resetFilter()">Đặt lại</button>
+      </div>
+
+      <!-- <button id="btnFilterBloodDays" class="btn btn-outline-danger btn-sm mb-2">
+        <i class="fa fa-filter"></i> Chỉ hiện ngày có lấy máu
+      </button> -->
+
+      <!-- <div class="d-flex flex-column" >
+        <button class="btn btn-outline-primary btn-sm" style="display: none;" onclick="toggleFullscreen()" id="toggle-fullscreen-btn">
+          🔍 Mở rộng
+        </button>
+      </div> -->
+    </div>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-12">
+    <div id="js-schedule-table-wrapper" class="schedule-table-wrapper" style="overflow: auto; max-height: 600px;">
+      <table border="1" class="schedule-table">
+        <thead>
+          <tr>
+            <th rowspan="4">Công ty</th>
+            {% for day in days %}
+              <td 
+              data-date="{{ day|date:'Y-m-d' }}"
+              {% if forloop.counter0 in sunday_indexes %}class="col-sunday"{% endif %}
+              >
+                {{ day|date:"l" }}<br>{{ day|date:"d/m" }}
+              </td>
+            {% endfor %}
+          </tr>
+            <!-- DÒNG TỔNG CA LẤY MÁU -->
+            <tr>
+              {% for info in blood_totals_per_day %}
+                {% if forloop.counter0 in sunday_indexes %}
+                 <td class="col-sunday"></td>
+                {% else %}
+                  <td style="background:#ffe0e0; color:#c62828;"
+                  title="Số địa điểm: {{ info.locations|default:'0' }} | Số người lấy máu: {{ info.people|default:'0' }} | Số nhân viên: {{ info.staff|default:'0' }}">
+                  {% if info.location != 0 and info.people != 0 and info.staff != 0 %}
+                    {{ info.locations|default:'0' }} | {{ info.people|default:'0' }} | {{ info.staff|default:'0' }}
+                  {% endif %}
+                  </td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+            <tr>
+              {% for am in daily_am_totals %}
+                {% if forloop.counter0 in sunday_indexes %}
+                  <td class="col-sunday"></td>
+                {% else %}
+                  <td style="font-size: 11px; color: #1e88e5;">{{ am }}</td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+            <tr>
+              {% for pm in daily_pm_totals %}
+                {% if forloop.counter0 in sunday_indexes %}
+                  <td class="col-sunday"></td>
+                {% else %}
+                  <td style="font-size: 11px; color: #fb8c00;">{{ pm }}</td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in schedule_rows %}
+          <!-- DÒNG 1: LẤY MÁU -->
+          <tr class="blood-row" data-staff-id="{{ row.salesperson_id }}">
+            <th rowspan="3">
+              {{ row.company_name }}<br>
+
+              {% if row.contract_number %}
+                <small class="text-muted d-block">HĐ: {{ row.contract_number }}</small>
+              {% else %}
+                <small class="text-muted d-block">Theo báo giá</small>
+              {% endif %}
+
+              {% if row.salesperson_name %}
+                <small class="text-muted d-block">Sales: {{ row.salesperson_name }}</small>
+              {% endif %}
+
+              {% if row.schedule_creator_name %}
+                <small class="text-muted d-block">Tạo lịch: {{ row.schedule_creator_name }}</small>
+              {% endif %}
+
+              <div class="mt-2 d-flex flex-column gap-1">
+                {% if row.can_delete_schedule %}
+                  <form method="post"
+                        action="{% url 'contract:delete_contract' row.schedule_config_id %}"
+                        onsubmit="return confirm('Bạn chắc chắn muốn xóa lịch đăng ký khám này?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                      Xóa lịch
+                    </button>
+                  </form>
+                {% endif %}
+
+                {% if row.contract_id %}
+                  {% if row.impl_plan_id %}
+                    <!-- Kế hoạch đã tồn tại — link trực tiếp -->
+                    <a href="{% url 'contract:implementation_plan_detail' contract_id=row.contract_id %}"
+                       class="btn btn-sm {% if row.impl_plan_is_published %}btn-success{% else %}btn-outline-warning{% endif %}"
+                       title="{% if row.impl_plan_is_published %}Xem kế hoạch triển khai (đã công khai){% else %}Xem kế hoạch triển khai (bản nháp){% endif %}">
+                      <i class="fa {% if row.impl_plan_is_published %}fa-clipboard-check{% else %}fa-clipboard{% endif %} me-1"></i>
+                      {% if row.impl_plan_is_published %}Kế hoạch{% else %}Nháp KH{% endif %}
+                    </a>
+                  {% elif row.can_create_impl_plan %}
+                    <!-- Chưa có kế hoạch, Sale tạo mới -->
+                    <a href="{% url 'contract:implementation_plan_detail' contract_id=row.contract_id %}"
+                       class="btn btn-sm btn-outline-primary"
+                       title="Tạo kế hoạch triển khai">
+                      <i class="fa fa-plus me-1"></i>Tạo KH triển khai
+                    </a>
+                  {% endif %}
+                {% endif %}
+              </div>
+
+              <!-- {% if row.unregistered_patients %}
+                <span class="unreg-toggle" onclick="toggleUnreg(this)">
+                  📋 BN chưa đăng ký ({{ row.unregistered_patients|length }})
+                </span>
+                <div class="unreg-list" style="display:none;">
+                  <strong>Danh sách chưa đăng ký:</strong><br>
+                  {% for p in row.unregistered_patients %}
+                    {{ p.patient_code }} – {{ p.name }} – {{ p.dob }}<br>
+                  {% endfor %}
+                </div>
+              {% endif %} -->
+            </th>
+            {% for cell in row.schedule %}
+              {% if forloop.counter0 in sunday_indexes %}
+                <td class="col-sunday"></td>
+              {% else %}
+                <td
+                  {% if cell.is_blood %}
+                    style="background:#ffe0e0; border:2px solid #f44336; font-weight:bold;"
+                    title="Đợt lấy máu"
+                    data-date="{{ cell.collection_date }}"
+                    data-location="{{ cell.location }}"
+                    data-people="{{ cell.blood_people_count }}"
+                    data-staff="{{ cell.blood_staff_count }}"
+                  {% endif %}
+                  {% if cell.is_sunday %} class="shift-block shift-blood col-sunday" {% else %} class="shift-block shift-blood" {% endif %}
+                >
+                  {% if cell.is_blood %}
+                    <span style="color:#e53935; font-size:12px;">&#x1FA78;</span>
+                    <span>
+                      {{ cell.blood_people_count|default:"" }} | {{ cell.blood_staff_count|default:"" }}
+                    </span>
+                  {% endif %}
+                </td>
+              {% endif %}
+            {% endfor %}
+          </tr>
+
+          <!-- Sáng -->
+          <tr class="am-row" data-staff-id="{{ row.salesperson_id }}">
+            {% for cell in row.schedule %}
+              {% if forloop.counter0 in sunday_indexes %}
+                <td class="col-sunday"></td>
+              {% else %}
+                <td
+                  {% if cell.is_full_am %}
+                    class="shift-block shift-am is_full_flag"
+                  {% else %}
+                    class="shift-block shift-am"
+                  {% endif %}
+                >
+                  {{ cell.am|default:"" }}
+                  {% if cell.am_patients %}
+                    <div class="tooltip-content text-left">
+                      <strong>Đã đăng ký {{ cell.am|default:"" }}</strong><br>
+                      {% for p in cell.am_patients %}
+                        {{ p.patient_code }} – {{ p.name }} – {{ p.dob }}<br>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </td>
+              {% endif %}
+            {% endfor %}
+          </tr>
+
+          <!-- Chiều -->
+          <tr class="pm-row" data-staff-id="{{ row.salesperson_id }}">
+            {% for cell in row.schedule %}
+              {% if forloop.counter0 in sunday_indexes %}
+                <td class="col-sunday"></td>
+              {% else %}
+                {% if cell.in_range %}
+                  <td {% if cell.is_full_pm %} class="shift-block shift-pm is_full_flag" {% else %} class="shift-block shift-pm" {% endif %}>
+                    {{ cell.pm|default:"" }}
+                    {% if cell.pm_patients %}
+                      <div class="tooltip-content text-left">
+                        <strong>Đã đăng ký {{ cell.pm|default:"" }}</strong><br>
+                        {% for p in cell.pm_patients %}
+                          {{ p.patient_code }} – {{ p.name }} – {{ p.dob }}<br>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </td>
+                {% else %}
+                  <td class="shift-block shift-pm">{{ cell.pm|default:"" }}</td>
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+</div>
+
+<script>
+// ===== hiển thị modal danh sách BN chưa đăng ký lịch khám
+function toggleUnreg(el) {
+  const list = el.nextElementSibling;
+  if (list.style.display === "none" || list.style.display === "") {
+    list.style.display = "block";
+  } else {
+    list.style.display = "none";
+  }
+}
+
+
+// lọc theo nhân viên Sales Team
+document.addEventListener('DOMContentLoaded', function() {
+  const filter = document.getElementById('staff-filter');
+  if (!filter) return;
+
+  filter.addEventListener('change', function() {
+    const value = filter.value;
+    document.querySelectorAll('tr.am-row, tr.pm-row, tr.blood-row').forEach(tr => {
+      const staffId = tr.getAttribute('data-staff-id');
+      if (!value || staffId === value) {
+        tr.style.display = '';
+      } else {
+        tr.style.display = 'none';
+      }
+    });
+  });
+});
+</script>
+
+<!-- lọc hiển thị ngày trong bảng -->
+<script>
+function filterByDate() {
+  const startDateStr = document.getElementById('start-date').value;
+  const endDateStr = document.getElementById('end-date').value;
+
+  if (!startDateStr || !endDateStr) return;
+
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
+
+  const table = document.querySelector('.schedule-table');
+  const headerCells = table.rows[0].cells;
+
+  // 1. Ẩn/hiện các cột ngày theo lọc
+  for (let col = 1; col < headerCells.length; col++) {
+    const cell = headerCells[col];
+    const cellDateStr = cell.dataset.date; // lấy từ data-date="YYYY-MM-DD"
+    const cellDate = new Date(cellDateStr);
+
+    const hide = (cellDate < startDate || cellDate > endDate);
+
+    for (let row of table.rows) {
+      if (row.cells[col]) {
+        row.cells[col].style.display = hide ? 'none' : '';
+      }
+    }
+  }
+
+  // 2. Ẩn/hiện các dòng công ty
+  // Duyệt từng cặp dòng sáng/chiều
+  // Bỏ qua 3 dòng tiêu đề đầu tiên!
+  for (let i = 3; i < table.rows.length; i += 2) {
+    const amRow = table.rows[i];
+    const pmRow = table.rows[i + 1];
+    let hasVisibleCell = false;
+
+    // Bắt đầu từ cột 1 (bỏ cột tên công ty)
+    for (let col = 1; col < amRow.cells.length; col++) {
+      // Kiểm tra cả sáng lẫn chiều, nếu cell nào còn hiện thì công ty còn lịch
+      if (
+        amRow.cells[col] && amRow.cells[col].style.display !== 'none' && amRow.cells[col].textContent.trim() !== ''
+        ||
+        pmRow.cells[col] && pmRow.cells[col].style.display !== 'none' && pmRow.cells[col].textContent.trim() !== ''
+      ) {
+        hasVisibleCell = true;
+        break;
+      }
+    }
+
+    // Nếu không có cell nào còn hiện, ẩn luôn 2 dòng
+    amRow.style.display = hasVisibleCell ? '' : 'none';
+    pmRow.style.display = hasVisibleCell ? '' : 'none';
+  }
+}
+
+function resetFilter() {
+  const table = document.querySelector('.schedule-table');
+  // Hiện lại toàn bộ cell
+  for (let row of table.rows) {
+    for (let col = 0; col < row.cells.length; col++) {
+      row.cells[col].style.display = '';
+    }
+    // Hiện lại toàn bộ dòng
+    row.style.display = '';
+  }
+
+  // Reset input ngày
+  document.getElementById('start-date').value = '';
+  document.getElementById('end-date').value = '';
+}
+</script>
+
+
+
+<script>
+  // định dạng bảng - màu cho ngày đăng ký của CTY
+  document.addEventListener("DOMContentLoaded", function () {
+    const today = new Date();
+    const todayFormatted = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+    
+    const ths = document.querySelectorAll(".schedule-table thead th");
+    let todayColIndex = -1;
+
+    ths.forEach((th, index) => {
+      if (th.innerText.trim() === todayFormatted) {
+        th.classList.add("today-highlight");
+        todayColIndex = index;
+      }
+    });
+
+    if (todayColIndex > 0) {
+      const rows = document.querySelectorAll(".schedule-table tbody tr");
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        if (cells.length === ths.length) {
+          cells[todayColIndex - 1]?.classList.add("today-highlight");
+        }
+      });
+    }
+
+    // Tooltip đơn giản
+    const shiftBlocks = document.querySelectorAll(".shift-blood"); // ô lấy máu (có class shift-blood)
+    shiftBlocks.forEach(cell => {
+      if (cell.dataset.people) {
+        // 4 thông tin
+        const date = cell.dataset.date || '';
+        const location = cell.dataset.location || '';
+        const people = cell.dataset.people || '';
+        const staff = cell.dataset.staff || '';
+        // Tạo tooltip nhiều dòng (xuống dòng bằng \n)
+        cell.title = 
+          `Ngày lấy máu: ${date}\n` +
+          `Địa điểm: ${location}\n` +
+          `Số người lấy máu: ${people}\n` +
+          `Số nhân viên: ${staff}`;
+      } else {
+        // Lịch bình thường
+        cell.title = cell.innerText ? `${cell.innerText}` : "Không có lịch";
+      }
+    });
+  });
+
+  // btn chạy đến ngày hiện tại
+function scrollToToday() {
+  const todayCell = document.querySelector('.today-highlight');
+  if (todayCell) {
+    todayCell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+  }
+}
+</script>
+
+<!-- tự động cập nhật chiều cao bảng theo màn hình -->
+ <script>
+  // 1. Cập nhật chiều cao tối đa của bảng theo chiều cao màn hình
+  function adjustTableHeight() {
+    const wrapper = document.querySelector('.schedule-table-wrapper');
+    const rect = wrapper.getBoundingClientRect();
+    const availableHeight = window.innerHeight - rect.top - 20; // chừa 20px lề dưới
+    wrapper.style.maxHeight = `${availableHeight}px`;
+  }
+
+  window.addEventListener('resize', adjustTableHeight);
+  window.addEventListener('load', adjustTableHeight);
+
+document.addEventListener('DOMContentLoaded', function () {
+  // Lấy tất cả ô tiêu đề công ty ở dòng blood-row
+  const companyCells = document.querySelectorAll('tr.blood-row th[rowspan="3"]');
+
+  companyCells.forEach((cell) => {
+    cell.style.cursor = 'pointer';
+    cell.title = 'Click để chuyển đến lịch khám của công ty này';
+
+    cell.addEventListener('click', function () {
+      // Tìm tr.blood-row hiện tại
+      const bloodRow = cell.closest('tr.blood-row');
+      // tr.am-row là dòng kế tiếp
+      const amRow = bloodRow.nextElementSibling;
+      if (!amRow || !amRow.classList.contains('am-row')) return;
+
+      // Tìm cell .shift-am đầu tiên có nội dung hoặc đang trong range
+      const targetCells = amRow.querySelectorAll('td.shift-am');
+      for (let i = 0; i < targetCells.length; i++) {
+        const td = targetCells[i];
+        if (td.textContent.trim() !== '' || td.classList.contains('is_full_flag')) {
+          // Scroll cell vào giữa khung table
+          td.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          // Nếu bảng nằm trong div .table-responsive, scroll ngang div chứ không scroll cả trang
+          const wrapper = td.closest('.table-responsive');
+          if (wrapper) {
+            // Tính offset để td nằm giữa
+            const tdRect = td.getBoundingClientRect();
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const offset = tdRect.left - wrapperRect.left - wrapperRect.width / 2 + tdRect.width / 2;
+            wrapper.scrollLeft += offset;
+          }
+          break;
+        }
+      }
+    });
+  });
+});
+
+</script>
+
+<!-- JS mở rộng bảng -->
+<script>
+function toggleFullscreen() {
+  const wrapper = document.getElementById("js-schedule-table-wrapper");
+  const btn = document.getElementById('toggle-fullscreen-btn');
+
+  wrapper.classList.toggle('fullscreen-table-wrapper');
+
+  if (wrapper.classList.contains('fullscreen-table-wrapper')) {
+    btn.innerHTML = '🔽 Thu gọn';
+  } else {
+    btn.innerHTML = '🔍 Mở rộng';
+  }
+}
+</script>
+
+<!-- hiệu ứng kéo ngang bằng chuột và touch screen -->
+ <script>
+const scrollWrapper = document.querySelector('.schedule-table-wrapper');
+let isDragging = false;
+let startX;
+let scrollLeft;
+
+scrollWrapper.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  scrollWrapper.classList.add('dragging');
+  startX = e.pageX - scrollWrapper.offsetLeft;
+  scrollLeft = scrollWrapper.scrollLeft;
+});
+
+scrollWrapper.addEventListener('mouseleave', () => {
+  isDragging = false;
+  scrollWrapper.classList.remove('dragging');
+});
+
+scrollWrapper.addEventListener('mouseup', () => {
+  isDragging = false;
+  scrollWrapper.classList.remove('dragging');
+});
+
+scrollWrapper.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  e.preventDefault();
+  const x = e.pageX - scrollWrapper.offsetLeft;
+  const walk = (x - startX) * 1.5; // tốc độ cuộn (tùy chỉnh)
+  scrollWrapper.scrollLeft = scrollLeft - walk;
+});
+
+// touch support
+let touchStartX = 0;
+scrollWrapper.addEventListener('touchstart', (e) => {
+  touchStartX = e.touches[0].clientX;
+  scrollLeft = scrollWrapper.scrollLeft;
+});
+
+scrollWrapper.addEventListener('touchmove', (e) => {
+  const x = e.touches[0].clientX;
+  const walk = (x - touchStartX) * 1.5;
+  scrollWrapper.scrollLeft = scrollLeft - walk;
+});
+
+</script>
+
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script src="{% static 'booking/js/contract_list.js' %}"></script>
+{% endblock %}

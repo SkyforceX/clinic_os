@@ -1,0 +1,24 @@
+<!-- ── PATCH cho tasks/staff/task_detail.html ──
+   Chèn đoạn này vào trong phần meta-info bên phải (sidebar)
+   ngay sau block hiển thị tags hoặc trước phần Activity Log.
+
+   Tìm đến đoạn hiển thị task.tags trong task_detail.html và chèn sau: -->
+
+{% if task.helpdesk_ticket %}
+<div class="info-row" style="background:#f0fff4;border-radius:8px;padding:8px 12px;margin-bottom:6px;border:1px solid #c3e6cb">
+  <span class="info-lbl" style="color:#155724">
+    <i class="fa fa-headset me-1"></i>Ticket IT
+  </span>
+  <a href="{% url 'helpdesk:detail' ticket_id=task.helpdesk_ticket.pk %}"
+     class="d-flex align-items-center gap-2"
+     style="font-size:.82rem;color:#155724;text-decoration:none;font-weight:600">
+    #{{ task.helpdesk_ticket.pk }}
+    {{ task.helpdesk_ticket.subject|truncatechars:40 }}
+    <span class="ms-1" style="background:#d4edda;color:#155724;border-radius:8px;padding:1px 7px;font-size:.68rem;font-weight:700">
+      {{ task.helpdesk_ticket.status_label }}
+    </span>
+    <i class="fa fa-external-link-alt fa-xs"></i>
+  </a>
+</div>
+{% endif %}
+

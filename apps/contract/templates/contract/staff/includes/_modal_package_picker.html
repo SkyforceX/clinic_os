@@ -1,0 +1,257 @@
+<!--
+  _modal_package_picker.html
+  ==========================
+  Modal chọn gói khám mẫu từ DB.
+  Tương thích với:
+    - Multi-package mode: clearPkgTable(currentPkgId) + addItemToPkg(currentPkgId, cid)
+    - Legacy single-table mode: clearTable() + addItemToTable()
+-->
+
+<!-- Modal: Chọn gói mẫu -->
+<div class="modal" id="modalPackagePicker" tabindex="-1" aria-labelledby="packagePickerLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <div class="modal-header py-2" style="background:#1a6b3c;color:#fff">
+        <h6 class="modal-title mb-0" id="packagePickerLabel">
+          <i class="fa fa-box-open me-1"></i> Chọn gói khám mẫu
+        </h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+      </div>
+
+      <div class="modal-body p-0">
+        <!-- Search -->
+        <div class="p-2 border-bottom bg-light sticky-top" style="top:0;z-index:10">
+          <input type="text" id="pkgSearchInput" class="form-control form-control-sm"
+                 placeholder="Tìm gói khám theo tên..."
+                 oninput="filterPackageList(this.value)">
+        </div>
+
+        <!-- State: loading -->
+        <div id="pkgLoading" class="text-center py-5 text-muted" style="display:none">
+          <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+          Đang tải danh sách gói khám...
+        </div>
+
+        <!-- State: empty -->
+        <div id="pkgEmpty" class="text-center py-5 text-muted" style="display:none">
+          <i class="fa fa-box-open fa-2x mb-2 d-block opacity-50"></i>
+          Chưa có gói khám mẫu nào.
+        </div>
+
+        <!-- State: error -->
+        <div id="pkgError" class="text-center py-4 text-danger" style="display:none">
+          <i class="fa fa-triangle-exclamation me-1"></i>
+          <span id="pkgErrorMsg">Không tải được danh sách gói khám.</span>
+        </div>
+
+        <!-- Package list -->
+        <div id="pkgList" style="display:none"></div>
+      </div>
+
+      <div class="modal-footer py-2 d-flex justify-content-between align-items-center">
+        <div id="pkgApplyFeedback" class="text-success" style="font-size:.82rem;display:none">
+          <i class="fa fa-check me-1"></i>
+          <span id="pkgApplyMsg">Đã áp dụng gói.</span>
+        </div>
+        <div class="ms-auto">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Package Picker Modal — multi-package aware
+// ─────────────────────────────────────────────────────────────────────────────
+
+var pkgDataCache = null;
+var pkgLoaded    = false;
+
+function loadPackageList() {
+  if (pkgLoaded) return;
+  pkgLoaded = true;
+
+  var elLoading = document.getElementById('pkgLoading');
+  var elEmpty   = document.getElementById('pkgEmpty');
+  var elError   = document.getElementById('pkgError');
+  var elList    = document.getElementById('pkgList');
+
+  elLoading.style.display = '';
+  elEmpty.style.display   = 'none';
+  elError.style.display   = 'none';
+  elList.style.display    = 'none';
+
+  fetch('/contract/api/quotation-packages/', {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+  })
+    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(data) {
+      pkgDataCache = data.packages || [];
+      elLoading.style.display = 'none';
+      if (!pkgDataCache.length) { elEmpty.style.display = ''; return; }
+      renderPackageList(pkgDataCache);
+      elList.style.display = '';
+    })
+    .catch(function(err) {
+      pkgLoaded = false;
+      elLoading.style.display = 'none';
+      elError.style.display   = '';
+      document.getElementById('pkgErrorMsg').textContent =
+        'Không tải được danh sách gói khám: ' + (err.message || err);
+    });
+}
+
+function renderPackageList(packages) {
+  var container = document.getElementById('pkgList');
+  container.innerHTML = '';
+
+  packages.forEach(function(pkg) {
+    var div = document.createElement('div');
+    div.className     = 'pkg-card border-bottom px-3 py-3';
+    div.dataset.name  = (pkg.name || '').toLowerCase();
+    div.dataset.pkgId = pkg.id;
+
+    div.innerHTML =
+      '<div class="d-flex align-items-start gap-2">' +
+        '<div class="flex-grow-1 min-w-0">' +
+          '<div style="font-size:.92rem;font-weight:600">' + (pkg.name || '') + '</div>' +
+          (pkg.description ? '<div class="text-muted" style="font-size:.78rem;margin-top:2px">' + pkg.description + '</div>' : '') +
+          '<div class="d-flex align-items-center gap-2 mt-2" style="font-size:.76rem">' +
+            '<span class="badge bg-secondary">' + (pkg.item_count || 0) + ' dịch vụ</span>' +
+            '<button type="button" class="btn btn-link btn-sm p-0 text-muted" style="font-size:.76rem" ' +
+                    'onclick="togglePkgDetail(' + pkg.id + ')">' +
+              '<i class="fa fa-eye me-1"></i>Xem chi tiết' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="flex-shrink-0">' +
+          '<button type="button" class="btn btn-sm btn-success" style="white-space:nowrap" ' +
+                  'onclick="applyPackageFromModal(' + pkg.id + ')">' +
+            '<i class="fa fa-check me-1"></i>Áp dụng gói này' +
+          '</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="pkgDetail_' + pkg.id + '" style="display:none;margin-top:.6rem">' +
+        renderPackageDetail(pkg) +
+      '</div>';
+
+    container.appendChild(div);
+  });
+}
+
+function renderPackageDetail(pkg) {
+  if (!pkg.category_ids || !pkg.category_ids.length) {
+    return '<div class="text-muted" style="font-size:.78rem">Gói này chưa có dịch vụ nào.</div>';
+  }
+  var html = '<ul class="list-unstyled mb-0 ms-1" style="font-size:.79rem;columns:2;gap:1rem">';
+  for (var i = 0; i < pkg.category_ids.length; i++) {
+    var cid  = pkg.category_ids[i];
+    var item = (typeof CATALOG_MAP !== 'undefined') ? CATALOG_MAP[cid] : null;
+    var name = item ? item.name : ('Mã ' + cid);
+    html += '<li style="padding:2px 0;break-inside:avoid">' +
+            '<i class="fa fa-check text-success fa-xs me-1"></i>' + name + '</li>';
+  }
+  html += '</ul>';
+  return html;
+}
+
+function togglePkgDetail(pkgId) {
+  var el = document.getElementById('pkgDetail_' + pkgId);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function applyPackageFromModal(pkgId) {
+  if (!pkgDataCache) return;
+  var pkg = pkgDataCache.find(function(p) { return p.id === pkgId; });
+  if (!pkg) return;
+
+  var categoryIds = pkg.category_ids || [];
+
+  // ── Multi-package mode ───────────────────────────────────────────────────
+  if (typeof currentPkgId !== 'undefined' && currentPkgId) {
+    var pkgObj = (typeof pkgList !== 'undefined') ? pkgList.find(function(p) { return p.id === currentPkgId; }) : null;
+    var currentCount = pkgObj ? Object.keys(pkgObj.items).length : 0;
+
+    if (currentCount > 0) {
+      if (!confirm(
+        'Áp dụng gói "' + pkg.name + '"?\n\n' +
+        'Toàn bộ ' + currentCount + ' dịch vụ trong gói này sẽ bị xóa và thay bằng ' +
+        categoryIds.length + ' dịch vụ của gói mẫu.\n\n' +
+        'Bạn vẫn có thể thêm riêng lẻ sau khi áp dụng.'
+      )) return;
+    }
+
+    // Dùng applyPackageTemplate nếu template định nghĩa (create_proposal / edit_quotation)
+    if (typeof applyPackageTemplate === 'function') {
+      applyPackageTemplate(categoryIds);
+    } else if (typeof clearPkgTable === 'function') {
+      clearPkgTable(currentPkgId);
+      categoryIds.forEach(function(cid) {
+        if (typeof addItemToPkg === 'function') addItemToPkg(currentPkgId, cid);
+      });
+      if (typeof renderPackageTable === 'function') renderPackageTable(currentPkgId);
+    }
+
+    if (typeof syncTableToCp === 'function') syncTableToCp();
+
+  // ── Legacy single-table mode ─────────────────────────────────────────────
+  } else {
+    var legacyCount = document.querySelectorAll('.svc-row').length;
+    if (legacyCount > 0) {
+      if (!confirm(
+        'Áp dụng gói "' + pkg.name + '"?\n\n' +
+        'Toàn bộ ' + legacyCount + ' dịch vụ hiện tại sẽ được xóa và thay bằng ' +
+        categoryIds.length + ' dịch vụ trong gói này.'
+      )) return;
+    }
+    if (typeof clearTable === 'function') clearTable();
+    categoryIds.forEach(function(cid) {
+      var item = (typeof CATALOG_MAP !== 'undefined') ? CATALOG_MAP[cid] : null;
+      if (item && typeof addItemToTable === 'function') addItemToTable(item, {}, true);
+    });
+    if (typeof recalcAll === 'function') recalcAll();
+    if (typeof syncTableToCp === 'function') syncTableToCp();
+  }
+
+  // Feedback
+  var fb  = document.getElementById('pkgApplyFeedback');
+  var msg = document.getElementById('pkgApplyMsg');
+  if (fb && msg) {
+    msg.textContent = 'Đã áp dụng gói "' + pkg.name + '" (' + categoryIds.length + ' dịch vụ).';
+    fb.style.display = '';
+    setTimeout(function() { fb.style.display = 'none'; }, 5000);
+  }
+
+  // Đóng modal
+  var modalEl = document.getElementById('modalPackagePicker');
+  if (modalEl) {
+    var inst = bootstrap.Modal.getInstance(modalEl);
+    if (inst) inst.hide();
+  }
+}
+
+function filterPackageList(query) {
+  var q = (query || '').toLowerCase().trim();
+  document.querySelectorAll('.pkg-card').forEach(function(div) {
+    div.style.display = (!q || (div.dataset.name || '').includes(q)) ? '' : 'none';
+  });
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  var modalEl = document.getElementById('modalPackagePicker');
+  if (modalEl) {
+    modalEl.addEventListener('show.bs.modal', function() {
+      loadPackageList();
+      var searchEl = document.getElementById('pkgSearchInput');
+      if (searchEl) searchEl.value = '';
+      filterPackageList('');
+      var fb = document.getElementById('pkgApplyFeedback');
+      if (fb) fb.style.display = 'none';
+    });
+  }
+});
+</script>

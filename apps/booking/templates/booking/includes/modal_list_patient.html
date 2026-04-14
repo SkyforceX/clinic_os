@@ -1,0 +1,165 @@
+<!-- Modal chi tiết cho mobile -->
+<div class="modal" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog--list modal-dialog-centered">
+    <div class="modal-content border-0 shadow rounded">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="detailModalLabel">Thông tin chi tiết</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="list-group">
+          <li class="list-group-item"><strong>Tên công ty:</strong> <span id="modalCompany"></span></li>
+          <li class="list-group-item"><strong>Mã hợp đồng:</strong> <span id="modalContractNumber"></span></li>
+          <li class="list-group-item"><strong>SL Nhân viên:</strong> <span id="modalEmployee"></span></li>
+          <li class="list-group-item"><strong>Ngày lấy máu:</strong> <span id="modalBloodCollection"></span></li>
+          <li class="list-group-item"><strong>Ngày bắt đầu:</strong> <span id="modalStart"></span></li>
+          <li class="list-group-item"><strong>Ngày kết thúc:</strong> <span id="modalEnd"></span></li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <strong>Danh sách KH:</strong>
+            <button 
+              class="btn btn-sm btn-info text-center align-middle open-upload-modal-mobile">
+              Xem DS
+            </button>
+          </li>
+          <div class="modal-footer border-0 pt-2">
+            <span id="modalStatus" class="ms-auto"></span>
+          </div>
+        </ul>
+        <!-- Nút Sửa / Xóa -->
+        <div class="d-flex justify-content-center gap-3 mt-4">
+          <a href="" id="modalEditLink" class="btn btn-warning btn-sm px-4 py-2">Sửa</a>
+          <a href="" id="modalDeleteLink" class="btn btn-danger btn-sm px-4 py-2" style="display: none;">Xóa</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal xác nhận xóa -->
+<div class="modal" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content text-start">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="confirmDeleteModalLabel">Xác nhận xóa</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Bạn có chắc chắn muốn xóa hợp đồng "<span id="contractInfo"></span>" không?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <a id="confirmDeleteBtn" href="#" class="btn btn-danger">Xóa</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal upload -->
+<div class="modal" id="uploadPatientModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog--list">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><span id="modal-company-name"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="modal-body">
+          <input type="hidden" id="modal-company-id" name="company">
+          <ul class="nav nav-tabs mb-3" id="uploadTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-list-tab" data-bs-toggle="tab" data-bs-target="#tab-list" type="button" role="tab">Danh sách</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-upload-tab" data-bs-toggle="tab" data-bs-target="#tab-upload" type="button" role="tab">Upload Excel</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-create-tab" data-bs-toggle="tab" data-bs-target="#tab-create" type="button" role="tab">Thêm mới</button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="uploadTabContent">
+            <!-- Tab 1: Danh sách -->
+            <div class="tab-pane fade show active" id="tab-list" role="tabpanel">
+              <div class="bg-white rounded shadow-sm">
+                <table class="table table-bordered table-hover">
+                  <thead>
+                    <tr class="text-center">
+                      <th>STT</th>
+                      <th>Mã BN</th>
+                      <th>Họ tên</th>
+                      <th>Giới tính</th>
+                      <th>Ngày sinh</th>
+                      <th>SĐT</th>
+                    </tr>
+                  </thead>
+                  <tbody id="patientTableBody">
+                    <!-- AJAX render -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab 2: Upload Excel -->
+            <div class="tab-pane fade" id="tab-upload" role="tabpanel">
+              <form id="uploadForm" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" id="upload-company-id" name="company_id" value="">
+              <div class="mb-3">
+                <label class="form-label">Chọn file Excel</label>
+                <input type="file" name="excel_file" class="form-control" required />
+              </div>
+              <div class="modal-footer">
+                <button type="submit" class="btn btn-primary" id="btn-upload-excel">Tải lên</button>
+              </div>
+              </form>
+            </div>
+
+            <!-- Tab 3: Thêm mới -->
+            <div class="tab-pane fade" id="tab-create" role="tabpanel">
+              <form id="createPatientForm">
+                {% csrf_token %}
+                <input type="hidden" id="create-company-id" name="company_id">
+                <div class="mb-2">
+                  <label>Mã bệnh nhân</label>
+                  <input type="text" class="form-control" name="ma_bn" required>
+                </div>
+                <div class="mb-2">
+                  <label>Họ tên</label>
+                  <input type="text" class="form-control" name="ho_ten" required>
+                </div>
+                <div class="mb-2">
+                  <label>Giới tính</label>
+                  <select class="form-select" name="gioi_tinh" required>
+                    <option value="">--Chọn--</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                  </select>
+                </div>
+                <div class="mb-2">
+                  <label>Ngày sinh</label>
+                  <input type="date" class="form-control" name="ngay_sinh">
+                </div>
+                <div class="mb-2">
+                  <label>SĐT</label>
+                  <input type="tel" class="form-control" name="phone" placeholder="Số điện thoại" pattern="0[0-9]{9,10}">
+                </div>
+                <div class="text-end mt-2">
+                  <button type="submit" class="btn btn-success">Thêm</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Spinner -->
+          <div id="uploadSpinner" class="text-center mt-2 d-none">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Đang xử lý...</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    
+  </div>
+</div>

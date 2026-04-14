@@ -1,0 +1,165 @@
+{% extends "base_admin.html" %}
+{% load static hrm_tags %}
+
+{% block title %}Nhập lịch bác sĩ{% endblock %}
+
+{% block extra_head %}
+<style>
+.sched-form-card { background:#fff; border:1px solid #dee2e6; border-radius:12px; padding:1.5rem; margin-bottom:1rem; }
+.sched-form-card h6 { font-weight:700; color:#0f4c81; margin-bottom:1rem; }
+.day-row { display:flex; flex-wrap:wrap; gap:10px; }
+.day-col { flex:1; min-width:100px; border:1px solid #e0e6f0; border-radius:8px; padding:10px 10px 8px; background:#fafbff; }
+.day-col .day-label { font-weight:700; font-size:.8rem; color:#0f4c81; margin-bottom:6px; }
+.day-col .date-lbl  { font-size:.72rem; color:#888; margin-bottom:6px; }
+.shift-btn { display:block; width:100%; margin-bottom:4px; border:1px solid #dee2e6; border-radius:6px; background:#fff; padding:4px 0; font-size:.75rem; cursor:pointer; transition:all .12s; }
+.shift-btn:hover { border-color:#0f4c81; color:#0f4c81; }
+.shift-btn.selected-morning   { background:#fff8dc; border-color:#e0b800; color:#a07000; font-weight:700; }
+.shift-btn.selected-afternoon { background:#eef0ff; border-color:#8090e0; color:#2040a0; font-weight:700; }
+.shift-btn.selected-all-day   { background:#edfaf5; border-color:#60c090; color:#0a6e3c; font-weight:700; }
+.shift-btn.selected-off       { background:#f5f5f5; border-color:#ccc; color:#888; font-weight:700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0"><i class="fa fa-stethoscope me-2"></i>Nhập lịch làm việc bác sĩ</h5>
+  <a href="{% url 'hrm:doctor_schedule_list' %}" class="btn btn-sm btn-outline-secondary">← Danh sách lịch</a>
+</div>
+
+<form method="post">
+{% csrf_token %}
+
+<div class="sched-form-card">
+  <h6>1. Chọn bác sĩ và tuần</h6>
+  <div class="row g-3 align-items-end">
+    <div class="col-12 col-md-5">
+      <label class="form-label fw-semibold">Bác sĩ <span class="text-danger">*</span></label>
+      <select name="doctor_id" class="form-select" required id="doctorSelect" onchange="loadExistingSchedule()">
+        <option value="">-- Chọn bác sĩ --</option>
+        {% for doc in doctors %}
+        <option value="{{ doc.pk }}"
+          {% if selected_doctor and selected_doctor.pk == doc.pk %}selected{% endif %}>
+          {{ doc.full_name }}{% if doc.position %} – {{ doc.position.name }}{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-4">
+      <label class="form-label fw-semibold">Tuần (ngày Thứ Hai)</label>
+      <input type="date"
+             name="week_start"
+             class="form-control"
+             id="weekInput"
+             value="{{ week_start|date:'Y-m-d' }}"
+             onchange="updateWeekDisplay()">
+      <div class="form-text" id="weekDisplay">
+        Tuần {{ week_start|date:"d/m" }} — {{ week_end|date:"d/m/Y" }}
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <label class="form-label fw-semibold">Ghi chú</label>
+      <input type="text" name="note" class="form-control" placeholder="Ghi chú (tuỳ chọn)" maxlength="300">
+    </div>
+  </div>
+</div>
+
+<div class="sched-form-card">
+  <h6>2. Chọn ca làm việc từng ngày</h6>
+  <div class="day-row" id="dayRow">
+    {% for wd in week_days %}
+    {% with day_offset=forloop.counter0 %}
+    {% if day_offset == 0 %}{% with dk="mon" %}
+      <div class="day-col" id="col_{{ dk }}">
+        <div class="day-label">Thứ 2</div>
+        <div class="date-lbl">{{ wd|date:"d/m" }}</div>
+        {% include "hrm/staff/includes/_shift_buttons.html" with day_key=dk %}
+      </div>
+    {% endwith %}{% endif %}
+    {% if day_offset == 1 %}{% with dk="tue" %}
+      <div class="day-col" id="col_{{ dk }}">
+        <div class="day-label">Thứ 3</div>
+        <div class="date-lbl">{{ wd|date:"d/m" }}</div>
+        {% include "hrm/staff/includes/_shift_buttons.html" with day_key=dk %}
+      </div>
+    {% endwith %}{% endif %}
+    {% if day_offset == 2 %}{% with dk="wed" %}
+      <div class="day-col" id="col_{{ dk }}">
+        <div class="day-label">Thứ 4</div>
+        <div class="date-lbl">{{ wd|date:"d/m" }}</div>
+        {% include "hrm/staff/includes/_shift_buttons.html" with day_key=dk %}
+      </div>
+    {% endwith %}{% endif %}
+    {% if day_offset == 3 %}{% with dk="thu" %}
+      <div class="day-col" id="col_{{ dk }}">
+        <div class="day-label">Thứ 5</div>
+        <div class="date-lbl">{{ wd|date:"d/m" }}</div>
+        {% include "hrm/staff/includes/_shift_buttons.html" with day_key=dk %}
+      </div>
+    {% endwith %}{% endif %}
+    {% if day_offset == 4 %}{% with dk="fri" %}
+      <div class="day-col" id="col_{{ dk }}">
+        <div class="day-label">Thứ 6</div>
+        <div class="date-lbl">{{ wd|date:"d/m" }}</div>
+        {% include "hrm/staff/includes/_shift_buttons.html" with day_key=dk %}
+      </div>
+    {% endwith %}{% endif %}
+    {% if day_offset == 5 %}{% with dk="sat" %}
+      <div class="day-col" id="col_{{ dk }}">
+        <div class="day-label">Thứ 7</div>
+        <div class="date-lbl">{{ wd|date:"d/m" }}</div>
+        {% include "hrm/staff/includes/_shift_buttons.html" with day_key=dk %}
+      </div>
+    {% endwith %}{% endif %}
+    {% if day_offset == 6 %}{% with dk="sun" %}
+      <div class="day-col" id="col_{{ dk }}">
+        <div class="day-label">CN</div>
+        <div class="date-lbl">{{ wd|date:"d/m" }}</div>
+        {% include "hrm/staff/includes/_shift_buttons.html" with day_key=dk %}
+      </div>
+    {% endwith %}{% endif %}
+    {% endwith %}
+    {% endfor %}
+  </div>
+</div>
+
+<div class="d-flex gap-2">
+  <button type="submit" class="btn btn-primary px-4">
+    <i class="fa fa-save me-1"></i> Lưu lịch
+  </button>
+  <a href="{% url 'hrm:doctor_schedule_list' %}" class="btn btn-outline-secondary">Hủy</a>
+</div>
+</form>
+
+<script>
+function selectShift(dayKey, shift) {
+  var btns = document.querySelectorAll('.shift-btn[data-day="' + dayKey + '"]');
+  btns.forEach(function(btn) {
+    btn.classList.remove('selected-morning', 'selected-afternoon', 'selected-all-day', 'selected-off');
+  });
+  var inp = document.getElementById('shift_' + dayKey);
+  if (inp) inp.value = shift === 'off' ? '' : shift;
+  var activeBtn = document.querySelector('.shift-btn[data-day="' + dayKey + '"][data-shift="' + shift + '"]');
+  if (activeBtn) activeBtn.classList.add('selected-' + shift);
+}
+
+function updateWeekDisplay() {
+  var inp = document.getElementById('weekInput');
+  if (!inp || !inp.value) return;
+  var d = new Date(inp.value);
+  var day = d.getDay();
+  var diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  inp.value = d.toISOString().split('T')[0];
+}
+
+// Restore selections from existing data
+document.addEventListener('DOMContentLoaded', function() {
+  var existing = {{ existing_json|default:"{}" }};
+  var days = ['mon','tue','wed','thu','fri','sat','sun'];
+  days.forEach(function(dk) {
+    var shift = existing[dk] || 'off';
+    selectShift(dk, shift);
+  });
+});
+</script>
+{% endblock %}

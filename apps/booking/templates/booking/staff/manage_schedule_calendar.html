@@ -1,0 +1,178 @@
+{% load custom_filters %}
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lịch lịch hẹn</title>
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f9f9f9;
+        margin: 20px;
+        color: #333;
+    }
+
+    h2 {
+        text-align: center;
+        color: #2c3e50;
+    }
+
+    .controls, .batch-update {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin: 20px 0;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .controls label, .batch-update label {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    input[type="number"] {
+        padding: 4px 6px;
+        width: 50px;
+        border: none;
+        background-color: #f3f3f3;
+        border-radius: 4px;
+        margin-left: 6px;
+    }
+
+    input[type="number"]:disabled {
+        background-color: #eaeaea;
+        color: #777;
+    }
+
+    .calendar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        max-width: 1000px;
+        margin: auto;
+    }
+
+    .day-cell {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 10px;
+        background-color: #fff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .day-label {
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #2c3e50;
+    }
+
+    .day-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+    }
+
+    button {
+        margin-top: 20px;
+        background-color: #3498db;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    button:hover {
+        background-color: #2980b9;
+    }
+
+    @media (max-width: 600px) {
+        .calendar {
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        }
+    }
+    .messages { text-align: center; margin: 10px 0; padding: 0; list-style: none; }
+.messages li.success { color: green; }
+.messages li.error { color: red; }
+</style>
+
+<h2>Quản lý lịch khám theo tháng</h2>
+
+<div class="controls">
+    <form method="get">
+        <label>Năm:
+            <input type="number" name="year" value="{{ year }}" min="2000" max="2100" />
+        </label>
+        <label>Tháng:
+            <input type="number" name="month" value="{{ month }}" min="1" max="12" />
+        </label>
+        <button type="submit">Xem lịch</button>
+    </form>
+</div>
+
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <div class="calendar">
+        {% for day in days_in_month %}
+            {% with sched=schedules|get_item:day %}
+                {% with current_date=year|stringformat:"d"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day|stringformat:"02d" %}
+                    <div class="day-cell">
+                        <div class="day-label">{{ day }}/{{ month }}</div>
+                        {% if sched %}
+                            <div class="day-row">
+                                <span>Sáng:</span>
+                                <input type="number" name="limit_am_{{ sched.id }}" value="{{ sched.limit_am }}" min="0" max="50"
+                                    {% if current_date < today|stringformat:"Y-m-d" %}disabled{% endif %}>
+                            </div>
+                            <div class="day-row">
+                                <span>Chiều:</span>
+                                <input type="number" name="limit_pm_{{ sched.id }}" value="{{ sched.limit_pm }}" min="0" max="50"
+                                    {% if current_date < today|stringformat:"Y-m-d" %}disabled{% endif %}>
+                            </div>
+                        {% else %}
+                            <div style="color: #888;">Không có lịch</div>
+                        {% endif %}
+                    </div>
+                {% endwith %}
+            {% endwith %}
+        {% endfor %}
+    </div>
+
+<div class="form-row">
+    <div class="form-group" style="flex: 1;">
+        <div class="batch-update">
+            <label>Từ ngày:
+                <input type="number" name="batch_from_day" min="1" max="31">
+            </label>
+            <label>Đến ngày:
+                <input type="number" name="batch_to_day" min="1" max="31">
+            </label>
+            <label>Số lượng:
+                <input type="number" name="batch_limit" min="0" max="50">
+            </label>
+            <button type="submit" name="batch_update" value="1">Cập nhật dãy ngày</button>
+        </div>
+    </div>
+</div>
+
+    <button type="submit">Lưu thay đổi</button>
+</form>
+
+
+</body>
+</html>

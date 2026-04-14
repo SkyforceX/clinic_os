@@ -1,0 +1,424 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% load contract_tags %}
+{% load l10n %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'contract/css/corporate_contract.css' %}">
+
+<div class="cc-page">
+  <div class="cc-container">
+    <div class="cc-page-header">
+      <h1 class="cc-page-title">✏️ Sửa Hợp đồng KSK Doanh nghiệp</h1>
+    </div>
+
+    <form method="post"
+          action="{% url 'contract:update_corporate_contract' contract.id %}"
+          class="cc-form"
+          id="ccEditForm">
+      {% csrf_token %}
+
+      <div id="contract_form_error" class="alert alert-danger mb-3" style="display:none;"></div>
+
+      <!-- ── Liên kết báo giá ── -->
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <h2 class="cc-card-title">Liên kết báo giá</h2>
+          <p class="cc-card-desc">Hợp đồng này đang gắn với một báo giá duy nhất. Không đổi báo giá nguồn khi sửa.</p>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-grid cc-grid--2">
+            <div class="cc-field">
+              <label class="cc-required">Báo giá nguồn</label>
+              <input type="hidden" name="quotation_id" value="{{ quotation.id }}">
+              <input type="text"
+                     class="cc-input"
+                     value="{{ quotation.company_name }} — {{ quotation.created_at|date:'d/m/Y H:i' }}"
+                     readonly
+                     style="background:#f8f9fa;">
+              <div class="cc-field-error" data-error-for="quotation_id"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Trạng thái</label>
+              <input type="text"
+                     class="cc-input"
+                     value="{% if contract.is_locked %}Đã chốt{% else %}Chưa chốt{% endif %}"
+                     readonly
+                     style="background:#f8f9fa;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── BÊN B: Thông tin công ty ── -->
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <h2 class="cc-card-title">BÊN B – Thông tin Công ty</h2>
+          <p class="cc-card-desc">Tên công ty lấy theo báo giá. Có thể cập nhật các thông tin snapshot của hợp đồng.</p>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-grid cc-grid--2">
+            <div class="cc-field">
+              <label class="cc-required">Tên Công ty</label>
+              <input type="hidden" name="company_id" value="{{ contract.company_id }}">
+              <input type="text"
+                     class="cc-input"
+                     id="company_name_input"
+                     value="{{ profile.company_name_snapshot }}"
+                     readonly
+                     style="background:#f8f9fa;">
+              <div class="cc-field-error" data-error-for="company_id"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Điện thoại</label>
+              <input type="text" name="company_phone" class="cc-input"
+                     value="{{ profile.company_phone_snapshot|default:'' }}">
+              <div class="cc-field-error" data-error-for="company_phone"></div>
+            </div>
+
+            <div class="cc-field cc-field--wide">
+              <label>Địa chỉ</label>
+              <input type="text" name="company_address" class="cc-input" id="company_address_input"
+                     value="{{ profile.company_address_snapshot|default:'' }}">
+              <div class="cc-field-error" data-error-for="company_address"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Mã số thuế</label>
+              <input type="text" name="tax_code" class="cc-input"
+                     value="{{ profile.company_tax_code_snapshot|default:'' }}">
+              <div class="cc-field-error" data-error-for="tax_code"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Người đại diện ký</label>
+              <input type="text" name="signer_b_name" class="cc-input" id="contact_input"
+                     placeholder="Ông/Bà..."
+                     value="{{ profile.signer_b_name|default:'' }}">
+              <div class="cc-field-error" data-error-for="signer_b_name"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Chức vụ</label>
+              <input type="text" name="signer_b_title" class="cc-input"
+                     placeholder="Giám đốc..."
+                     value="{{ profile.signer_b_title|default:'' }}">
+              <div class="cc-field-error" data-error-for="signer_b_title"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Người liên hệ thực hiện HĐ</label>
+              <input type="text" name="contact_person" class="cc-input"
+                     placeholder="Người phụ trách..."
+                     value="{{ contract.contact_person|default:'' }}">
+              <div class="cc-field-error" data-error-for="contact_person"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Chức danh liên hệ</label>
+              <input type="text" name="representative_title" class="cc-input"
+                     value="{{ contract.representative_title|default:'' }}">
+              <div class="cc-field-error" data-error-for="representative_title"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Điều I ── -->
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <h2 class="cc-card-title">ĐIỀU I – Thời gian & Địa điểm thực hiện</h2>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-grid cc-grid--3">
+            <div class="cc-field">
+              <label class="cc-required">Ngày lập hợp đồng</label>
+              <input type="date" name="contract_date" class="cc-input"
+                     value="{% if profile.contract_date %}{{ profile.contract_date|date:'Y-m-d' }}{% endif %}">
+              <div class="cc-field-error" data-error-for="contract_date"></div>
+            </div>
+
+            <div class="cc-field">
+              <label class="cc-required">Thời gian thực hiện HĐ – Từ ngày</label>
+              <input type="date" name="start_date" class="cc-input" required
+                     value="{% if contract.start_date %}{{ contract.start_date|date:'Y-m-d' }}{% endif %}">
+              <div class="cc-field-error" data-error-for="start_date"></div>
+            </div>
+
+            <div class="cc-field">
+              <label class="cc-required">Đến ngày</label>
+              <input type="date" name="end_date" class="cc-input" required
+                     value="{% if contract.end_date %}{{ contract.end_date|date:'Y-m-d' }}{% endif %}">
+              <div class="cc-field-error" data-error-for="end_date"></div>
+            </div>
+          </div>
+
+          <hr style="margin:1rem 0">
+
+          <p class="fw-semibold mb-2" style="font-size:.88rem">📋 Lấy mẫu xét nghiệm Máu / Nước tiểu</p>
+          <div class="cc-grid cc-grid--3">
+            <div class="cc-field">
+              <label>Ngày giờ bắt đầu lấy mẫu</label>
+              <input type="datetime-local" name="blood_collection_from_at" class="cc-input"
+                     value="{% if profile.blood_collection_from_at %}{{ profile.blood_collection_from_at|date:'Y-m-d\\TH:i' }}{% endif %}">
+              <div class="cc-field-error" data-error-for="blood_collection_from_at"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Ngày giờ kết thúc lấy mẫu</label>
+              <input type="datetime-local" name="blood_collection_to_at" class="cc-input"
+                     value="{% if profile.blood_collection_to_at %}{{ profile.blood_collection_to_at|date:'Y-m-d\\TH:i' }}{% endif %}">
+              <div class="cc-field-error" data-error-for="blood_collection_to_at"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Địa điểm lấy mẫu xét nghiệm</label>
+              <input type="text" name="blood_collection_location" class="cc-input"
+                     placeholder="Văn phòng Công ty: ..."
+                     value="{{ profile.blood_collection_location|default:'' }}">
+              <div class="cc-field-error" data-error-for="blood_collection_location"></div>
+            </div>
+          </div>
+
+          <hr style="margin:1rem 0">
+
+          <p class="fw-semibold mb-2" style="font-size:.88rem">🏥 Tiếp nhận KSK tại phòng khám</p>
+          <div class="cc-grid cc-grid--3">
+            <div class="cc-field">
+              <label>Tiếp nhận KSK từ ngày</label>
+              <input type="date" name="reception_from_date" class="cc-input"
+                     value="{% if contract.reception_from_date %}{{ contract.reception_from_date|date:'Y-m-d' }}{% endif %}">
+              <div class="cc-field-error" data-error-for="reception_from_date"></div>
+            </div>
+          </div>
+
+          <hr style="margin:1rem 0">
+
+          <p class="fw-semibold mb-2" style="font-size:.88rem">📅 Lịch lấy máu tại địa điểm (tuỳ chọn nhiều đợt)</p>
+          <div id="blood-rows">
+            {% if blood_collections %}
+              {% for row in blood_collections %}
+              <div class="cc-grid cc-grid--4 blood-row mb-2">
+                <div class="cc-field">
+                  <label>Ngày lấy máu</label>
+                  <input type="date" name="blood_collection_date[]" class="cc-input"
+                         value="{{ row.collection_date|date:'Y-m-d' }}">
+                  <div class="cc-field-error" data-error-for="blood_collection_date[]"></div>
+                </div>
+
+                <div class="cc-field">
+                  <label>Địa điểm</label>
+                  <input type="text" name="blood_location[]" class="cc-input"
+                         value="{{ row.location|default:'' }}">
+                  <div class="cc-field-error" data-error-for="blood_location[]"></div>
+                </div>
+
+                <div class="cc-field">
+                  <label>Số nhân viên công ty</label>
+                  <input type="number" name="blood_people_count[]" min="0" value="{{ row.people_count|default:0 }}" class="cc-input">
+                  <div class="cc-field-error" data-error-for="blood_people_count[]"></div>
+                </div>
+
+                <div class="cc-field">
+                  <label>Số điều dưỡng lấy máu</label>
+                  <input type="number" name="blood_staff_count[]" min="0" value="{{ row.staff_count|default:0 }}" class="cc-input"
+                    {% if not flag_nurse %}readonly{% endif %}>
+                  <div class="cc-field-error" data-error-for="blood_staff_count[]"></div>
+                </div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="cc-grid cc-grid--4 blood-row mb-2">
+                <div class="cc-field">
+                  <label>Ngày lấy máu</label>
+                  <input type="date" name="blood_collection_date[]" class="cc-input">
+                  <div class="cc-field-error" data-error-for="blood_collection_date[]"></div>
+                </div>
+
+                <div class="cc-field">
+                  <label>Địa điểm</label>
+                  <input type="text" name="blood_location[]" class="cc-input">
+                  <div class="cc-field-error" data-error-for="blood_location[]"></div>
+                </div>
+
+                <div class="cc-field">
+                  <label>Số người</label>
+                  <input type="number" name="blood_people_count[]" min="0" value="0" class="cc-input">
+                  <div class="cc-field-error" data-error-for="blood_people_count[]"></div>
+                </div>
+
+                <div class="cc-field">
+                  <label>Số điều dưỡng</label>
+                  <input type="number" name="blood_staff_count[]" min="0" value="0" class="cc-input"
+                    {% if not flag_nurse %}readonly{% endif %}>
+                  <div class="cc-field-error" data-error-for="blood_staff_count[]"></div>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          <button type="button" class="cc-btn cc-btn--secondary cc-btn--sm mt-1"
+                  onclick="addBloodRow()">+ Thêm đợt</button>
+        </div>
+      </div>
+
+      <!-- ── Điều II ── -->
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <h2 class="cc-card-title">ĐIỀU II – Giá trị & Thanh toán</h2>
+        </div>
+        <div class="cc-card-body">
+                    <div class="cc-grid cc-grid--2">
+            <div class="cc-field">
+              <label>Đặt cọc (%)</label>
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="number" name="deposit_pct" id="deposit_pct_input"
+                     class="cc-input" value="{{ profile.deposit_pct|default:30|unlocalize }}"
+                     min="0" max="100" step="1" oninput="updateDepositCalc()" style="flex:1">
+                <span style="font-size:.88rem;color:#555">%</span>
+              </div>
+              <div class="cc-field-error" data-error-for="deposit_pct"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Số tiền đặt cọc</label>
+              <input type="text"
+                     name="deposit_amount"
+                     id="deposit_amount_input"
+                     class="cc-input"
+                     inputmode="numeric"
+                     value="{{ profile.deposit_amount|default:0 }}"
+                     oninput="handleDepositAmountInput()">
+              <small style="display:block;margin-top:6px;color:#6b7280;font-size:.82rem">
+                Có thể sửa tay để làm tròn theo ý muốn. Không làm đổi % đặt cọc.
+              </small>
+              <div class="cc-field-error" data-error-for="deposit_amount"></div>
+            </div>
+
+            <div class="cc-field cc-field--wide">
+              <label>Số tiền đặt cọc bằng chữ</label>
+              <input type="text"
+                     name="deposit_amount_words"
+                     id="deposit_amount_words_input"
+                     class="cc-input"
+                     value="{{ profile.deposit_amount_words|default:'' }}"
+                     placeholder="Ví dụ: Ba mươi triệu đồng">
+              <div class="cc-field-error" data-error-for="deposit_amount_words"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Hạn đặt cọc trước ngày</label>
+              <input type="date" name="deposit_deadline" class="cc-input"
+                     value="{% if profile.deposit_deadline %}{{ profile.deposit_deadline|date:'Y-m-d' }}{% endif %}">
+              <div class="cc-field-error" data-error-for="deposit_deadline"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Quyết toán trong vòng (ngày)</label>
+              <input type="number" name="settlement_days" class="cc-input"
+                     value="{{ profile.settlement_days|default:10 }}" min="1">
+              <div class="cc-field-error" data-error-for="settlement_days"></div>
+            </div>
+          </div>
+
+          <div id="deposit_note" class="mt-2" style="font-size:.82rem;color:#777;display:none">
+            <i class="fa fa-info-circle"></i>
+            Tổng giá trị HĐ ước tính: <strong id="grand_display">0</strong> ₫ →
+            Đặt cọc <strong id="pct_display">30</strong>% →
+            Gợi ý: <strong id="deposit_auto_display" style="color:#c0392b">0</strong> ₫
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Chữ ký & Ghi chú ── -->
+      <div class="cc-card">
+        <div class="cc-card-header">
+          <h2 class="cc-card-title">Chữ ký & Ghi chú</h2>
+        </div>
+        <div class="cc-card-body">
+          <div class="cc-grid cc-grid--2">
+            <div class="cc-field">
+              <label>Bên A – Người ký</label>
+              <input type="text" name="signer_a_name" class="cc-input"
+                     value="{{ profile.signer_a_name|default:'TS.BS. PHẠM THẾ VIỆT' }}">
+              <div class="cc-field-error" data-error-for="signer_a_name"></div>
+            </div>
+
+            <div class="cc-field">
+              <label>Bên A – Chức danh</label>
+              <input type="text" name="signer_a_title" class="cc-input"
+                     value="{{ profile.signer_a_title|default:'Tổng Giám Đốc' }}">
+              <div class="cc-field-error" data-error-for="signer_a_title"></div>
+            </div>
+
+<!--            <div class="cc-field">-->
+<!--              <label>Ghi chú hợp đồng</label>-->
+<!--              <textarea name="contract_note" class="cc-textarea" rows="2">{{ profile.contract_note|default:'' }}</textarea>-->
+<!--              <div class="cc-field-error" data-error-for="contract_note"></div>-->
+<!--            </div>-->
+
+<!--            <div class="cc-field">-->
+<!--              <label>Ghi chú chung</label>-->
+<!--              <textarea name="note" class="cc-textarea" rows="2">{{ contract.note|default:'' }}</textarea>-->
+<!--              <div class="cc-field-error" data-error-for="note"></div>-->
+<!--            </div>-->
+          </div>
+        </div>
+      </div>
+
+      <div class="cc-actions-sticky">
+        <div class="cc-actions-sticky__inner">
+          <div class="cc-inline-total">
+            <span class="cc-inline-total__label">Tổng giá trị HĐ ước tính</span>
+            <span class="cc-inline-total__value" id="js-grand-total">0 ₫</span>
+          </div>
+          <div class="cc-toolbar">
+            <a href="{% url 'contract:corporate_contract_print' contract.id %}"
+               class="cc-btn cc-btn--secondary"
+               id="backToPreviewBtn">
+              Quay lại preview
+            </a>
+
+            <button type="submit"
+                    class="cc-btn cc-btn--primary"
+                    id="submitContractBtn"
+                    data-default-html='<i class="fa fa-floppy-disk"></i> Lưu cập nhật'
+                    data-loading-html='<span class="cc-btn-spinner"></span> Đang lưu...'>
+              <i class="fa fa-floppy-disk"></i> Lưu cập nhật
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="ccSubmitOverlay" class="cc-submit-overlay" style="display:none;" aria-hidden="true">
+        <div class="cc-submit-overlay__card">
+          <div class="cc-submit-overlay__spinner"></div>
+          <div class="cc-submit-overlay__title">Đang lưu hợp đồng</div>
+          <div class="cc-submit-overlay__desc">Vui lòng chờ trong giây lát, dữ liệu đang được cập nhật...</div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!--── Dữ liệu Django context truyền sang JS qua data-* attribute ──-->
+<div id="cc-contract-data"
+     data-grand-total="{{ profile.grand_total|default:0 }}"
+     data-male-count="{{ quotation.male_count|default:0 }}"
+     data-female-single-count="{{ quotation.female_single_count|default:0 }}"
+     data-female-family-count="{{ quotation.female_family_count|default:0 }}"
+     data-subtotal-male="{{ profile.subtotal_male|default:0 }}"
+     data-subtotal-female-single="{{ profile.subtotal_female_single|default:0 }}"
+     data-subtotal-female-family="{{ profile.subtotal_female_family|default:0 }}"
+     hidden
+     aria-hidden="true"></div>
+
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script src="{% static 'contract/js/edit_corporate_contract.js' %}"></script>
+{% endblock %}

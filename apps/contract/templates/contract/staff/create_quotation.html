@@ -1,0 +1,981 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% load core_tags %}
+{% load humanize l10n %}
+
+{% block title %}Tạo báo giá mới{% endblock %}
+
+{% block extra_head %}
+<script src="{% static 'media_library/js/quill_image_upload.js' %}"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css">
+<script src="{% static 'media_library/js/quill_image_upload.js' %}"></script>
+<script src="{% static 'media_library/js/quill_media_picker.js' %}"></script>
+<style>
+/* ── shared card/table styles ── */
+.qform-card{background:var(--bs-body-bg,#fff);border:1px solid #dee2e6;border-radius:8px;padding:1.25rem;margin-bottom:1rem}
+.catalog-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.catalog-table th{background:#1a5276;color:#fff;padding:6px 8px;text-align:center;font-size:.78rem;white-space:nowrap;line-height:1.3}
+.catalog-table th.svc-col{text-align:left}
+.catalog-table td{padding:5px 7px;border-bottom:1px solid #eaecef;vertical-align:middle}
+.catalog-table tr:hover td{background:#f8f9fa}
+.group-hdr td{background:#1a5276!important;color:#fff;font-weight:600;font-size:.8rem;padding:5px 9px}
+.subgroup-hdr td{background:#2e86c1!important;color:#fff;font-size:.77rem;padding:4px 9px}
+.discount-toolbar{background:#fffde7;border:1px solid #ffc107;border-radius:6px;padding:.6rem 1rem;margin-bottom:0;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.discount-toolbar .dt-label{font-size:.78rem;font-weight:600;color:#795548;white-space:nowrap}
+.discount-group{display:flex;align-items:center;gap:.4rem}
+.discount-group label{font-size:.75rem;color:#555;white-space:nowrap}
+.pct-input{width:62px;text-align:center;border:1px solid #ffc107;border-radius:4px;padding:3px 5px;font-size:.82rem;background:#fff}
+.pct-input:focus{border-color:#f57f17;outline:none;background:#fffde7}
+.row-pct-input{width:54px;text-align:center;border:1px solid #ced4da;border-radius:4px;padding:3px 4px;font-size:.8rem}
+.niemyet-display{color:#aaa;text-decoration:line-through;font-size:.78rem}
+.udai-free{color:#27ae60;font-size:.75rem}
+.stt-col{width:36px;text-align:center;color:#888}
+.commission-row{display:flex;align-items:center;gap:.6rem;flex-wrap:nowrap}
+.commission-row label{font-size:.82rem;color:#555;min-width:130px;white-space:nowrap}
+.commission-pct-input{width:72px;text-align:center;border:1px solid #ced4da;border-radius:4px;padding:4px 6px;font-size:.82rem}
+.commission-amount{font-weight:700;font-size:.88rem;min-width:130px}
+/* ── package block ── */
+.pkg-block{border:2px solid #1a5276;border-radius:10px;margin-bottom:1.5rem;background:#fff;overflow:hidden}
+.pkg-header{background:#1a5276;color:#fff;padding:.6rem 1rem;display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+.pkg-name-input{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:5px;padding:4px 10px;font-size:.9rem;font-weight:600;min-width:200px}
+.pkg-name-input::placeholder{color:rgba(255,255,255,.6)}
+.pkg-name-input:focus{outline:none;background:rgba(255,255,255,.25)}
+.pkg-cols-bar{background:#e8f4f8;padding:.5rem 1rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;border-bottom:1px solid #bee3f8}
+.col-tag{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid #1a5276;border-radius:20px;padding:2px 10px 2px 8px;font-size:.78rem}
+.col-tag input[type=text]{border:none;outline:none;width:100px;background:transparent;font-size:.78rem;color:#1a5276;font-weight:600}
+.col-tag input[type=number]{border:none;outline:none;width:50px;background:transparent;font-size:.75rem;color:#555;text-align:center}
+.col-tag .col-remove{cursor:pointer;color:#e74c3c;font-size:.8rem;padding:0 2px}
+.col-tag .col-remove:hover{color:#c0392b}
+.catalog-empty-state{text-align:center;padding:2.5rem 1rem;color:#aaa}
+.catalog-empty-state i{font-size:2.2rem;margin-bottom:.6rem;opacity:.4;display:block}
+.totals-bar{position:sticky;bottom:0;background:#fff;border-top:2px solid #1a5276;padding:.7rem 1rem;display:flex;gap:1.5rem;align-items:center;z-index:100;box-shadow:0 -2px 8px rgba(0,0,0,.1);flex-wrap:wrap}
+.totals-bar .label{font-size:.75rem;color:#555;margin-bottom:1px}
+.totals-bar .val{font-size:.95rem;font-weight:700;color:#1a5276}
+.sticky-col-chip{
+  display:inline-flex;flex-direction:column;justify-content:center;
+  background:#f8fbfd;border:1px solid #d6eaf8;border-radius:999px;
+  padding:.35rem .75rem;min-height:46px
+}
+.sticky-col-chip .chip-label{
+  font-size:.72rem;color:#6c757d;line-height:1.1;white-space:nowrap
+}
+.sticky-col-chip .chip-value{
+  font-size:.88rem;font-weight:700;color:#1a5276;line-height:1.2;white-space:nowrap
+}
+/* ── Quill editor ── */
+.quill-wrapper{border:1px solid #dee2e6;border-radius:6px;overflow:hidden}
+.quill-wrapper .ql-toolbar{border-bottom:1px solid #dee2e6;background:#f8f9fa}
+.quill-wrapper .ql-container{min-height:180px;font-size:.9rem}
+/* ── col ── */
+.apply-col{width:92px;text-align:center}
+.apply-actions{display:flex;align-items:center;justify-content:center;gap:6px}
+.apply-btn{
+  width:28px;height:28px;border:1px solid #d0d7de;border-radius:6px;
+  background:#fff;color:#6c757d;display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .15s ease;
+}
+.apply-btn:hover{transform:translateY(-1px)}
+.apply-btn.free:hover,.apply-btn.free.active{border-color:#198754;background:#eaf7ef;color:#198754}
+.apply-btn.gift:hover,.apply-btn.gift.active{border-color:#fd7e14;background:#fff4e8;color:#fd7e14}
+.apply-chip{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:74px;padding:3px 8px;border-radius:999px;font-size:.73rem;font-weight:700
+}
+.apply-chip.free{background:#eaf7ef;color:#198754}
+.apply-chip.gift{background:#fff4e8;color:#fd7e14}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0"><i class="fa fa-file-invoice-dollar"></i> Tạo báo giá mới</h5>
+  <a href="{% url 'contract:quotation_list' %}" class="btn btn-sm btn-outline-secondary">← Danh sách</a>
+</div>
+
+<script>
+var CATALOG_JSON = {{ catalog_json|safe }};
+var DEFAULT_COLUMNS = {{ default_columns_json|safe }};
+var PKG_TEMPLATES = {{ package_templates_json|safe }};
+</script>
+
+<form method="post" action="{% url 'contract:save_quotation' %}" id="qform">
+{% csrf_token %}
+<input type="hidden" name="quotation_id" value="">
+
+<!-- ── Thông tin khách hàng ── -->
+<div class="qform-card">
+  <div class="row g-3">
+    <div class="col-12 col-md-5"><label class="form-label fw-semibold">Tên Công ty <span class="text-danger">*</span></label>
+      <input type="text" name="company_name" class="form-control" required placeholder="CÔNG TY CỔ PHẦN..."></div>
+    <div class="col-12 col-sm-6 col-md-3"><label class="form-label fw-semibold">Người liên hệ</label>
+      <input type="text" name="contact_name" class="form-control" placeholder="Anh/Chị..."></div>
+    <div class="col-12 col-sm-6 col-md-4"><label class="form-label fw-semibold">Địa chỉ</label>
+      <input type="text" name="company_address" class="form-control" placeholder="Địa chỉ công ty..."></div>
+    <div class="col-6 col-sm-3 col-md-2"><label class="form-label fw-semibold">Ưu đãi từ (người)</label>
+      <input type="number" name="pax_from" class="form-control" placeholder="VD: 50" min="1"></div>
+    <div class="col-6 col-sm-3 col-md-2"><label class="form-label fw-semibold">Hiệu lực đến</label>
+      <input type="date" name="valid_until" class="form-control" value="{{ default_valid_until }}"></div>
+    <div class="col-12 col-sm-6 col-md-8"><label class="form-label fw-semibold">Ghi chú</label>
+      <input type="text" name="note" class="form-control" placeholder="Ghi chú thêm..."></div>
+  </div>
+</div>
+
+<!-- ── Hoa hồng nội bộ ── -->
+<div class="qform-card">
+  <div class="row g-2 align-items-center">
+    <div class="col-12 col-lg-2">
+      <span class="fw-semibold text-muted" style="font-size:.82rem">🔒 Hoa hồng nội bộ<small class="fw-normal d-block">Không in trên báo giá</small></span>
+    </div>
+    <div class="col-12 col-md-5">
+      <div class="commission-row">
+        <label for="commission_sale_pct">💼 HC Sale</label>
+        <input type="number" id="commission_sale_pct" name="commission_sale_pct" class="commission-pct-input" min="0" max="100" step="0.1" placeholder="0" oninput="calcCommissions()">
+        <span class="text-muted" style="font-size:.78rem">%  →</span>
+        <span id="commission_sale_amount_display" class="commission-amount" style="color:#1a5276">—</span>
+        <input type="hidden" id="h_commission_sale_amount" name="commission_sale_amount" value="">
+      </div>
+    </div>
+    <div class="col-12 col-md-5">
+      <div class="commission-row">
+        <label for="commission_co_pct">🏢 HC Công ty</label>
+        <input type="number" id="commission_co_pct" name="commission_co_pct" class="commission-pct-input" min="0" max="100" step="0.1" placeholder="0" oninput="calcCommissions()">
+        <span class="text-muted" style="font-size:.78rem">%  →</span>
+        <span id="commission_co_amount_display" class="commission-amount" style="color:#00695c">—</span>
+        <input type="hidden" id="h_commission_co_amount" name="commission_co_amount" value="">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Danh sách gói khám ── -->
+<div id="packages-container"></div>
+
+<div class="mb-3 d-flex gap-2">
+  <button type="button" class="btn btn-outline-primary" onclick="addPackage()">
+    <i class="fa fa-plus-circle me-1"></i> Thêm gói khám
+  </button>
+  <input type="hidden" name="pkg_count" id="pkg_count_input" value="0">
+</div>
+
+<!-- ── sticky bar - tính giá tổng ── -->
+<div class="totals-bar" id="quotation-sticky-summary">
+  <div id="sticky-col-totals" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;flex:1 1 60%">
+    <div class="text-muted small">Chưa có dữ liệu giá</div>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:1.5rem;flex-wrap:wrap;align-items:center">
+    <div>
+      <div class="label">Tổng SL đã nhập</div>
+      <div class="val" id="sticky-total-pax">0</div>
+    </div>
+    <div>
+      <div class="label">Giá trị hợp đồng ước tính</div>
+      <div class="val" id="sticky-grand-total">0 ₫</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Nội dung bổ sung (Quill) ── -->
+<div class="qform-card">
+  <label class="form-label fw-semibold mb-2">
+    <i class="fa fa-edit me-1 text-muted"></i> Nội dung bổ sung (hiển thị sau bảng giá)
+    <small class="text-muted fw-normal">– có thể thêm văn bản, hình ảnh, quảng bá...</small>
+  </label>
+  <div class="quill-wrapper">
+    <div id="quill-editor"></div>
+  </div>
+  <input type="hidden" name="extra_content" id="extra_content_input">
+</div>
+
+<!-- ── Submit ── -->
+<div class="d-flex gap-2 mt-3 mb-4">
+  <button type="submit" class="btn btn-primary px-4" onclick="prepareSubmit()">
+    <i class="fa fa-save me-1"></i> Lưu báo giá
+  </button>
+  <a href="{% url 'contract:quotation_list' %}" class="btn btn-outline-secondary">Hủy</a>
+</div>
+</form>
+
+<!-- ── yêu cầu load trước _modal_* ── -->
+{% include "contract/staff/includes/_proposal_table_js.html" %}
+<!-- ── Modal: Chọn danh mục ── -->
+{% include "contract/staff/includes/_modal_catalog_picker.html" %}
+<!-- ── Modal: Chọn gói mẫu ── -->
+{% include "contract/staff/includes/_modal_package_picker.html" %}
+
+{% include "media_library/_modal_media_picker.html" %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
+<script>
+// ═════════════════════════════════════════════════════════════════════════════
+// CATALOG lookup
+// ═════════════════════════════════════════════════════════════════════════════
+var CATALOG_MAP = {};
+var GROUP_ORDER = [];
+(function(){
+  CATALOG_JSON.forEach(function(item, idx){
+    CATALOG_MAP[item.id] = item;
+    var g = item.group || 'Khác';
+    if(GROUP_ORDER.indexOf(g) === -1) GROUP_ORDER.push(g);
+  });
+})();
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Package state
+// ═════════════════════════════════════════════════════════════════════════════
+var pkgList = [];   // [{id, name, columns, items: {cid→lineData}}]
+var pkgSeq  = 0;
+var currentPkgId = null;  // pkg.id đang mở modal
+
+function addPackage() {
+  pkgSeq += 1;
+
+  var newPkg = {
+    id: 'pkg_' + pkgSeq,
+    name: 'Gói khám ' + pkgSeq,
+    columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS || [
+      { key: 'male', label: 'Nam', count: 0, discount_pct: 0 },
+      { key: 'female_single', label: 'Nữ độc thân', count: 0, discount_pct: 0 },
+      { key: 'female_family', label: 'Nữ có gia đình', count: 0, discount_pct: 0 }
+    ])),
+    items: {},
+    note: ''
+  };
+
+  pkgList.push(newPkg);
+  currentPkgId = newPkg.id;
+
+  renderAllPackages();
+}
+
+function removePackage(pid) {
+  if(pkgList.length <= 1){ alert('Phải có ít nhất 1 gói khám.'); return; }
+  if(!confirm('Xóa gói khám này?')) return;
+  pkgList = pkgList.filter(function(p){ return p.id !== pid; });
+  renderAllPackages();
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Column management
+// ═════════════════════════════════════════════════════════════════════════════
+var STD_KEYS = ['male','female_single','female_family'];
+
+function addCustomCol(pid) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; });
+  if(!pkg) return;
+  var newKey = 'cx_' + pkg.columns.length;
+  pkg.columns.push({key: newKey, label: 'Cột mới', count: 0, discount_pct: 0});
+  renderAllPackages();
+}
+
+function removeCol(pid, colKey) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; });
+  if(!pkg) return;
+  pkg.columns = pkg.columns.filter(function(c){ return c.key !== colKey; });
+  renderAllPackages();
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Item management
+// ═════════════════════════════════════════════════════════════════════════════
+function addItemToPkg(pid, catalogId, opts) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; });
+  if(!pkg) return;
+  var cid = parseInt(catalogId);
+  var cat = CATALOG_MAP[cid];
+  if(!cat && !opts) return;
+  if(pkg.items[cid]) return;
+
+  var inheritedPriceType = (
+    cat && (cat.price_type === 'free' || cat.price_type === 'gift')
+  ) ? cat.price_type : 'standard';
+
+  var defaultLine = {
+    catalog_id:  cid,
+    item_name:   (cat ? cat.name : ''),
+    description: (cat ? (cat.description||'') : ''),
+    group_name:  (cat ? (cat.group||'') : ''),
+    subgroup_name: (cat ? (cat.subgroup||'') : ''),
+    price_type:  inheritedPriceType,
+    note:        inheritedPriceType !== 'standard'
+                  ? ((cat && cat.note) || getAppliedLabel(inheritedPriceType))
+                  : '',
+    list_price:  (cat ? (cat.list_price||0) : 0),
+    for_m:  cat ? !!cat.for_male : true,
+    for_fs: cat ? !!cat.for_female_single : true,
+    for_ff: cat ? !!cat.for_female_family : true,
+    cat_m:  resolveBasePrice(cat, 'male'),
+    cat_fs: resolveBasePrice(cat, 'female_single'),
+    cat_ff: resolveBasePrice(cat, 'female_family'),
+    checked_male: true, checked_fs: true, checked_ff: true,
+    pct_male: 0, pct_fs: 0, pct_ff: 0,
+    extra_prices: {},
+  };
+
+  if(opts){ Object.assign(defaultLine, opts); }
+
+  if (
+    (defaultLine.price_type === 'free' || defaultLine.price_type === 'gift')
+    && !defaultLine.note
+  ) {
+    defaultLine.note = getAppliedLabel(defaultLine.price_type);
+  }
+  pkg.items[cid] = defaultLine;
+  renderPackageTable(pid);
+}
+
+function removeItemFromPkg(pid, cid) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; });
+  if(!pkg) return;
+  delete pkg.items[parseInt(cid)];
+  renderPackageTable(pid);
+}
+
+function isItemInPkg(pid, cid) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; });
+  return pkg ? !!pkg.items[parseInt(cid)] : false;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Render helpers
+// ═════════════════════════════════════════════════════════════════════════════
+function fmtNum(n){ return Math.round(n).toLocaleString('vi-VN'); }
+
+function getGlobalPct(pid, colKey) {
+  var el = document.getElementById('gpct_' + pid + '_' + colKey);
+  return el ? (parseFloat(el.value)||0) : 0;
+}
+
+function getAppliedLabel(priceType) {
+  if (priceType === 'free') return 'Miễn phí';
+  if (priceType === 'gift') return 'Tặng';
+  return '';
+}
+
+function resolveBasePrice(cat, key) {
+  if (!cat) return 0;
+
+  var applies = true;
+  if (key === 'male') applies = !!cat.for_male;
+  else if (key === 'female_single') applies = !!cat.for_female_single;
+  else if (key === 'female_family') applies = !!cat.for_female_family;
+
+  if (!applies) return 0;
+
+  var listPrice = parseFloat(cat.list_price || 0) || 0;
+  if (listPrice > 0) return listPrice;
+
+  if (key === 'male') return parseFloat(cat.price_male || 0) || 0;
+  if (key === 'female_single') return parseFloat(cat.price_female_single || 0) || 0;
+  if (key === 'female_family') return parseFloat(cat.price_female_family || 0) || 0;
+
+  return 0;
+}
+
+function setLineApplyType(pid, cid, newType) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; });
+  if (!pkg) return;
+  var line = pkg.items[parseInt(cid)];
+  if (!line) return;
+
+  if (line.price_type === newType) {
+    line.price_type = 'standard';
+    line.note = '';
+  } else {
+    line.price_type = newType;
+    line.note = getAppliedLabel(newType);
+  }
+
+  renderPackageTable(pid);
+}
+
+function recalcItem(pid, cid) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; });
+  if(!pkg) return;
+  var line = pkg.items[parseInt(cid)];
+  if(!line) return;
+
+  var appliedLabel = getAppliedLabel(line.price_type);
+
+  if (line.price_type === 'free' || line.price_type === 'gift') {
+    pkg.columns.forEach(function(col){
+      var key = col.key;
+
+      if (key === 'male') {
+        line.udai_male = 0;
+        line.price_male = 0;
+      } else if (key === 'female_single') {
+        line.udai_fs = 0;
+        line.price_fs = 0;
+      } else if (key === 'female_family') {
+        line.udai_ff = 0;
+        line.price_ff = 0;
+      } else {
+        if (!line.extra_prices) line.extra_prices = {};
+        line.extra_prices[key] = 0;
+        line.extra_prices[key + '_udai'] = 0;
+      }
+
+      var dispEl = document.getElementById('disp_' + pid + '_' + key + '_' + cid);
+      if (dispEl) {
+        dispEl.textContent = appliedLabel || 'Miễn phí';
+      }
+    });
+
+    updatePkgTotal(pid);
+    return;
+  }
+
+  pkg.columns.forEach(function(col){
+    var key = col.key;
+    var gPct = getGlobalPct(pid, key);
+    var rowPctEl = document.getElementById('pct_' + pid + '_' + key + '_' + cid);
+    var rowPct = rowPctEl ? (parseFloat(rowPctEl.value)||0) : 0;
+
+    // Sync lại vào state của line để render lại % giảm gía
+    if (key === 'male') {
+      line.pct_male = rowPct;
+    } else if (key === 'female_single') {
+      line.pct_fs = rowPct;
+    } else if (key === 'female_family') {
+      line.pct_ff = rowPct;
+    }
+
+    var catPrice;
+    if(key === 'male') catPrice = line.cat_m;
+    else if(key === 'female_single') catPrice = line.cat_fs;
+    else if(key === 'female_family') catPrice = line.cat_ff;
+    else catPrice = (line.extra_prices[key + '_base'] || line.extra_prices[key] || 0);
+
+    var udai  = Math.round(catPrice * (1 - gPct/100));
+    var final = Math.round(udai * (1 - rowPct/100));
+
+    if(key === 'male') {
+      line.udai_male = udai;
+      line.price_male = final;
+    } else if(key === 'female_single') {
+      line.udai_fs = udai;
+      line.price_fs = final;
+    } else if(key === 'female_family') {
+      line.udai_ff = udai;
+      line.price_ff = final;
+    } else {
+      if(!line.extra_prices) line.extra_prices = {};
+      line.extra_prices[key + '_udai'] = udai;
+      line.extra_prices[key] = final;
+    }
+
+    var dispEl = document.getElementById('disp_' + pid + '_' + key + '_' + cid);
+    if(dispEl) dispEl.textContent = final > 0 ? fmtNum(final) : '0';
+  });
+
+  updatePkgTotal(pid);
+}
+
+function recalcAllInPkg(pid) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; });
+  if(!pkg) return;
+  Object.keys(pkg.items).forEach(function(cid){ recalcItem(pid, parseInt(cid)); });
+}
+
+function updatePkgTotal(pid) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; });
+  if(!pkg) return;
+  var items = Object.values(pkg.items);
+  pkg.columns.forEach(function(col){
+    var key = col.key;
+    var total = 0;
+    items.forEach(function(line){
+      if(line.price_type !== 'standard') return;
+      if(key === 'male')          total += (line.price_male||0);
+      else if(key === 'female_single') total += (line.price_fs||0);
+      else if(key === 'female_family') total += (line.price_ff||0);
+      else total += ((line.extra_prices||{})[key]||0);
+    });
+        var el = document.getElementById('total_' + pid + '_' + key);
+    if(el) el.textContent = total > 0 ? fmtNum(total) + ' ₫' : '—';
+  });
+  renderStickySummary();
+}
+
+function renderStickySummary() {
+  var chipsEl = document.getElementById('sticky-col-totals');
+  var paxEl   = document.getElementById('sticky-total-pax');
+  var grandEl = document.getElementById('sticky-grand-total');
+  if (!chipsEl || !paxEl || !grandEl) return;
+
+  var chips = [];
+  var totalPax = 0;
+  var grandTotal = 0;
+
+  pkgList.forEach(function(pkg) {
+    pkg.columns.forEach(function(col) {
+      var key = col.key;
+      var count = parseInt(col.count) || 0;
+      var perPerson = 0;
+
+      Object.values(pkg.items || {}).forEach(function(line) {
+        if (line.price_type !== 'standard') return;
+
+        if (key === 'male') perPerson += (line.price_male || 0);
+        else if (key === 'female_single') perPerson += (line.price_fs || 0);
+        else if (key === 'female_family') perPerson += (line.price_ff || 0);
+        else perPerson += (((line.extra_prices || {})[key]) || 0);
+      });
+
+      if (perPerson > 0 || count > 0) {
+        chips.push({
+          label: (pkgList.length > 1 ? (pkg.name + ' • ') : '') + (col.label || key),
+          value: perPerson
+        });
+      }
+
+      if (count > 0 && perPerson > 0) {
+        totalPax += count;
+        grandTotal += perPerson * count;
+      }
+    });
+  });
+
+  chipsEl.innerHTML = chips.length
+    ? chips.map(function(chip) {
+        return '<div class="sticky-col-chip">'
+          + '<div class="chip-label">' + chip.label + '</div>'
+          + '<div class="chip-value">' + fmtNum(chip.value) + ' ₫/người</div>'
+          + '</div>';
+      }).join('')
+    : '<div class="text-muted small">Chưa có dữ liệu giá</div>';
+
+  paxEl.textContent = fmtNum(totalPax);
+  grandEl.textContent = fmtNum(grandTotal) + ' ₫';
+}
+// ═════════════════════════════════════════════════════════════════════════════
+// Render package table rows
+// ═════════════════════════════════════════════════════════════════════════════
+function renderPackageTable(pid) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; });
+  if(!pkg) return;
+  var tbody = document.getElementById('tbody_' + pid);
+  if(!tbody) return;
+
+  // Group items by group_name order (catalog order)
+  var items = Object.values(pkg.items);
+  items.sort(function(a,b){
+    var ga = GROUP_ORDER.indexOf(a.group_name), gb = GROUP_ORDER.indexOf(b.group_name);
+    if(ga !== gb) return ga - gb;
+    return (a.display_order||0) - (b.display_order||0);
+  });
+
+  var html = '';
+  var currentGroup = null, stt = 0;
+  items.forEach(function(line){
+    var cid = line.catalog_id;
+    var gn = line.group_name || 'Khác';
+    if(gn !== currentGroup){
+      currentGroup = gn;
+      html += '<tr class="group-hdr"><td colspan="' + (pkg.columns.length + 5) + '">' + gn + '</td></tr>';
+    }
+    stt++;
+    html += buildItemRow(pid, pkg, line, stt);
+  });
+  if(!html) {
+    var span = pkg.columns.length + 5;
+    html = '<tr><td colspan="' + span + '" class="catalog-empty-state"><i class="fa fa-table"></i><p>Chưa có dịch vụ. Dùng nút <strong>Chọn danh mục</strong> hoặc <strong>Gói mẫu</strong> để thêm.</p></td></tr>';
+  }
+  tbody.innerHTML = html;
+  updatePkgTotal(pid);
+  // trigger recalc to fill udai/prices after re-render
+  Object.keys(pkg.items).forEach(function(cid){ recalcItem(pid, parseInt(cid)); });
+}
+
+function buildItemRow(pid, pkg, line, stt) {
+  var cid = line.catalog_id;
+  var isFree = line.price_type === 'free';
+  var isGift = line.price_type === 'gift';
+  var appliedLabel = line.note || getAppliedLabel(line.price_type);
+  var html = '<tr class="svc-row">';
+  html += '<td class="stt-col text-center">' + stt + '</td>';
+  html += '<td><strong>' + (line.item_name||'') + '</strong>' + (line.description ? '<br><small class="text-muted">' + line.description + '</small>' : '') + '</td>';
+
+  var listP = line.list_price || line.cat_m || line.cat_fs || line.cat_ff || 0;
+  if(isFree) html += '<td class="text-center"><span class="apply-chip free">' + appliedLabel + '</span></td>';
+  else if(isGift) html += '<td class="text-center"><span class="apply-chip gift">' + appliedLabel + '</span></td>';
+  else html += '<td class="text-center niemyet-cell"><span class="niemyet-display">' + (listP > 0 ? fmtNum(listP) : '—') + '</span></td>';
+
+  pkg.columns.forEach(function(col){
+    var key = col.key;
+    if(isFree){
+      html += '<td class="text-center"><span class="apply-chip free">' + appliedLabel + '</span></td>';
+    } else if(isGift){
+      html += '<td class="text-center"><span class="apply-chip gift">' + appliedLabel + '</span></td>';
+    } else {
+      html += '<td class="text-center" style="white-space:nowrap">';
+      html += '<div><span id="disp_' + pid + '_' + key + '_' + cid + '" style="font-size:.82rem;font-weight:600;color:#1a5276">—</span></div>';
+      html += '<input type="number" id="pct_' + pid + '_' + key + '_' + cid + '" class="row-pct-input" min="0" max="100" step="0.5" placeholder="%" style="width:50px" value="' + (
+        key === 'male' ? (line.pct_male || 0)
+        : key === 'female_single' ? (line.pct_fs || 0)
+        : key === 'female_family' ? (line.pct_ff || 0)
+        : 0
+      ) + '" oninput="recalcItem(\'' + pid + '\',' + cid + ')">';
+      html += '</td>';
+    }
+  });
+
+  html += '<td class="apply-col">';
+  if (!isFree && !isGift) {
+    html += '<div class="apply-actions">';
+    html += '<button type="button" class="apply-btn free" title="Áp dụng Miễn phí" onclick="setLineApplyType(\'' + pid + '\',' + cid + ',\'free\')"><i class="fa fa-hand-holding-heart"></i></button>';
+    html += '<button type="button" class="apply-btn gift" title="Áp dụng Tặng" onclick="setLineApplyType(\'' + pid + '\',' + cid + ',\'gift\')"><i class="fa fa-gift"></i></button>';
+    html += '</div>';
+  } else {
+    html += '<div class="apply-actions">';
+    html += '<button type="button" class="apply-btn free ' + (isFree ? 'active' : '') + '" title="Miễn phí" onclick="setLineApplyType(\'' + pid + '\',' + cid + ',\'free\')"><i class="fa fa-hand-holding-heart"></i></button>';
+    html += '<button type="button" class="apply-btn gift ' + (isGift ? 'active' : '') + '" title="Tặng" onclick="setLineApplyType(\'' + pid + '\',' + cid + ',\'gift\')"><i class="fa fa-gift"></i></button>';
+    html += '</div>';
+  }
+  html += '</td>';
+
+  html += '<td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeItemFromPkg(\'' + pid + '\',' + cid + ')"><i class="fa fa-times"></i></button></td>';
+  html += '</tr>';
+  return html;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Render entire pkg-block DOM
+// ═════════════════════════════════════════════════════════════════════════════
+function renderAllPackages() {
+  var container = document.getElementById('packages-container');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  pkgList.forEach(function(pkg) {
+    container.appendChild(buildPkgBlock(pkg));
+  });
+
+  pkgList.forEach(function(pkg) {
+    renderPackageTable(pkg.id);
+  });
+
+  var countInput = document.getElementById('pkg_count_input');
+  if (countInput) countInput.value = pkgList.length;
+
+  renderStickySummary();
+  calcCommissions();
+}
+
+function buildPkgBlock(pkg) {
+  var pid = pkg.id;
+  var div = document.createElement('div');
+  div.className = 'pkg-block';
+  div.id = 'pkg-block-' + pid;
+
+  var numCols = pkg.columns.length;
+  var colHeaders = pkg.columns.map(function(col){
+    return '<th style="min-width:90px">'
+      + '<div><input type="text" class="form-control form-control-sm text-center mb-1" style="background:transparent;border-color:rgba(255,255,255,.5);color:#fff;font-size:.75rem;font-weight:700" value="' + col.label + '" oninput="updateColLabel(\'' + pid + '\',\'' + col.key + '\',this.value)" placeholder="Nhãn cột"></div>'
+      + '<div style="display:flex;align-items:center;gap:3px;justify-content:center">'
+      + '<span style="font-size:.7rem;opacity:.8">SL:</span>'
+      + '<input type="number" class="form-control form-control-sm text-center p-0" style="width:52px;background:transparent;border-color:rgba(255,255,255,.4);color:#fff;font-size:.75rem" value="' + (col.count||0) + '" min="0" oninput="updateColCount(\'' + pid + '\',\'' + col.key + '\',this.value)" placeholder="0">'
+      + '</div></th>';
+  }).join('');
+
+  var stdKeys = ['male','female_single','female_family'];
+  var removeColBtns = pkg.columns.map(function(col){
+    if(stdKeys.indexOf(col.key) >= 0) return '';  // không xóa cột chuẩn
+    return '<button type="button" class="btn btn-sm btn-outline-light py-0 px-1 ms-1" onclick="removeCol(\'' + pid + '\',\'' + col.key + '\')" title="Xóa cột"><i class="fa fa-times"></i></button>';
+  }).join('');
+
+  var globalPctInputs = pkg.columns.map(function(col){
+    return '<div class="discount-group">'
+      + '<label style="font-size:.75rem">' + col.label + '</label>'
+      + '<input type="number" id="gpct_' + pid + '_' + col.key + '" class="pct-input" min="0" max="100" step="0.5" value="' + (col.discount_pct||0) + '" oninput="updateColDiscount(\'' + pid + '\',\'' + col.key + '\',this.value);recalcAllInPkg(\'' + pid + '\')">'
+      + '<span style="font-size:.75rem;color:#aaa">%</span>'
+      + '</div>';
+  }).join('');
+
+  var totalsRow = '<tr style="background:#fff8e1"><td colspan="3" class="text-end fw-bold" style="font-size:.8rem">Giá ưu đãi / người:</td>'
+  + pkg.columns.map(function(col){ return '<td class="text-center fw-bold" style="font-size:.82rem;color:#1a5276" id="total_' + pid + '_' + col.key + '">—</td>'; }).join('') + '<td></td><td></td></tr>';
+
+  div.innerHTML = '<div class="pkg-header">'
+    + '<span style="font-size:.8rem;opacity:.8;white-space:nowrap">🎁 Gói:</span>'
+    + '<input type="text" class="pkg-name-input" value="' + pkg.name + '" placeholder="Tên gói khám..." oninput="updatePkgName(\'' + pid + '\',this.value)">'
+    + '<div class="ms-auto d-flex gap-2">'
+    + '<button type="button" class="btn btn-sm btn-light" onclick="openCatalogPickerForPkg(\'' + pid + '\')" title="Chọn danh mục"><i class="fa fa-list-check me-1"></i>Danh mục</button>'
+    + '<button type="button" class="btn btn-sm btn-warning" onclick="openPkgPickerForPkg(\'' + pid + '\')" title="Chọn gói mẫu"><i class="fa fa-box-open me-1"></i>Gói mẫu</button>'
+    + '<button type="button" class="btn btn-sm btn-outline-danger" onclick="clearPkgTable(\'' + pid + '\')" title="Xóa tất cả dịch vụ"><i class="fa fa-trash"></i></button>'
+    + removeColBtns
+    + '<button type="button" class="btn btn-sm btn-outline-light" onclick="addCustomCol(\'' + pid + '\')" title="Thêm cột đối tượng"><i class="fa fa-plus"></i> Cột</button>'
+    + '<button type="button" class="btn btn-sm btn-outline-light border-danger text-danger" onclick="removePackage(\'' + pid + '\')" title="Xóa gói này"><i class="fa fa-times-circle"></i></button>'
+    + '</div></div>'
+    + '<div class="discount-toolbar px-3 py-2" style="border-radius:0;border-left:none;border-right:none;border-top:none">'
+    + '<span class="dt-label">🏷 Giảm toàn cột (%):</span>'
+    + '<div class="discount-group"><label>Tất cả</label><input type="number" class="pct-input" min="0" max="100" step="0.5" oninput="applyGlobalAllPkg(\'' + pid + '\',this.value)"></div>'
+    + '<span style="border-left:1px solid #ddd;height:18px;margin:0 .5rem"></span>'
+    + globalPctInputs
+    + '</div>'
+    + '<div class="table-responsive"><table class="catalog-table" id="table_' + pid + '">'
+    + '<thead><tr><th class="stt-col">STT</th><th class="svc-col">TÊN DỊCH VỤ</th><th>GIÁ NIÊM YẾT</th>' 
+    + colHeaders 
+    + '<th class="apply-col">ÁP DỤNG</th><th></th></tr></thead>'
+    + '<tbody id="tbody_' + pid + '"></tbody>'
+    + '<tfoot>' + totalsRow + '</tfoot>'
+    + '</table></div>';
+
+  return div;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Column/pkg update helpers
+// ═════════════════════════════════════════════════════════════════════════════
+function updatePkgName(pid, val) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; }); if(pkg) pkg.name = val;
+}
+function updateColLabel(pid, key, val) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; }); if(!pkg) return;
+  var col = pkg.columns.find(function(c){ return c.key === key; }); if(col) col.label = val;
+}
+function updateColCount(pid, key, val) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; }); if(!pkg) return;
+  var col = pkg.columns.find(function(c){ return c.key === key; }); if(col) col.count = parseInt(val)||0;
+  renderStickySummary();
+  calcCommissions();
+}
+function updateColDiscount(pid, key, val) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; }); if(!pkg) return;
+  var col = pkg.columns.find(function(c){ return c.key === key; }); if(col) col.discount_pct = parseFloat(val)||0;
+}
+function applyGlobalAllPkg(pid, val) {
+  var pkg = pkgList.find(function(p){ return p.id === pid; }); if(!pkg) return;
+  pkg.columns.forEach(function(col){
+    col.discount_pct = parseFloat(val)||0;
+    var el = document.getElementById('gpct_' + pid + '_' + col.key); if(el) el.value = val;
+  });
+  recalcAllInPkg(pid);
+}
+function clearPkgTable(pid) {
+  if(!confirm('Xóa toàn bộ dịch vụ của gói này?')) return;
+  var pkg = pkgList.find(function(p){ return p.id === pid; }); if(!pkg) return;
+  pkg.items = {};
+  renderPackageTable(pid);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Modal integration
+// ═════════════════════════════════════════════════════════════════════════════
+function openCatalogPickerForPkg(pid) {
+  currentPkgId = pid;
+  var modal = document.getElementById('modalCatalogPicker');
+  if(modal) { var m = bootstrap.Modal.getOrCreateInstance(modal); m.show(); }
+  // syncTableToCp() được gọi tự động bởi show.bs.modal event trong modal
+}
+function openPkgPickerForPkg(pid) {
+  currentPkgId = pid;
+  var modal = document.getElementById('modalPackagePicker');
+  if(modal) { var m = bootstrap.Modal.getOrCreateInstance(modal); m.show(); }
+}
+
+// Called by catalog picker modal on confirm
+function applySelectedCatalogItems(selectedIds) {
+  if(!currentPkgId) return;
+  selectedIds.forEach(function(cid){ addItemToPkg(currentPkgId, cid); });
+}
+// Called by package picker modal on confirm
+function applyPackageTemplate(templateItems) {
+  if(!currentPkgId) return;
+  var pkg = pkgList.find(function(p){ return p.id === currentPkgId; });
+  if(!pkg) return;
+  pkg.items = {};  // clear
+  templateItems.forEach(function(cid){ addItemToPkg(currentPkgId, cid); });
+  renderPackageTable(currentPkgId);
+}
+
+function refreshCatalogPickerChecks() {
+  // Dùng .cp-row-check — class của modal mới (data-id thay vì data-cid)
+  document.querySelectorAll('.cp-row-check').forEach(function(cb){
+    var cid = parseInt(cb.dataset.id);
+    cb.checked = currentPkgId ? isItemInPkg(currentPkgId, cid) : false;
+  });
+  if(typeof cpUpdateBadges === 'function') cpUpdateBadges();
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Commission
+// ═════════════════════════════════════════════════════════════════════════════
+function calcCommissions() {
+  var grandTotal = 0;
+  pkgList.forEach(function(pkg){
+    pkg.columns.forEach(function(col){
+      var key = col.key;
+      var count = col.count || 0;
+      var items = Object.values(pkg.items);
+      var perPerson = 0;
+      items.forEach(function(line){
+        if(line.price_type !== 'standard') return;
+        if(key === 'male')           perPerson += (line.price_male||0);
+        else if(key === 'female_single') perPerson += (line.price_fs||0);
+        else if(key === 'female_family') perPerson += (line.price_ff||0);
+        else perPerson += ((line.extra_prices||{})[key]||0);
+      });
+      grandTotal += perPerson * count;
+    });
+  });
+  var salePct = parseFloat(document.getElementById('commission_sale_pct')?.value)||0;
+  var coPct   = parseFloat(document.getElementById('commission_co_pct')?.value)||0;
+  var saleAmt = Math.round(grandTotal * salePct / 100);
+  var coAmt   = Math.round(grandTotal * coPct   / 100);
+  var sdel = document.getElementById('commission_sale_amount_display');
+  var cdel = document.getElementById('commission_co_amount_display');
+  if(sdel) sdel.textContent = salePct > 0 ? fmtNum(saleAmt) + ' ₫' : '—';
+  if(cdel) cdel.textContent = coPct   > 0 ? fmtNum(coAmt)   + ' ₫' : '—';
+  var sh = document.getElementById('h_commission_sale_amount');
+  var ch = document.getElementById('h_commission_co_amount');
+  if(sh) sh.value = saleAmt;
+  if(ch) ch.value = coAmt;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Form serialization before submit
+// ═════════════════════════════════════════════════════════════════════════════
+function prepareSubmit() {
+  // Sync pkg_count
+  document.getElementById('pkg_count_input').value = pkgList.length;
+
+  // Remove all old pkg hidden inputs
+  document.querySelectorAll('.pkg-hidden-inputs').forEach(function(el){ el.remove(); });
+
+  var form = document.getElementById('qform');
+
+  pkgList.forEach(function(pkg, pi){
+    var prefix = 'pkg_' + pi + '_';
+    var container = document.createElement('div');
+    container.className = 'pkg-hidden-inputs';
+
+    function addHidden(name, val){
+      var inp = document.createElement('input');
+      inp.type = 'hidden'; inp.name = name; inp.value = val;
+      container.appendChild(inp);
+    }
+
+    addHidden(prefix + 'name', pkg.name);
+
+    // Sync column values from DOM before serializing
+    pkg.columns.forEach(function(col){
+      var labelEl = document.querySelector('#pkg-block-' + pkg.id + ' input[oninput*="updateColLabel"][oninput*="' + col.key + '"]');
+      // columns already updated via oninput handlers
+    });
+    addHidden(prefix + 'columns_json', JSON.stringify(pkg.columns));
+
+    var selectedIds = Object.keys(pkg.items).map(Number);
+    addHidden(prefix + 'selected_ids', JSON.stringify(selectedIds));
+
+    Object.values(pkg.items).forEach(function(line){
+      var cid = line.catalog_id;
+      addHidden(prefix + 'price_type_' + cid, line.price_type || 'standard');
+      addHidden(prefix + 'note_' + cid, line.note || '');
+      if(line.checked_male    !== false) addHidden(prefix + 'checked_male_' + cid, 'on');
+      if(line.checked_fs      !== false) addHidden(prefix + 'checked_fs_'   + cid, 'on');
+      if(line.checked_ff      !== false) addHidden(prefix + 'checked_ff_'   + cid, 'on');
+      addHidden(prefix + 'price_male_'          + cid, line.price_male || 0);
+      addHidden(prefix + 'price_female_single_' + cid, line.price_fs   || 0);
+      addHidden(prefix + 'price_female_family_' + cid, line.price_ff   || 0);
+      addHidden(prefix + 'udai_male_' + cid, line.udai_male || 0);
+      addHidden(prefix + 'udai_fs_'   + cid, line.udai_fs   || 0);
+      addHidden(prefix + 'udai_ff_'   + cid, line.udai_ff   || 0);
+
+      // Row pct from DOM
+      pkg.columns.forEach(function(col){
+        var key = col.key;
+        var pctEl = document.getElementById('pct_' + pkg.id + '_' + key + '_' + cid);
+        var pct = pctEl ? (parseFloat(pctEl.value)||0) : 0;
+        if(key === 'male')            addHidden(prefix + 'pct_male_' + cid, pct);
+        else if(key === 'female_single') addHidden(prefix + 'pct_fs_' + cid, pct);
+        else if(key === 'female_family') addHidden(prefix + 'pct_ff_' + cid, pct);
+      });
+
+      // Extra prices (custom cols)
+      if(line.extra_prices && Object.keys(line.extra_prices).length > 0){
+        addHidden(prefix + 'extra_' + cid, JSON.stringify(line.extra_prices));
+      }
+    });
+    form.appendChild(container);
+  });
+
+  // Quill → hidden input
+  if(window.quillEditor){
+    document.getElementById('extra_content_input').value = quillEditor.root.innerHTML;
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Quill init
+// ═════════════════════════════════════════════════════════════════════════════
+var quillEditor;
+
+document.addEventListener('DOMContentLoaded', function(){
+  quillEditor = new Quill('#quill-editor', {
+    theme: 'snow',
+    placeholder: 'Nhập nội dung bổ sung: giới thiệu phòng khám, cam kết chất lượng, hình ảnh...',
+    modules: {
+      toolbar: [
+        // Font & size
+        [{ font: [] }],
+        [{ size: ['small', false, 'large', 'huge'] }],
+
+        // Header
+        [{ header: [1, 2, 3, 4, 5, 6, false] }],
+
+        // Basic styles
+        ['bold', 'italic', 'underline', 'strike'],
+
+        // Color
+        [{ color: [] }, { background: [] }],
+
+        // Script (sub/super)
+        [{ script: 'sub' }, { script: 'super' }],
+
+        // List
+        [{ list: 'ordered' }, { list: 'bullet' }, { list: 'check' }],
+
+        // Indent
+        [{ indent: '-1' }, { indent: '+1' }],
+
+        // Align & direction
+        [{ align: [] }],
+        [{ direction: 'rtl' }],
+
+        // Block elements
+        ['blockquote', 'code-block'],
+
+        // Media
+        ['link', 'image', 'video'],
+
+        // Clean
+        ['clean']
+      ]
+    }
+  });
+
+  // ── Media Library integration ──────────────────────────────
+enableQuillImageUpload(quillEditor, {
+  uploadUrl: "{% url 'media_library:upload_quill_image' %}",
+  csrfToken: "{{ csrf_token }}"
+});
+enableQuillMediaPicker(quillEditor, {
+  listUrl:   "{% url 'media_library:list_json' %}",
+  uploadUrl: "{% url 'media_library:upload' %}",
+  csrfToken: "{{ csrf_token }}"
+});
+enableQuillImageEditor(quillEditor);
+
+    // Init: add first package
+  addPackage();
+  renderStickySummary();
+  calcCommissions();
+
+  enableQuillImageUpload(quillEditor, {
+    uploadUrl: "{% url 'media_library:upload_quill_image' %}",
+    csrfToken: "{{ csrf_token }}"
+});
+});
+</script>
+{% endblock %}

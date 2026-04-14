@@ -1,0 +1,66 @@
+{% load static %}
+<div class="topbar topbar-desktop">
+    <div class="topbar-left">
+      <img src="{% static 'img/logo_vmd_1x1.jpg' %}" alt="Vietmediclinic.com" class="topbar-logo">
+    </div>
+  <div class="topbar-center">
+    <div class="title_page">
+    {% if title_page %}
+        {{ title_page }}
+    {% endif %}
+    </div>
+  </div>
+    <div class="topbar-right">
+      <div class="topbar-account" id="topbar-account">
+        {% if patient %}
+        <span class="patient-name">{{ patient.ho_ten|default:"" }}</span>
+        {% endif %}
+        <button class="account-btn" id="account-menu-btn" type="button" aria-label="Tài khoản">
+            <i class="fa-solid fa-circle-user"></i>
+        </button>
+        <div class="account-menu" id="account-menu" hidden>
+          <a href="{% url 'authentication:patient_dashboard' %}">
+            Trang chủ
+          </a>
+          {% if patient.ma_bn %}
+          <a href="{% url 'account:patient_profile' %}">
+              Tài khoản
+          </a>
+          {% endif %}
+          <a href="{% url 'authentication:patient_logout' %}">Đăng xuất</a>
+        </div>
+      </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function initTopbarDropdown() {
+    var btn  = document.getElementById('account-menu-btn');
+    var menu = document.getElementById('account-menu');
+    if (!btn || !menu) return;
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      menu.hidden = !menu.hidden;
+    });
+
+    document.addEventListener('click', function (e) {
+      var wrapper = document.getElementById('topbar-account');
+      if (wrapper && !wrapper.contains(e.target)) {
+        menu.hidden = true;
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') menu.hidden = true;
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTopbarDropdown);
+  } else {
+    initTopbarDropdown();
+  }
+})();
+</script>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Kết quả báo cáo</title>
+    <style>
+        table {border-collapse: collapse; width: 90%; margin: 16px auto;}
+        th, td {border: 1px solid #ccc; padding: 8px;}
+        th {background: #eee;}
+        a {color: #0064d2;}
+    </style>
+</head>
+<body>
+    <h2 style="text-align:center">Danh sách báo cáo của bệnh nhân</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Loại phiếu</th>
+                <th>Tên dịch vụ</th>
+                <th>File kết quả</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in result_list %}
+            <tr>
+                <td>{{ row.stt }}</td>
+                <td>{{ row.report_name }}</td>
+                <td>{{ row.service_name|default:"-" }}</td>
+                <td>
+                    <a href="{{ row.url }}" target="_blank">Xem file PDF</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" style="text-align:center;">Không có dữ liệu!</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

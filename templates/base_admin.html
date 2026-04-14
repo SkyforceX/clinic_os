@@ -1,0 +1,290 @@
+{% load static %}
+{% load user_tags %}
+{% load notifications_tags %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>{% block title %}Vietmedi Healthcare Center{% endblock %}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="{% static 'fontawesome-7.2.0/css/all.min.css' %}">
+<link rel="stylesheet" href="{% static 'css/global.css' %}">
+<link rel="stylesheet" href="{% static 'plugins/flatpickr/flatpickr.min.css' %}">
+
+<style>
+:root {
+  --sidebar-width: 288px;
+  --sidebar-collapsed-width: 82px;
+  --topbar-height: 64px;
+  --main-bg: #f8fafc;
+  --content-transition: margin-left .24s ease, width .24s ease;
+}
+
+/* ── Base layout ───────────────────────────────────────────────────────── */
+html, body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--main-bg);
+  overflow-x: hidden;
+}
+
+.main-content {
+  min-height: 100vh;
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  max-width: calc(100% - var(--sidebar-width));
+  min-width: 0;
+  padding-top: 0;
+  transition: var(--content-transition);
+}
+
+@media (max-width: 991.98px) {
+  .main-content {
+    margin-left: 0;
+    padding-top: var(--topbar-height);
+  }
+}
+
+body.sidebar-collapsed .main-content {
+  margin-left: var(--sidebar-collapsed-width);
+}
+
+.wrapper.app-shell-wrapper {
+  padding: 20px 20px 28px;
+}
+
+/* Card/page breathing room */
+@media (min-width: 1200px) {
+  .wrapper.app-shell-wrapper {
+    padding: 24px 24px 32px;
+  }
+}
+
+/* ── Notification: bell badge ──────────────────────────────────────────── */
+.notif-bell-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+  transition: background .15s;
+}
+.notif-bell-btn:hover {
+  background: rgba(0,0,0,.06);
+  color: inherit;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  background: #e24b4a;
+  color: #fff;
+  border-radius: 9px;
+  font-size: .65rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 2px solid #fff;
+  pointer-events: none;
+}
+
+/* ── Notification: toast container ─────────────────────────────────────── */
+#notif-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.clinicos-toast {
+  pointer-events: all;
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.13);
+  padding: 14px 16px 14px 14px;
+  min-width: 280px;
+  max-width: 380px;
+  cursor: pointer;
+  animation: notifSlideIn .25s ease;
+  border-left: 4px solid #378add;
+  font-size: .86rem;
+}
+
+.clinicos-toast.level-success { border-left-color: #1d9e75; }
+.clinicos-toast.level-danger  { border-left-color: #e24b4a; }
+.clinicos-toast.level-warning { border-left-color: #ba7517; }
+.clinicos-toast.level-info    { border-left-color: #378add; }
+
+.clinicos-toast-title {
+  font-weight: 500;
+  margin-bottom: 3px;
+  padding-right: 20px;
+  color: #1a1a1a;
+}
+
+.clinicos-toast-body {
+  color: #555;
+  white-space: pre-line;
+  margin-bottom: 4px;
+  font-size: .82rem;
+}
+
+.clinicos-toast-time {
+  font-size: .72rem;
+  color: #aaa;
+}
+
+.clinicos-toast-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #bbb;
+  font-size: 17px;
+  line-height: 1;
+  padding: 0;
+}
+
+.clinicos-toast-close:hover {
+  color: #555;
+}
+
+/* ── Notification: animations ─────────────────────────────────────────── */
+@keyframes notifSlideIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes notifFadeOut {
+  to { opacity: 0; transform: translateX(40px); }
+}
+
+/* ── Utility polish ───────────────────────────────────────────────────── */
+.alert.shadow-sm {
+  border: 0;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .main-content {
+    margin-left: 0;
+    padding-top: var(--topbar-height);
+  }
+
+  body.sidebar-collapsed .main-content {
+    margin-left: 0;
+  }
+
+  .wrapper.app-shell-wrapper {
+    padding: 16px 14px 24px;
+  }
+
+  #notif-toast-container {
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+    align-items: stretch;
+  }
+
+  .clinicos-toast {
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
+</style>
+
+{% block extra_head %}{% endblock %}
+</head>
+<body data-theme="auto">
+
+{% include "includes/staff/topbar_admin.html" %}
+{% include "includes/staff/sidebar.html" %}
+
+<div id="notif-toast-container"></div>
+
+<div class="main-content" id="main-content">
+  <div class="wrapper app-shell-wrapper">
+    {% if messages %}
+      <div class="my-3">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'plugins/flatpickr/flatpickr.js' %}"></script>
+<script src="{% static 'plugins/flatpickr/locale_vn.js' %}"></script>
+<script src="{% static 'plugins/flatpickr/flatpicker_init.js' %}"></script>
+<script src="{% static 'js/global.js' %}"></script>
+<script src="{% static 'authentication/js/scripts.js' %}"></script>
+
+{% if request.user.is_authenticated %}
+{% unread_notification_count as notif_cnt %}
+<script>
+  window.__NOTIF_UNREAD_COUNT__ = {{ notif_cnt|default:0 }};
+</script>
+<script src="{% static 'notifications/js/notification.js' %}"></script>
+{% endif %}
+
+<script>
+  (function () {
+    const collapsedKey = "clinic_sidebar_collapsed";
+
+    function isMobile() {
+      return window.innerWidth <= 991.98;
+    }
+
+    function applySavedSidebarState() {
+      if (isMobile()) {
+        document.body.classList.remove("sidebar-collapsed");
+        return;
+      }
+
+      const saved = localStorage.getItem(collapsedKey);
+      if (saved === "1") {
+        document.body.classList.add("sidebar-collapsed");
+      } else {
+        document.body.classList.remove("sidebar-collapsed");
+      }
+    }
+
+    applySavedSidebarState();
+    window.addEventListener("resize", applySavedSidebarState);
+  })();
+</script>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

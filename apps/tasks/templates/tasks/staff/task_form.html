@@ -1,0 +1,106 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}Giao việc mới{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h5 class="mb-0">
+    <i class="fa fa-plus-circle me-2" style="color:#1a5276"></i>Giao công việc mới
+  </h5>
+  <a href="{% url 'tasks:board' %}" class="btn btn-sm btn-outline-secondary">← Bảng công việc</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <form method="post">
+          {% csrf_token %}
+          <div class="row g-3">
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Tiêu đề <span class="text-danger">*</span></label>
+              <input type="text" name="title" class="form-control" required
+                     placeholder="Mô tả ngắn gọn công việc cần làm…" autofocus>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Mô tả chi tiết</label>
+              <textarea name="description" class="form-control" rows="4"
+                        placeholder="Yêu cầu, hướng dẫn, tài liệu tham khảo…"></textarea>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Người nhận việc</label>
+              <select name="assignee_id" class="form-select">
+                <option value="">— Chưa giao —</option>
+                {% for u in assignable_users %}
+                <option value="{{ u.id }}">
+                  {{ u.get_full_name|default:u.username }}
+                  {% if u.employee_profile.department %}({{ u.employee_profile.department.name }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Độ ưu tiên</label>
+              <select name="priority" class="form-select">
+                {% for v,l in priorities %}
+                <option value="{{ v }}" {% if v == "MEDIUM" %}selected{% endif %}>{{ l }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-6 col-md-4">
+              <label class="form-label fw-semibold">Ngày bắt đầu</label>
+              <input type="date" name="start_date" class="form-control"
+                     value="{{ today|date:'Y-m-d' }}">
+            </div>
+
+            <div class="col-6 col-md-4">
+              <label class="form-label fw-semibold">Hạn hoàn thành</label>
+              <input type="date" name="due_date" class="form-control">
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label fw-semibold">Giờ ước tính</label>
+              <input type="number" name="estimated_hours" class="form-control"
+                     min="0" step="0.5" placeholder="VD: 2.5">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Tags</label>
+              <input type="text" name="tags" class="form-control"
+                     placeholder="báo giá, hợp đồng, gấp (ngăn cách bằng dấu phẩy)">
+            </div>
+
+          </div>
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">
+              <i class="fa fa-paper-plane me-1"></i>Giao việc
+            </button>
+            <a href="{% url 'tasks:board' %}" class="btn btn-outline-secondary">Hủy</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="fw-semibold mb-2" style="color:#1a5276;font-size:.85rem">
+          <i class="fa fa-circle-info me-1"></i>Hướng dẫn phân quyền
+        </div>
+        <div style="font-size:.8rem;color:#495057;line-height:1.7">
+          <div><i class="fa fa-crown me-1" style="color:#ffc107"></i><strong>Executives / HR Admins:</strong><br>Giao việc cho bất kỳ nhân viên nào.</div>
+          <hr class="my-2">
+          <div><i class="fa fa-user-tie me-1" style="color:#2e86c1"></i><strong>Trưởng phòng:</strong><br>Giao việc cho nhân viên trực thuộc và cho chính mình.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

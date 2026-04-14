@@ -1,0 +1,62 @@
+{% extends "base_admin.html" %}
+{% load hrm_tags %}
+{% block title %}Lịch sử thay đổi lịch làm việc{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-0 fw-bold">Lịch sử thay đổi lịch làm việc</h4>
+    <p class="text-muted small mb-0">300 thay đổi gần nhất được ghi lại</p>
+  </div>
+  <a href="{% url 'hrm:work_schedule_month' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Về lịch tháng
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th>Nhân viên</th>
+          <th>Ngày</th>
+          <th>Ca cũ</th>
+          <th>Ca mới</th>
+          <th>Người sửa</th>
+          <th>Thời gian</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="fw-semibold">{{ log.work_schedule.employee.full_name }}</td>
+          <td>{{ log.work_schedule.schedule_date|date:"d/m/Y" }}</td>
+          <td>
+            {% if log.old_shift %}
+            {% with d=shift_display|dict_get_key:log.old_shift %}
+            <span class="badge shift-badge shift-{{ log.old_shift|lower }}" style="font-size:12px">{{ log.old_shift }}</span>
+            {{ d.title }}
+            {% endwith %}
+            {% else %}<span class="text-muted fst-italic">—</span>{% endif %}
+          </td>
+          <td>
+            {% if log.new_shift %}
+            {% with d=shift_display|dict_get_key:log.new_shift %}
+            <span class="badge shift-badge shift-{{ log.new_shift|lower }}" style="font-size:12px">{{ log.new_shift }}</span>
+            {{ d.title }}
+            {% endwith %}
+            {% else %}<span class="text-muted fst-italic">Xóa ca</span>{% endif %}
+          </td>
+          <td>{{ log.actor.get_full_name|default:log.actor.username|default:"—" }}</td>
+          <td class="text-muted">{{ log.created_at|date:"d/m/Y H:i" }}</td>
+          <td class="text-muted font-monospace" style="font-size:11px">{{ log.ip_address|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Chưa có thay đổi nào.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

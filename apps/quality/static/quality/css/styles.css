@@ -1,0 +1,476 @@
+/* ==========================
+   Quality module – global
+   ========================== */
+
+:root {
+  --quality-primary: #0d6efd;
+  --quality-primary-soft: rgba(13, 110, 253, 0.08);
+  --quality-primary-dark: #0a58ca;
+  --quality-border: #e5e7eb;
+  --quality-muted: #6c757d;
+  --quality-bg-soft: #f9fafb;
+}
+a, a:hover, a:focus {
+  text-decoration: none !important;
+}
+/* Layout chung cho các trang quality */
+.quality-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 0;
+}
+
+/* Headline và mô tả */
+.quality-page-header h3,
+.outpatient-audit-form h3,
+.outpatient-audit-list h3 {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.quality-page-header p,
+.outpatient-audit-form p.small,
+.outpatient-audit-list p.small {
+  color: var(--quality-muted);
+}
+
+/* Card nhẹ, cân bằng với Bootstrap */
+.quality-card,
+.outpatient-audit-form .card,
+.outpatient-audit-list .card {
+  border-radius: 0.7rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+.outpatient-audit-form .table-form {
+    min-width: 1024px;
+    width: 100%;
+}
+.outpatient-audit-form .table-form thead {
+    height: 40px;
+}
+.outpatient-audit-form .table-form tr {
+    height: 40px;
+}
+/* Header card section (I, II, III...) */
+.outpatient-audit-form .card-header {
+  font-weight: 550;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #2f3e4f;
+  background: #d9e2ec;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* Body form */
+.outpatient-audit-form .card-body {
+  background-color: #ffffff;
+}
+
+/* Nhỏ lại khoảng cách để form không "quá to" */
+.outpatient-audit-form .card-body .row.g-3 > [class*="col-"] {
+  margin-bottom: 0.2rem;
+}
+
+.outpatient-audit-form .form-label {
+  font-weight: 500;
+  font-size: 0.87rem;
+  margin-bottom: 0.15rem;
+}
+
+/* Input text/date gọn gàng */
+.outpatient-audit-form input[type="text"],
+.outpatient-audit-form input[type="date"],
+.outpatient-audit-form textarea,
+.outpatient-audit-form select {
+  font-size: 0.88rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.45rem;
+}
+
+.quality-hint {
+  padding: 6px 10px !important;       /* Thu nhỏ padding */
+  font-size: 0.78rem !important;      /* Nhỏ hơn 'small' */
+  line-height: 1.3;
+  border-radius: 6px;
+  border: 1px dashed #d0d7de !important;  /* Viền nhẹ hơn */
+  background-color: #fafafa !important;   /* Nhạt hơn alert-light */
+  margin-bottom: 0.75rem !important;      /* Ít chiếm không gian */
+}
+/* ==========================
+   Hàng câu hỏi checklist
+   ========================== */
+
+.outpatient-audit-form .audit-question-row {
+  padding: 0.45rem 0;
+  border-bottom: 1px dashed var(--quality-border);
+}
+
+.outpatient-audit-form .audit-question-row:last-child {
+  border-bottom: none;
+}
+
+.outpatient-audit-form .audit-question-row .form-label {
+  margin-bottom: 0;
+  font-weight: 500;
+}
+
+/* Desktop căn trái câu hỏi, phải là radio */
+@media (min-width: 768px) {
+  .outpatient-audit-form .audit-question-row {
+    align-items: center;
+  }
+}
+
+/* Mobile: stack dọc cho dễ đọc */
+@media (max-width: 767.98px) {
+  .outpatient-audit-form .audit-question-row {
+    padding: 0.6rem 0;
+  }
+}
+
+/* ==========================
+   Radio group dạng "pill"
+   ========================== */
+
+.outpatient-audit-form .audit-radio-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+/* Ẩn radio gốc, chỉ giữ lại label */
+.outpatient-audit-form .audit-radio-group input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Label pill */
+.outpatient-audit-form .audit-radio-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid #d0d7de;
+  background-color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* Hover nhẹ */
+.outpatient-audit-form .audit-radio-group label:hover {
+  border-color: var(--quality-primary);
+  background-color: rgba(13, 110, 253, 0.03);
+}
+
+/* Label đang được chọn – dùng :has (Chrome, Edge, Firefox mới) */
+.outpatient-audit-form .audit-radio-group label:has(input[type="radio"]:checked) {
+  background-color: var(--quality-primary-soft);
+  border-color: var(--quality-primary);
+  color: var(--quality-primary-dark);
+  box-shadow: 0 0 0 1px rgba(13, 110, 253, 0.12);
+}
+
+/* Giảm khoảng cách ul/li mặc định nếu Bootstrap override */
+.outpatient-audit-form .audit-radio-group li {
+  margin: 0;
+}
+
+/* ==========================
+   Nhận xét chung
+   ========================== */
+
+.outpatient-audit-form textarea {
+  resize: vertical;
+}
+
+.outpatient-audit-form .card:last-of-type textarea {
+  font-size: 0.88rem;
+}
+
+/* ==========================
+   Nút hành động form
+   ========================== */
+
+.outpatient-audit-form .form-actions,
+.outpatient-audit-list .list-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+}
+
+@media (max-width: 575.98px) {
+  .outpatient-audit-form .form-actions,
+  .outpatient-audit-list .list-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .outpatient-audit-form .form-actions .btn,
+  .outpatient-audit-list .list-actions .btn {
+    width: 100%;
+  }
+}
+
+/* ==========================
+   Alert hướng dẫn
+   ========================== */
+
+.outpatient-audit-form .alert,
+.outpatient-audit-list .alert {
+  border-radius: 0.6rem;
+  border-style: dashed;
+}
+
+/* ==========================
+   Danh sách bảng kiểm tra
+   ========================== */
+
+.outpatient-audit-list .card-body {
+  padding: 0 6px;
+}
+
+.outpatient-audit-list .table {
+  margin-bottom: 0;
+  font-size: 0.86rem;
+}
+
+.outpatient-audit-list .table thead th {
+  font-weight: 600;
+  color: #4b5563;
+  border-bottom-width: 1px;
+  border-top: none;
+    padding: 0 6px;
+  background-color: #f9fafb;
+}
+
+.outpatient-audit-list .table tbody tr td {
+  vertical-align: middle;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+/* Badge mã BN */
+.outpatient-audit-list .badge {
+  font-weight: 500;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+}
+
+/* Hàng không có dữ liệu */
+.outpatient-audit-list td .text-muted {
+  font-size: 0.78rem;
+}
+
+/* Filter bar */
+.outpatient-audit-list .card.filter-card {
+  border-radius: 0.7rem;
+  border-style: dashed;
+  background-color: var(--quality-bg-soft);
+}
+
+.outpatient-audit-list .filter-card .form-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--quality-muted);
+}
+
+.outpatient-audit-list .filter-card input[type="text"],
+.outpatient-audit-list .filter-card input[type="date"] {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 0.45rem;
+}
+
+/* Pagination nhỏ gọn */
+.outpatient-audit-list .pagination {
+  margin-top: 0.75rem;
+}
+
+.outpatient-audit-list .pagination .page-link {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+}
+
+/* ==========================
+   Dùng chung cho nhiều form quality
+   ========================== */
+
+.quality-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 999px;
+  background-color: var(--quality-bg-soft);
+  color: #4b5563;
+}
+
+/* Ví dụ dùng cho severity trong IncidentReport sau này */
+.quality-severity-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.quality-severity-badge--minor {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.quality-severity-badge--moderate {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.quality-severity-badge--severe {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.quality-severity-badge--near-miss {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+/* Badge hiển thị % điểm hồ sơ */
+.quality-score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #047857;
+}
+
+/* Nếu muốn cảnh báo khi điểm thấp, có thể dùng thêm class theo ngưỡng */
+.quality-score-badge--low {
+  background-color: rgba(248, 113, 113, 0.15);
+  color: #b91c1c;
+}
+
+.quality-col-patient {
+  min-width: 150px;
+  width: 190px;
+  white-space: nowrap;
+}
+
+.quality-col-patient div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* ==========================
+   Responsive tweaks
+   ========================== */
+
+/* Thu nhỏ form padding trên mobile */
+@media (max-width: 575.98px) {
+  .outpatient-audit-form .card-body {
+    padding: 0.9rem 0.9rem;
+  }
+
+  .outpatient-audit-list .card-body {
+    padding: 0.4rem;
+  }
+
+  .outpatient-audit-list .table-responsive {
+    border-radius: 0.6rem;
+  }
+}
+.overall-comment-card .card-header {
+    background: #d9e2ec; /* hoặc màu bạn muốn */
+}
+
+.overall-comment-card textarea {
+    min-height: 80px;
+}
+
+/* Dropzone đính kèm */
+.incident-dropzone {
+    border: 1px dashed #cbd5f5;
+    border-radius: 6px;
+    padding: 10px 12px;
+    background: #f9fafb;
+    cursor: pointer;
+}
+
+.incident-dropzone:hover {
+    background: #f3f4f6;
+}
+
+.incident-dropzone p {
+    margin-bottom: 8px;
+}
+
+/* Hide default file input border nếu muốn */
+.incident-file-input {
+    cursor: pointer;
+}
+
+/* Preview ảnh mới (chưa lưu) */
+.incident-previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.incident-previews .preview-item {
+    width: 80px;
+    height: 80px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    position: relative;
+}
+
+.incident-previews .preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Preview ảnh cũ đã lưu */
+.incident-existing-previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.incident-existing-item {
+    width: 80px;
+    height: 80px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+.incident-existing-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}

@@ -1,0 +1,271 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}Yêu cầu IT{% endblock %}
+
+{% block extra_head %}
+<style>
+.ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.filter-bar select,
+.filter-bar input[type="text"] {
+  font-size: .82rem;
+  border-radius: 7px;
+  border: 1px solid #dee2e6;
+  padding: 5px 10px;
+  background: #fff;
+  color: #343a40;
+  height: 34px;
+}
+.filter-bar select:focus,
+.filter-bar input[type="text"]:focus {
+  outline: none;
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 2px rgba(13,110,253,.15);
+}
+.filter-bar label {
+  font-size: .75rem;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+/* ── Ticket card ── */
+.ticket-item {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  transition: box-shadow .15s, transform .1s;
+  text-decoration: none;
+  color: inherit;
+}
+.ticket-item:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.09);
+  transform: translateY(-1px);
+  color: inherit;
+}
+.ticket-item.is-closed {
+  opacity: .68;
+  background: #f8f9fa;
+}
+.ticket-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.ticket-body { flex: 1; min-width: 0; }
+.ticket-subject {
+  font-size: .9rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.ticket-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: .74rem;
+  color: #6c757d;
+}
+.ticket-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 110px;
+}
+
+/* ── Status badges ── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: .7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status-OPEN            { background: #cce5ff; color: #004085; }
+.status-IN_PROGRESS     { background: #fff3cd; color: #856404; }
+.status-PENDING_CONFIRM { background: #d4edda; color: #155724; }
+.status-CLOSED          { background: #e9ecef; color: #495057; }
+
+/* ── Priority badge ── */
+.prio { display:inline-block; padding:1px 7px; border-radius:8px; font-size:.67rem; font-weight:700; white-space:nowrap; }
+.prio-LOW    { background:#e9ecef; color:#495057; }
+.prio-MEDIUM { background:#cce5ff; color:#004085; }
+.prio-HIGH   { background:#fff3cd; color:#856404; }
+.prio-URGENT { background:#f8d7da; color:#721c24; }
+
+/* Category icon mapping */
+.cat-icon { font-size: 1.1rem; }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #adb5bd;
+}
+.empty-state i { font-size: 3rem; display: block; margin-bottom: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ticket-header">
+  <div>
+    <h5 class="mb-0" style="font-size:1.05rem;font-weight:700">
+      <i class="fa fa-headset me-2" style="color:#0d6efd"></i>
+      Yêu cầu IT
+      {% if open_count %}
+        <span class="badge bg-danger ms-1" style="font-size:.65rem">{{ open_count }}</span>
+      {% endif %}
+    </h5>
+    <div style="font-size:.75rem;color:#6c757d;margin-top:2px">
+      {% if view_all %}Tổng hợp tất cả ticket gửi về IT{% else %}Các yêu cầu bạn đã gửi{% endif %}
+    </div>
+  </div>
+  {% if can_create %}
+  <a href="{% url 'helpdesk:create' %}" class="btn btn-sm btn-primary">
+    <i class="fa fa-plus me-1"></i> Gửi yêu cầu mới
+  </a>
+  {% endif %}
+</div>
+
+<!-- ── Filter bar ── -->
+<form method="get" class="filter-bar" id="filterForm">
+  <label>Tìm:</label>
+  <input type="text" name="q" value="{{ filters.search|default:'' }}"
+         placeholder="Tiêu đề..." style="width:180px"
+         onchange="this.form.submit()">
+
+  <label>Trạng thái:</label>
+  <select name="status" onchange="this.form.submit()">
+    <option value="">Tất cả</option>
+    {% for val, label in statuses %}
+    <option value="{{ val }}" {% if filters.status == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+
+  <label>Ưu tiên:</label>
+  <select name="priority" onchange="this.form.submit()">
+    <option value="">Tất cả</option>
+    {% for val, label in priorities %}
+    <option value="{{ val }}" {% if filters.priority == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+
+  <label>Loại:</label>
+  <select name="category" onchange="this.form.submit()">
+    <option value="">Tất cả</option>
+    {% for val, label in categories %}
+    <option value="{{ val }}" {% if filters.category == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+
+  {% if filters.status or filters.priority or filters.category or filters.search %}
+  <a href="{% url 'helpdesk:list' %}" class="btn btn-sm btn-outline-secondary ms-auto">
+    <i class="fa fa-times me-1"></i>Xóa lọc
+  </a>
+  {% endif %}
+</form>
+
+<!-- ── Ticket list ── -->
+{% if tickets %}
+  {% for ticket in tickets %}
+  {% with cat=ticket.category %}
+  <a href="{% url 'helpdesk:detail' ticket_id=ticket.pk %}"
+     class="ticket-item {% if ticket.is_closed %}is-closed{% endif %}">
+
+    <!-- Icon theo category -->
+    <div class="ticket-icon
+      {% if cat == 'DATA_CORRECTION' %}bg-primary bg-opacity-10
+      {% elif cat == 'CATALOG_CHANGE' %}bg-success bg-opacity-10
+      {% elif cat == 'UI_CHANGE' %}bg-info bg-opacity-10
+      {% elif cat == 'SYSTEM_BUG' %}bg-danger bg-opacity-10
+      {% elif cat == 'PERMISSION' %}bg-warning bg-opacity-10
+      {% elif cat == 'REPORT' %}bg-secondary bg-opacity-10
+      {% else %}bg-light{% endif %}">
+      {% if cat == 'DATA_CORRECTION' %}🗂️
+      {% elif cat == 'CATALOG_CHANGE' %}💰
+      {% elif cat == 'UI_CHANGE' %}🎨
+      {% elif cat == 'SYSTEM_BUG' %}🐛
+      {% elif cat == 'PERMISSION' %}🔑
+      {% elif cat == 'REPORT' %}📊
+      {% else %}📋{% endif %}
+    </div>
+
+    <div class="ticket-body">
+      <div class="ticket-subject">#{{ ticket.pk }} – {{ ticket.subject }}</div>
+      <div class="ticket-meta">
+        <span>{{ ticket.category_label }}</span>
+        <span>·</span>
+        {% if view_all %}
+        <span><i class="fa fa-user fa-xs me-1"></i>{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</span>
+        <span>·</span>
+        {% endif %}
+        <span><i class="fa fa-clock fa-xs me-1"></i>{{ ticket.created_at|date:"d/m/Y H:i" }}</span>
+        {% if ticket.assigned_to %}
+        <span>·</span>
+        <span><i class="fa fa-user-cog fa-xs me-1"></i>{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="ticket-side">
+      <span class="status-badge status-{{ ticket.status }}">
+        {% if ticket.status == 'OPEN' %}<i class="fa fa-circle-dot"></i>
+        {% elif ticket.status == 'IN_PROGRESS' %}<i class="fa fa-spinner"></i>
+        {% elif ticket.status == 'PENDING_CONFIRM' %}<i class="fa fa-hourglass-half"></i>
+        {% else %}<i class="fa fa-check-circle"></i>{% endif %}
+        {{ ticket.status_label }}
+      </span>
+      <span class="prio prio-{{ ticket.priority }}">{{ ticket.priority_label }}</span>
+    </div>
+  </a>
+  {% endwith %}
+  {% endfor %}
+{% else %}
+  <div class="empty-state">
+    <i class="fa fa-inbox"></i>
+    <div style="font-size:1rem;font-weight:600;color:#6c757d">Không có ticket nào</div>
+    {% if can_create %}
+    <div style="margin-top:12px">
+      <a href="{% url 'helpdesk:create' %}" class="btn btn-sm btn-primary">
+        <i class="fa fa-plus me-1"></i>Gửi yêu cầu IT đầu tiên
+      </a>
+    </div>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}
+

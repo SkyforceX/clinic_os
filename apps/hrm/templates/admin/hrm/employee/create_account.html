@@ -1,0 +1,119 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Trang chủ</a> ›
+  <a href="{% url 'admin:hrm_employee_changelist' %}">Nhân viên</a> ›
+  <a href="{% url 'admin:hrm_employee_change' employee.pk %}">{{ employee.full_name }}</a> ›
+  Tạo tài khoản
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+
+  <!-- ── Form ── -->
+  <div style="flex:1;min-width:320px;max-width:520px">
+    <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:14px;margin-bottom:20px">
+      <strong>Nhân viên:</strong> {{ employee.full_name }}<br>
+      <strong>Mã:</strong> {{ employee.employee_code }}<br>
+      <strong>Chức vụ:</strong> {{ employee.position|default:"—" }}<br>
+      <strong>Phòng ban:</strong> {{ employee.department|default:"—" }}
+    </div>
+
+    {% if preview_groups %}
+    <div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:12px;margin-bottom:20px">
+      <strong>Nhóm sẽ được cấp theo chức vụ:</strong><br>
+      <div style="margin-top:6px">
+        {% for g in preview_groups %}
+          <span style="background:#1a73e8;color:#fff;padding:2px 10px;border-radius:12px;
+                       font-size:13px;margin:2px;display:inline-block">{{ g }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:12px;margin-bottom:20px">
+      ⚠ Chức vụ này chưa có PositionGroupMapping. Tài khoản sẽ được tạo nhưng chưa có nhóm quyền.
+      <a href="{% url 'admin:hrm_positiongroupmapping_add' %}" target="_blank">Thêm mapping</a>
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="module" style="padding:16px">
+        {% if form.non_field_errors %}
+          <p class="errornote">{{ form.non_field_errors }}</p>
+        {% endif %}
+
+        <div class="form-row" style="margin-bottom:14px">
+          <label for="{{ form.username.id_for_label }}"><strong>Username *</strong></label>
+          {{ form.username }}
+          <p class="help">{{ form.username.help_text }}</p>
+          {% if form.username.errors %}<p class="errornote">{{ form.username.errors }}</p>{% endif %}
+        </div>
+
+        <div class="form-row" style="margin-bottom:14px">
+          <label for="{{ form.password.id_for_label }}"><strong>Mật khẩu</strong></label>
+          {{ form.password }}
+          <p class="help">
+            {{ form.password.help_text }}
+            Mật khẩu tự động gợi ý: <code id="auto-pw">{{ auto_password }}</code>
+            <button type="button" onclick="document.getElementById('id_password').value='{{ auto_password }}'"
+                    style="margin-left:6px;font-size:12px">Dùng mật khẩu này</button>
+          </p>
+          {% if form.password.errors %}<p class="errornote">{{ form.password.errors }}</p>{% endif %}
+        </div>
+
+        <div class="form-row" style="margin-bottom:14px">
+          <label for="{{ form.email.id_for_label }}"><strong>Email</strong></label>
+          {{ form.email }}
+          <p class="help">{{ form.email.help_text }}</p>
+        </div>
+
+        <div class="form-row" style="margin-bottom:14px">
+          <label>
+            {{ form.confirm }}
+            <strong>{{ form.confirm.label }}</strong>
+          </label>
+          {% if form.confirm.errors %}<p class="errornote">{{ form.confirm.errors }}</p>{% endif %}
+        </div>
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <input type="submit" value="✅ Tạo tài khoản"
+               class="button default"
+               style="background:#2e7d32;border-color:#1b5e20;color:#fff">
+        <a href="{% url 'admin:hrm_employee_change' employee.pk %}"
+           class="button cancel-link">Hủy</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Hướng dẫn ── -->
+  <div style="flex:0 0 260px;background:#fafafa;border:1px solid #e0e0e0;
+              border-radius:6px;padding:16px;font-size:13px">
+    <strong>Quy trình:</strong>
+    <ol style="margin:10px 0 0 16px;padding:0;line-height:2">
+      <li>Nhập username và mật khẩu</li>
+      <li>Hệ thống tạo Django User</li>
+      <li>Liên kết User với hồ sơ nhân viên</li>
+      <li>Tự động cấp nhóm quyền theo <strong>PositionGroupMapping</strong></li>
+      <li>Ghi AccessLog</li>
+    </ol>
+    <hr style="margin:12px 0">
+    <strong>Lưu ý:</strong>
+    <ul style="margin:8px 0 0 16px;padding:0;line-height:1.8">
+      <li>Mật khẩu chỉ hiển thị 1 lần ngay sau tạo</li>
+      <li>Gửi thông tin đăng nhập cho nhân viên qua kênh bảo mật</li>
+      <li>Nhân viên nên đổi mật khẩu khi đăng nhập lần đầu</li>
+    </ul>
+  </div>
+
+</div>
+{% endblock %}
+

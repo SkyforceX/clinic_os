@@ -1,0 +1,36 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+static/fontawesome-7.2.0/
+# Env
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Temp / backup
+backup/
+tmp_docs/
+formhd/
+
+# Archives
+*.rar
+*.zip
+*.tar.gz
+
+# AI / tools
+.claude/
+promts/
+.tmp_pycompile/

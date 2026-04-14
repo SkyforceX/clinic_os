@@ -1,0 +1,339 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}Gửi yêu cầu IT{% endblock %}
+
+{% block extra_head %}
+<style>
+.create-card {
+  max-width: 740px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 28px 32px;
+}
+.create-card h5 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #1a1a2e;
+}
+.form-label {
+  font-size: .8rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 5px;
+}
+.form-control, .form-select {
+  font-size: .85rem;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 3px rgba(13,110,253,.12);
+}
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.cat-option {
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .8rem;
+  font-weight: 500;
+  color: #495057;
+  background: #fff;
+  user-select: none;
+}
+.cat-option:hover { border-color: #86b7fe; background: #f0f5ff; }
+.cat-option.selected {
+  border-color: #0d6efd;
+  background: #e8f0ff;
+  color: #0d6efd;
+  font-weight: 700;
+}
+.cat-option .cat-em { font-size: 1.3rem; }
+input[name="category"] { display: none; }
+
+/* Quill editor container */
+#editor-container {
+  border: 1px solid #dee2e6;
+  border-radius: 0 0 8px 8px;
+  min-height: 180px;
+  font-size: .85rem;
+  background: #fff;
+}
+.ql-toolbar {
+  border: 1px solid #dee2e6 !important;
+  border-bottom: none !important;
+  border-radius: 8px 8px 0 0 !important;
+  background: #f8f9fa;
+}
+.ql-container { border: none !important; font-size: .85rem; }
+.ql-editor { min-height: 160px; }
+
+/* File drop zone */
+.drop-zone {
+  border: 2px dashed #dee2e6;
+  border-radius: 10px;
+  padding: 18px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .15s;
+  font-size: .8rem;
+  color: #6c757d;
+  background: #fafafa;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: #0d6efd;
+  background: #f0f5ff;
+  color: #0d6efd;
+}
+.drop-zone i { font-size: 1.6rem; display: block; margin-bottom: 6px; }
+#fileList { margin-top: 10px; }
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e9ecef;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: .74rem;
+  margin: 3px;
+}
+.file-chip button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #dc3545;
+  line-height: 1;
+  font-size: .8rem;
+}
+
+.prio-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.prio-btn {
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: .77rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff;
+  transition: all .15s;
+}
+.prio-btn:hover { border-color: #adb5bd; }
+.prio-btn.selected-LOW    { border-color:#adb5bd; background:#e9ecef; color:#495057; }
+.prio-btn.selected-MEDIUM { border-color:#004085; background:#cce5ff; color:#004085; }
+.prio-btn.selected-HIGH   { border-color:#856404; background:#fff3cd; color:#856404; }
+.prio-btn.selected-URGENT { border-color:#721c24; background:#f8d7da; color:#721c24; }
+input[name="priority"] { display: none; }
+</style>
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-3">
+  <a href="{% url 'helpdesk:list' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="fa fa-arrow-left"></i>
+  </a>
+  <h5 class="mb-0" style="font-size:1rem;font-weight:700">
+    <i class="fa fa-paper-plane me-2" style="color:#0d6efd"></i>
+    Gửi yêu cầu IT mới
+  </h5>
+</div>
+
+<div class="create-card">
+  <form method="post" enctype="multipart/form-data" id="ticketForm">
+    {% csrf_token %}
+
+    <!-- ── Loại yêu cầu ── -->
+    <div class="mb-4">
+      <label class="form-label">Loại yêu cầu <span class="text-danger">*</span></label>
+      <div class="cat-grid" id="catGrid">
+        {% for val, label in categories %}
+        <div class="cat-option {% if forloop.first %}selected{% endif %}"
+             data-value="{{ val }}"
+             onclick="selectCat(this)">
+          <span class="cat-em">
+            {% if val == 'DATA_CORRECTION' %}🗂️
+            {% elif val == 'CATALOG_CHANGE' %}💰
+            {% elif val == 'UI_CHANGE' %}🎨
+            {% elif val == 'SYSTEM_BUG' %}🐛
+            {% elif val == 'PERMISSION' %}🔑
+            {% elif val == 'REPORT' %}📊
+            {% else %}📋{% endif %}
+          </span>
+          {{ label }}
+        </div>
+        {% endfor %}
+      </div>
+      <input type="hidden" name="category" id="categoryInput"
+             value="{{ categories.0.0 }}">
+    </div>
+
+    <!-- ── Độ ưu tiên ── -->
+    <div class="mb-4">
+      <label class="form-label">Độ ưu tiên</label>
+      <div class="prio-row" id="prioRow">
+        {% for val, label in priorities %}
+        <button type="button" class="prio-btn {% if val == 'MEDIUM' %}selected-MEDIUM{% endif %}"
+                data-value="{{ val }}" onclick="selectPrio(this)">
+          {{ label }}
+        </button>
+        {% endfor %}
+      </div>
+      <input type="hidden" name="priority" id="priorityInput" value="MEDIUM">
+    </div>
+
+    <!-- ── Tiêu đề ── -->
+    <div class="mb-3">
+      <label class="form-label" for="id_subject">
+        Tiêu đề yêu cầu <span class="text-danger">*</span>
+      </label>
+      <input type="text" name="subject" id="id_subject"
+             class="form-control"
+             placeholder="Ví dụ: Thay đổi giá gói khám cơ bản Q2-2026..."
+             required maxlength="255">
+    </div>
+
+    <!-- ── Nội dung ── -->
+    <div class="mb-3">
+      <label class="form-label">
+        Nội dung chi tiết <span class="text-danger">*</span>
+      </label>
+      <div id="editor-container"></div>
+      <input type="hidden" name="body" id="bodyInput">
+    </div>
+
+    <!-- ── Đính kèm tệp ── -->
+    <div class="mb-4">
+      <label class="form-label">Tệp đính kèm</label>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <i class="fa fa-cloud-upload-alt"></i>
+        Kéo & thả hoặc <strong>click để chọn tệp</strong><br>
+        <span style="font-size:.72rem;color:#adb5bd">PDF, DOCX, XLSX, PNG, JPG – tối đa 10MB / tệp</span>
+      </div>
+      <input type="file" id="fileInput" name="attachments" multiple
+             style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.zip">
+      <div id="fileList"></div>
+    </div>
+
+    <!-- ── Submit ── -->
+    <div class="d-flex gap-2 justify-content-end">
+      <a href="{% url 'helpdesk:list' %}" class="btn btn-outline-secondary">Hủy</a>
+      <button type="submit" class="btn btn-primary px-4" id="submitBtn">
+        <i class="fa fa-paper-plane me-1"></i>Gửi yêu cầu
+      </button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+// ── Quill editor ──
+const quill = new Quill('#editor-container', {
+  theme: 'snow',
+  placeholder: 'Mô tả chi tiết yêu cầu: dữ liệu nào cần thay đổi, màn hình/form nào bị lỗi, ảnh chụp màn hình...',
+  modules: {
+    toolbar: [
+      [{ header: [2, 3, false] }],
+      ['bold', 'italic', 'underline'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['link'],
+      ['clean'],
+    ],
+  },
+});
+
+// ── Category selector ──
+function selectCat(el) {
+  document.querySelectorAll('.cat-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('categoryInput').value = el.dataset.value;
+}
+
+// ── Priority selector ──
+function selectPrio(el) {
+  document.querySelectorAll('.prio-btn').forEach(b => {
+    b.className = 'prio-btn';
+  });
+  const v = el.dataset.value;
+  el.classList.add('selected-' + v);
+  document.getElementById('priorityInput').value = v;
+}
+
+// ── File drop zone ──
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileList  = document.getElementById('fileList');
+let selectedFiles = [];
+
+function renderFiles() {
+  fileList.innerHTML = selectedFiles.map((f, i) =>
+    `<span class="file-chip">
+       <i class="fa fa-paperclip"></i> ${f.name}
+       <span style="color:#adb5bd">(${(f.size/1024).toFixed(0)} KB)</span>
+       <button type="button" onclick="removeFile(${i})">✕</button>
+     </span>`
+  ).join('');
+  // Sync to hidden file input via DataTransfer
+  const dt = new DataTransfer();
+  selectedFiles.forEach(f => dt.items.add(f));
+  fileInput.files = dt.files;
+}
+
+function removeFile(idx) {
+  selectedFiles.splice(idx, 1);
+  renderFiles();
+}
+
+fileInput.addEventListener('change', () => {
+  Array.from(fileInput.files).forEach(f => {
+    if (!selectedFiles.find(x => x.name === f.name && x.size === f.size))
+      selectedFiles.push(f);
+  });
+  renderFiles();
+});
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  Array.from(e.dataTransfer.files).forEach(f => selectedFiles.push(f));
+  renderFiles();
+});
+
+// ── Form submit ──
+document.getElementById('ticketForm').addEventListener('submit', function(e) {
+  const html = quill.root.innerHTML.trim();
+  const text = quill.getText().trim();
+  if (!text) {
+    e.preventDefault();
+    quill.root.style.borderColor = '#dc3545';
+    alert('Vui lòng nhập nội dung chi tiết yêu cầu.');
+    return;
+  }
+  document.getElementById('bodyInput').value = html;
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i>Đang gửi...';
+});
+</script>
+{% endblock %}
+

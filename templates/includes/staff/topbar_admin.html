@@ -1,0 +1,255 @@
+{% load static %}
+{% load notifications_tags %}
+
+<style>
+  .topbar-admin {
+    position: sticky;
+    top: 0;
+    z-index: 997;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 64px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.96);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+    backdrop-filter: blur(10px);
+  }
+
+  .topbar-admin .topbar-left,
+  .topbar-admin .topbar-center,
+  .topbar-admin .topbar-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .topbar-admin .topbar-left {
+    flex: 0 0 auto;
+  }
+
+  .topbar-admin .topbar-center {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: center;
+    padding: 0 10px;
+  }
+
+  .topbar-admin .topbar-right {
+    flex: 0 0 auto;
+    gap: 10px;
+  }
+
+  .topbar-mobile-toggle {
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 12px;
+    background: #ffffff;
+    color: #0f172a;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+  }
+
+  .topbar-mobile-toggle:hover {
+    background: #f8fafc;
+    transform: translateY(-1px);
+  }
+
+  .topbar-mobile-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .topbar-mobile-logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  }
+
+  .topbar-mobile-brand-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+
+  .topbar-mobile-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar-mobile-subtitle {
+    margin-top: 2px;
+    font-size: 11px;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar-admin .notif-bell-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #ffffff;
+    color: #0f172a;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+  }
+
+  .topbar-admin .notif-bell-btn:hover {
+    background: #f8fafc;
+    color: #0f172a;
+    transform: translateY(-1px);
+  }
+
+  .topbar-admin .notif-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    border: 2px solid #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .topbar-exit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 12px;
+    border-radius: 12px;
+    background: rgba(239, 68, 68, 0.10);
+    border: 1px solid rgba(239, 68, 68, 0.18);
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .topbar-exit-btn:hover {
+    background: rgba(239, 68, 68, 0.16);
+    color: #b91c1c;
+  }
+
+  @media (max-width: 991.98px) {
+    .topbar-admin {
+      display: flex;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .topbar-admin {
+      padding: 10px 12px;
+    }
+
+    .topbar-mobile-subtitle {
+      display: none;
+    }
+
+    .topbar-mobile-title {
+      font-size: 13px;
+      max-width: 120px;
+    }
+
+    .topbar-exit-btn {
+      padding: 0 10px;
+      font-size: 12px;
+    }
+  }
+</style>
+
+<div class="topbar topbar-admin">
+  <div class="topbar-left">
+    {% if request.user.is_authenticated and request.user.is_staff %}
+      <button
+        class="topbar-mobile-toggle"
+        type="button"
+        onclick="toggleSidebar()"
+        aria-label="Mở menu"
+        title="Mở menu"
+      >
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    {% endif %}
+  </div>
+
+  <div class="topbar-center">
+    {% if request.user.is_authenticated and request.user.is_staff %}
+      <a href="{% url 'dashboard:overview' %}" class="topbar-mobile-brand">
+        <img
+          src="{% static 'img/logo_vmd_1x1.jpg' %}"
+          alt="Vietmedi"
+          class="topbar-mobile-logo"
+        >
+        <span class="topbar-mobile-brand-text">
+          <span class="topbar-mobile-title">Clinic OS</span>
+          <span class="topbar-mobile-subtitle">Quản trị vận hành</span>
+        </span>
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="topbar-right">
+    {% if request.user.is_authenticated %}
+      {% unread_notification_count as bell_cnt %}
+      <a
+        href="{% url 'approvals:my_requests' %}"
+        class="notif-bell-btn"
+        title="Thông báo{% if bell_cnt %} ({{ bell_cnt }} chưa đọc){% endif %}"
+        aria-label="Thông báo"
+      >
+        <i class="fa-regular fa-bell" style="font-size:17px"></i>
+        <span
+          id="notif-badge"
+          class="notif-badge"
+          style="display:{% if bell_cnt %}inline-flex{% else %}none{% endif %}"
+        >
+          {{ bell_cnt|default:0 }}
+        </span>
+      </a>
+    {% endif %}
+
+    {% if request.session.patient_id %}
+      <a href="{% url 'authentication:staff_logout' %}" class="topbar-exit-btn">
+        <i class="fa-solid fa-right-from-bracket me-1"></i>
+        <span>Thoát</span>
+      </a>
+    {% endif %}
+  </div>
+</div>
