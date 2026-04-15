@@ -55,6 +55,7 @@ body {
 /* ===== Main content shell ===== */
 .main-content {
   min-height: 100vh;
+  min-height: 100dvh;
   margin-left: var(--sidebar-width);
   width: calc(100% - var(--sidebar-width));
   max-width: calc(100% - var(--sidebar-width));
