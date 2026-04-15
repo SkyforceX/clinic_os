@@ -70,11 +70,34 @@ def lookup_patient(ma_bn: str, exam_date: date = None):
                 .first()
             )
 
-    # Kiểm tra đã check-in hôm nay chưa
-    existing = CheckInRecord.objects.filter(
-        snapshot_ma_bn=patient.ma_bn,
-        exam_date=exam_date,
-    ).order_by("-created_at").first()
+    # Kiểm tra đã từng check-in trong kỳ khám của hợp đồng chưa.
+    # Scope tìm kiếm: toàn bộ kỳ [exam_start, exam_end] của schedule_config
+    # (không chỉ hôm nay) — mỗi BN chỉ được check-in 1 lần/hợp đồng.
+    existing = None
+    if schedule_config:
+        existing = (
+            CheckInRecord.objects
+            .filter(
+                snapshot_ma_bn=patient.ma_bn,
+                exam_date__range=[
+                    schedule_config.exam_start_date,
+                    schedule_config.exam_end_date,
+                ],
+            )
+            .order_by("-exam_date", "-created_at")
+            .first()
+        )
+    else:
+        # Fallback: không có lịch khám — chỉ kiểm tra hôm nay
+        existing = (
+            CheckInRecord.objects
+            .filter(
+                snapshot_ma_bn=patient.ma_bn,
+                exam_date=exam_date,
+            )
+            .order_by("-created_at")
+            .first()
+        )
 
     company_name = ""
     exam_start = None
@@ -100,6 +123,8 @@ def lookup_patient(ma_bn: str, exam_date: date = None):
         "already_checked_in":  existing is not None and existing.status == CheckInStatus.CHECKED_IN,
         "already_checked_out": existing is not None and existing.status == CheckInStatus.CHECKED_OUT,
         "is_deferred":         existing is not None and existing.status == CheckInStatus.DEFERRED,
+        # True nếu BN đã hoàn thành (checkout) trong kỳ hợp đồng — block mọi check-in mới
+        "contract_done":       existing is not None and existing.status == CheckInStatus.CHECKED_OUT,
     }, None
 
 
@@ -115,8 +140,11 @@ def do_checkin(ma_bn: str, note: str, operator, exam_date: date = None):
     schedule_config = result["schedule_config"]
     company_name    = result["company_name"]
 
+    # Guard: không cho check-in nếu đã có record trong kỳ khám
     if result["already_checked_in"]:
         return None, "Khách hàng này đã check-in rồi."
+    if result["already_checked_out"]:
+        return None, "Khách hàng này đã hoàn thành khám rồi, không thể check-in lại."
 
     now = datetime.now(tz=timezone.utc)
     record = CheckInRecord.objects.create(
@@ -140,11 +168,14 @@ def do_checkin(ma_bn: str, note: str, operator, exam_date: date = None):
 
 
 @transaction.atomic
-def do_checkout(record_id: int, note: str, operator, exam_date: date = None):
-    """Chuyển bản ghi check-in sang trạng thái đã check-out."""
-    exam_date = exam_date or date.today()
+def do_checkout(record_id: int, note: str, operator):
+    """Chuyển bản ghi check-in sang trạng thái đã check-out.
+
+    Không filter thêm exam_date — record_id đã đủ định danh duy nhất.
+    Hỗ trợ trường hợp BN check-in ngày trước, checkout vào ngày sau trong kỳ.
+    """
     try:
-        record = CheckInRecord.objects.get(pk=record_id, exam_date=exam_date)
+        record = CheckInRecord.objects.get(pk=record_id)
     except CheckInRecord.DoesNotExist:
         return None, "Không tìm thấy bản ghi check-in."
 
@@ -162,11 +193,13 @@ def do_checkout(record_id: int, note: str, operator, exam_date: date = None):
 
 
 @transaction.atomic
-def do_defer(record_id: int, note: str, operator, exam_date: date = None):
-    """Đánh dấu khách hàng quay lại sau (chưa khám xong)."""
-    exam_date = exam_date or date.today()
+def do_defer(record_id: int, note: str, operator):
+    """Đánh dấu khách hàng quay lại sau (chưa khám xong).
+
+    Không filter thêm exam_date — record_id đã đủ định danh duy nhất.
+    """
     try:
-        record = CheckInRecord.objects.get(pk=record_id, exam_date=exam_date)
+        record = CheckInRecord.objects.get(pk=record_id)
     except CheckInRecord.DoesNotExist:
         return None, "Không tìm thấy bản ghi check-in."
 

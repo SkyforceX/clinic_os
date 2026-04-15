@@ -38,6 +38,7 @@
                     data-company="{{ q.company_name }}"
                     data-address="{{ q.company_address }}"
                     data-contact="{{ q.contact_name }}"
+                    data-tax-code="{{ q.tax_code|default:'' }}"
                     data-male="{{ q.male_count }}"
                     data-fs="{{ q.female_single_count }}"
                     data-ff="{{ q.female_family_count }}"
@@ -139,15 +140,15 @@
             </div>
 
             <div class="cc-field">
-              <label>Người liên hệ thực hiện HĐ</label>
-              <input type="text" name="contact_person" class="cc-input" placeholder="Người phụ trách...">
-              <div class="cc-field-error" data-error-for="contact_person"></div>
+              <label>Người được ủy quyền</label>
+              <input type="text" name="contact_person" class="cc-input" placeholder="Người được ủy quyền đại diện ký...">
+              <div class="cc-field-error" data-error-for="authorize_name"></div>
             </div>
 
             <div class="cc-field">
-              <label>Chức danh liên hệ</label>
+              <label>Chức danh người được ủy quyền</label>
               <input type="text" name="representative_title" class="cc-input">
-              <div class="cc-field-error" data-error-for="representative_title"></div>
+              <div class="cc-field-error" data-error-for="authorize_title"></div>
             </div>
           </div>
         </div>

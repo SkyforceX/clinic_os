@@ -394,6 +394,8 @@ def save_quotation(request):
     quotation.company_name    = company.name
     quotation.company_address = company.address or ""
     quotation.contact_name    = (post.get("contact_name") or "").strip()
+    quotation.contact_phone   = (post.get("contact_phone") or "").strip()
+    quotation.tax_code        = (post.get("tax_code") or "").strip()
     quotation.note            = (post.get("note") or "").strip()
     quotation.extra_content   = (post.get("extra_content") or "").strip()
 

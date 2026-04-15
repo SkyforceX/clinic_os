@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from apps.organizations.selectors.company_selectors import get_company_for_actor
-from apps.patients.models import Patient, PatientCompanyHistory
+from apps.patients.models.patients import Patient, PatientCompanyHistory
 from apps.patients.policies import PatientPolicy
 from apps.patients.selectors.patient_selectors import patient_code_exists
 

@@ -121,6 +121,10 @@ var EXISTING_EXTRA_CONTENT = JSON.parse(document.getElementById('existing-extra-
       <input type="text" name="company_name" class="form-control" required value="{{ quotation.company_name }}"></div>
     <div class="col-12 col-sm-6 col-md-3"><label class="form-label fw-semibold">Người liên hệ</label>
       <input type="text" name="contact_name" class="form-control" value="{{ quotation.contact_name }}"></div>
+      <div class="col-12 col-sm-6 col-md-3"><label class="form-label fw-semibold">Số điện thoại</label>
+      <input type="text" name="contact_phone" class="form-control" value="{{ quotation.contact_phone|default:'' }}"></div>
+    <div class="col-12 col-sm-6 col-md-3"><label class="form-label fw-semibold">MST</label>
+      <input type="text" name="tax_code" class="form-control" value="{{ quotation.tax_code|default:'' }}"></div>
     <div class="col-12 col-sm-6 col-md-4"><label class="form-label fw-semibold">Địa chỉ</label>
       <input type="text" name="company_address" class="form-control" value="{{ quotation.company_address }}"></div>
     <div class="col-6 col-sm-3 col-md-2"><label class="form-label fw-semibold">Ưu đãi từ (người)</label>

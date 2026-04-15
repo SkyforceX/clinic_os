@@ -1,0 +1,167 @@
+{% extends "base_admin.html" %}
+{% load static %}
+
+{% block title %}Bệnh nhân HIS đã sync{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h3 class="mb-1">Danh sách bệnh nhân đã sync từ HIS</h3>
+      <div class="text-muted small">
+        Tổng: <strong>{{ total_count }}</strong> bệnh nhân
+        {% if sync_state %}
+          | Cursor: <strong>{{ sync_state.last_auto_id }}</strong>
+          | Lần sync thành công gần nhất:
+          <strong>
+            {% if sync_state.last_success_at %}
+              {{ sync_state.last_success_at|date:"d/m/Y H:i:s" }}
+            {% else %}
+              Chưa có
+            {% endif %}
+          </strong>
+        {% endif %}
+      </div>
+    </div>
+
+    <form method="post" action="{% url 'patients:trigger_his_patient_sync' %}" class="m-0">
+      {% csrf_token %}
+      <input type="hidden" name="next_q" value="{{ keyword }}">
+      <input type="hidden" name="next_page" value="{{ page_obj.number }}">
+      <button type="submit" class="btn btn-primary">
+        <i class="fa-solid fa-rotate"></i>
+        Đồng bộ mới
+      </button>
+    </form>
+  </div>
+
+
+  {% if sync_state and sync_state.last_error %}
+    <div class="alert alert-warning">
+      <strong>Lỗi sync gần nhất:</strong> {{ sync_state.last_error }}
+    </div>
+  {% endif %}
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end mb-3">
+        <div class="col-md-6 col-lg-5">
+          <label for="q" class="form-label">Tìm kiếm</label>
+          <input
+            type="text"
+            class="form-control"
+            id="q"
+            name="q"
+            value="{{ keyword }}"
+            placeholder="Nhập mã BN hoặc họ tên"
+          >
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-outline-primary">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            Tìm kiếm
+          </button>
+        </div>
+        <div class="col-auto">
+          <a href="{% url 'patients:his_patient_sync_list' %}" class="btn btn-outline-secondary">
+            Xóa lọc
+          </a>
+        </div>
+      </form>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 70px;">#</th>
+              <th style="width: 140px;">Mã BN HIS</th>
+              <th>Họ tên</th>
+              <th style="width: 120px;">Giới tính</th>
+              <th style="width: 120px;">Năm sinh</th>
+              <th style="width: 160px;">SĐT</th>
+              <th>Email</th>
+              <th style="width: 180px;">Ngày HIS</th>
+              <th style="width: 180px;">Sync gần nhất</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for patient in page_obj %}
+              <tr>
+                <td>
+                  {{ page_obj.start_index|add:forloop.counter0 }}
+                </td>
+                <td>
+                  <strong>{{ patient.his_patient_code }}</strong>
+                </td>
+                <td>{{ patient.full_name|default:"-" }}</td>
+                <td>{{ patient.gender_code|default:"-" }}</td>
+                <td>
+                  {% if patient.birth_year %}
+                    {{ patient.birth_year }}
+                  {% elif patient.birth_date_text %}
+                    {{ patient.birth_date_text }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>{{ patient.phone|default:"-" }}</td>
+                <td>{{ patient.email|default:"-" }}</td>
+                <td>
+                  {% if patient.his_sysdate %}
+                    {{ patient.his_sysdate|date:"d/m/Y H:i:s" }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>{{ patient.updated_at|date:"d/m/Y H:i:s" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="9" class="text-center text-muted py-4">
+                  Không có dữ liệu bệnh nhân HIS.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="mt-3" aria-label="Phân trang bệnh nhân HIS">
+          <ul class="pagination flex-wrap mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?q={{ keyword|urlencode }}&page=1">Đầu</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?q={{ keyword|urlencode }}&page={{ page_obj.previous_page_number }}">Trước</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Đầu</span></li>
+              <li class="page-item disabled"><span class="page-link">Trước</span></li>
+            {% endif %}
+
+            <li class="page-item active">
+              <span class="page-link">
+                Trang {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+              </span>
+            </li>
+
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?q={{ keyword|urlencode }}&page={{ page_obj.next_page_number }}">Sau</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?q={{ keyword|urlencode }}&page={{ page_obj.paginator.num_pages }}">Cuối</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Sau</span></li>
+              <li class="page-item disabled"><span class="page-link">Cuối</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

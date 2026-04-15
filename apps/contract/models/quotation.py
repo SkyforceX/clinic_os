@@ -32,6 +32,8 @@ class QuotationDraft(models.Model):
         related_name="quotations",
     )
     contact_name    = models.CharField(max_length=255, blank=True)
+    contact_phone   = models.CharField(max_length=50, blank=True)
+    tax_code        = models.CharField(max_length=100, blank=True)
     company_name    = models.CharField(max_length=255)
     company_address = models.CharField(max_length=500, blank=True)
     valid_until     = models.DateField(null=True, blank=True)

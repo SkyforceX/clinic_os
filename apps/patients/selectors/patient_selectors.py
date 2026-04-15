@@ -7,7 +7,7 @@ from apps.organizations.selectors.company_selectors import (
     get_company_for_actor,
     list_companies_for_actor,
 )
-from apps.patients.models import Patient
+from apps.patients.models.patients import Patient
 
 
 def patient_base_queryset():

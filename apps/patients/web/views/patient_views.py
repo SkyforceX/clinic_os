@@ -1,9 +1,15 @@
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.management import call_command
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import JsonResponse
+from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from apps.organizations.selectors.company_selectors import get_company_for_actor
-from apps.patients.models import Patient
+from apps.patients.models import HisPatientSync, HisSyncState
+from apps.patients.models.patients import Patient
 from apps.patients.policies import PatientPolicy
 from apps.patients.selectors.patient_selectors import (
     get_patient_for_actor,
@@ -17,6 +23,71 @@ from apps.patients.services.patient_commands import (
     delete_patient_record,
     update_patient_record,
 )
+
+
+@login_required(login_url="authentication:staff_login")
+def his_patient_sync_list(request):
+    if not PatientPolicy.can_view_patient_list(request.user):
+        messages.error(request, "Bạn không có quyền xem danh sách bệnh nhân HIS.")
+        return redirect("dashboard:overview")
+
+    keyword = (request.GET.get("q") or "").strip()
+
+    queryset = HisPatientSync.objects.all().order_by(
+        "-his_patient_auto_id",
+        "-updated_at",
+        "-id",
+    )
+
+    if keyword:
+        queryset = queryset.filter(
+            Q(his_patient_code__icontains=keyword)
+            | Q(full_name__icontains=keyword)
+        )
+
+    paginator = Paginator(queryset, 50)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    sync_state = HisSyncState.objects.filter(source="his_dmbenhnhan").first()
+
+    context = {
+        "page_obj": page_obj,
+        "keyword": keyword,
+        "sync_state": sync_state,
+        "total_count": paginator.count,
+    }
+    return render(request, "patients/his_patient_sync_list.html", context)
+
+
+@login_required(login_url="authentication:staff_login")
+@require_POST
+def trigger_his_patient_sync(request):
+    if not PatientPolicy.can_import_patients(request.user):
+        messages.error(request, "Bạn không có quyền thực hiện đồng bộ HIS.")
+        return redirect("patients:his_patient_sync_list")
+
+    try:
+        call_command("sync_his_patients")
+        messages.success(request, "Đồng bộ HIS thành công.")
+    except Exception as exc:
+        messages.error(request, f"Đồng bộ HIS thất bại: {exc}")
+
+    query_string = request.POST.get("next_q", "").strip()
+    page = request.POST.get("next_page", "").strip()
+
+    redirect_url = "patients:his_patient_sync_list"
+    response = redirect(redirect_url)
+
+    if query_string or page:
+        params = []
+        if query_string:
+            params.append(f"q={query_string}")
+        if page:
+            params.append(f"page={page}")
+        response["Location"] += "?" + "&".join(params)
+
+    return response
 
 
 @login_required(login_url="authentication:staff_login")
@@ -174,6 +245,7 @@ def delete_patient_ajax(request, patient_id):
             },
             status=500,
         )
+
 
 @login_required(login_url="authentication:staff_login")
 @require_POST

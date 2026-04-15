@@ -1,0 +1,83 @@
+{% with cfg=completion.step_config prev=completion.prev_step_config %}
+<div class="bn-card{% if completion.is_overdue %} overdue{% endif %}{% if completion.is_completed %} completed{% endif %}"
+     id="card-{{ completion.pk }}"
+     data-id="{{ completion.pk }}"
+     data-step="{{ completion.current_step }}"
+     data-ma-bn="{{ completion.checkin_record.snapshot_ma_bn }}">
+
+  <!-- top: tên + log btn -->
+  <div class="bn-card-top">
+    <div class="bn-name-wrap">
+      {% if completion.is_overdue %}
+      <span class="bn-overdue-dot" title="Quá hạn 7 ngày"></span>
+      {% endif %}
+      <span class="bn-name" title="{{ completion.checkin_record.snapshot_ho_ten }}">
+        {{ completion.checkin_record.snapshot_ho_ten }}
+      </span>
+    </div>
+    <button class="bn-log-btn" data-id="{{ completion.pk }}" title="Xem lịch sử">
+      <i class="fa-regular fa-clock"></i>
+    </button>
+  </div>
+
+  <!-- meta -->
+  <div class="bn-card-meta">
+    <span title="Mã BN"><i class="fa-solid fa-id-badge"></i> {{ completion.checkin_record.snapshot_ma_bn }}</span>
+    {% if completion.checkin_record.snapshot_ngay_sinh %}
+    <span><i class="fa-regular fa-calendar"></i> {{ completion.checkin_record.snapshot_ngay_sinh|date:"d/m/Y" }}</span>
+    {% endif %}
+    {% if completion.checkin_record.gioi_tinh_display %}
+    <span class="bn-gender {% if completion.checkin_record.gioi_tinh_display == 'Nam' %}male{% else %}female{% endif %}">
+      {{ completion.checkin_record.gioi_tinh_display }}
+    </span>
+    {% endif %}
+    <span><i class="fa-solid fa-stethoscope"></i> {{ completion.checkin_record.exam_date|date:"d/m" }}</span>
+  </div>
+
+  <!-- checklist note (bước 0) -->
+  {% if completion.checklist_note %}
+  <div class="bn-checklist-note">
+    <i class="fa-solid fa-note-sticky"></i> {{ completion.checklist_note|truncatechars:80 }}
+  </div>
+  {% endif %}
+
+  <!-- action buttons -->
+  {% if not completion.is_completed %}
+    {% if completion.current_step in advanceable_steps %}
+    <div class="bn-actions">
+
+      <!-- Nút trả về (ẩn ở bước 0) -->
+      {% if completion.current_step > 0 %}
+      <button class="btn-return"
+              data-id="{{ completion.pk }}"
+              data-step="{{ completion.current_step }}"
+              data-prev-label="{{ prev.label }}"
+              data-patient="{{ completion.checkin_record.snapshot_ho_ten }}"
+              title="Trả về: {{ prev.label }}">
+        <i class="fa-solid fa-rotate-left"></i>
+        <span>Trả về</span>
+      </button>
+      {% endif %}
+
+      <!-- Nút xác nhận -->
+      <button class="btn-advance"
+              data-id="{{ completion.pk }}"
+              data-step="{{ completion.current_step }}"
+              data-needs-scan="{{ cfg.needs_scan|yesno:'true,false' }}"
+              data-has-note="{{ cfg.has_note|yesno:'true,false' }}"
+              data-step-label="{{ cfg.label }}"
+              data-patient="{{ completion.checkin_record.snapshot_ho_ten }}">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>{{ cfg.short_label }}</span>
+      </button>
+
+    </div>
+    {% endif %}
+  {% else %}
+  <div class="bn-done-badge">
+    <i class="fa-solid fa-circle-check"></i> Hoàn tất
+  </div>
+  {% endif %}
+
+</div>
+{% endwith %}

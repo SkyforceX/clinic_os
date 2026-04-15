@@ -1063,12 +1063,17 @@ function renderPatientCard(data) {
   const badgeEl = document.getElementById("pcStatusBadge");
   if (rec) {
     let cls = "", icon = "", lbl = "";
+    // Hiển thị ngày khám nếu record là từ ngày trước
+    const examDateNote = rec.exam_date ? ` (ngày ${rec.exam_date})` : "";
     if (rec.status === "CHECKED_IN") {
-      cls = "badge-checkin"; icon = "fa-circle-check"; lbl = `Đã check-in lúc ${rec.checkin_time}`;
+      cls = "badge-checkin"; icon = "fa-circle-check";
+      lbl = `Đã check-in lúc ${rec.checkin_time}${examDateNote}`;
     } else if (rec.status === "CHECKED_OUT") {
-      cls = "badge-checkout"; icon = "fa-right-from-bracket"; lbl = "Đã check-out";
+      cls = "badge-checkout"; icon = "fa-right-from-bracket";
+      lbl = `Đã hoàn thành khám${examDateNote}`;
     } else {
-      cls = "badge-deferred"; icon = "fa-clock-rotate-left"; lbl = "Đã đánh dấu quay lại sau";
+      cls = "badge-deferred"; icon = "fa-clock-rotate-left";
+      lbl = `Đã đánh dấu quay lại sau${examDateNote}`;
     }
     badgeEl.innerHTML = `<span class="status-badge ${cls}"><i class="fa-solid ${icon}"></i>${lbl}</span>`;
     badgeEl.style.display = "block";
@@ -1085,16 +1090,23 @@ function renderPatientCard(data) {
   btnCheckout.style.display = "none";
   btnDefer.style.display    = "none";
 
-  if (!rec || data.is_deferred) {
-    /* Chưa check-in hoặc đã hoãn → cho check-in mới */
-    btnCheckin.style.display = "flex";
+  if (data.contract_done) {
+    // ★ Đã hoàn thành trong kỳ hợp đồng → KHÔNG cho check-in lại
+    const dateNote = rec && rec.exam_date ? ` ngày ${rec.exam_date}` : "";
+    showFeedback("info",
+      `<i class="fa-solid fa-flag-checkered me-1"></i>` +
+      `${p.ho_ten} đã hoàn thành khám${dateNote}. Không thể check-in lại.`
+    );
   } else if (data.already_checked_in) {
-    /* Đã check-in → cho check-out hoặc hoãn */
+    // Đã check-in trong kỳ, chưa checkout → cho check-out hoặc hoãn
     btnCheckout.style.display = "flex";
     btnDefer.style.display    = "flex";
-  } else if (data.already_checked_out) {
-    /* Đã check-out rồi → chỉ info, không có nút */
-    showFeedback("info", `${p.ho_ten} đã check-out rồi.`);
+  } else if (data.is_deferred) {
+    // Đã hoãn → cho check-in lại (quay lại khám)
+    btnCheckin.style.display = "flex";
+  } else {
+    // Chưa có record trong kỳ hợp đồng → cho check-in mới
+    btnCheckin.style.display = "flex";
   }
 }
 

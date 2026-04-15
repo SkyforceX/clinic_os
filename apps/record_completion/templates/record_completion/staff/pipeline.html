@@ -1,0 +1,625 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ═══════════════════════════════════════════════════
+   Record Completion – Pipeline Board
+═══════════════════════════════════════════════════ */
+
+/* ── Toolbar ────────────────────────────────────── */
+.rc-toolbar {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 10px; margin-bottom: 14px;
+}
+.rc-toolbar-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; flex-wrap: wrap; }
+
+.rc-back-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .81rem; font-weight: 600; color: #475569;
+  background: #f1f5f9; border: 1px solid #e2e8f0;
+  border-radius: 8px; padding: 5px 11px;
+  text-decoration: none; transition: all .15s; white-space: nowrap;
+}
+.rc-back-btn:hover { background: #e2e8f0; color: #1e293b; text-decoration: none; }
+
+.rc-company-title {
+  font-size: .95rem; font-weight: 700; color: #1e293b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;
+}
+
+.rc-ci-strip { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rc-ci-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .73rem; font-weight: 600; padding: 3px 9px;
+  border-radius: 99px; white-space: nowrap;
+}
+.rc-ci-chip.total    { background: #f1f5f9; color: #475569; }
+.rc-ci-chip.checkin  { background: #eff6ff; color: #2563eb; }
+.rc-ci-chip.notyet   { background: #f8fafc; color: #94a3b8; }
+.rc-ci-chip.deferred { background: #fff7ed; color: #d97706; }
+.rc-ci-chip.done     { background: #dcfce7; color: #16a34a; }
+.rc-ci-chip.overdue  { background: #fee2e2; color: #dc2626; }
+
+.rc-view-toggle { display: inline-flex; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.rc-view-btn {
+  padding: 5px 12px; font-size: .75rem; font-weight: 600;
+  border: none; background: #fff; color: #64748b; cursor: pointer;
+  transition: background .15s, color .15s; white-space: nowrap;
+  border-right: 1px solid #e2e8f0;
+}
+.rc-view-btn:last-child { border-right: none; }
+.rc-view-btn.active { background: #6366f1; color: #fff; }
+.rc-view-btn:not(.active):hover { background: #f8fafc; color: #1e293b; }
+
+/* ── Board bar ──────────────────────────────────── */
+.rc-board-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.rc-search-wrap { position: relative; }
+.rc-search-wrap input {
+  border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 6px 30px 6px 32px;
+  font-size: .82rem; width: 190px; background: #fff; color: #1e293b;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.rc-search-wrap input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+.rc-search-wrap .si  { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: .78rem; pointer-events: none; }
+.rc-search-wrap .clr { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); color: #94a3b8; text-decoration: none; font-size: .73rem; }
+.rc-search-wrap .clr:hover { color: #475569; }
+
+/* ── Progress ───────────────────────────────────── */
+.rc-overall-progress { height: 5px; border-radius: 99px; background: #f1f5f9; overflow: hidden; margin-bottom: 12px; }
+.rc-overall-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg,#6366f1,#8b5cf6); transition: width .5s; }
+.rc-overall-fill.full { background: linear-gradient(90deg,#16a34a,#22c55e); }
+
+/* ── Board ──────────────────────────────────────── */
+.rc-board { display: flex; gap: 8px; overflow-x: auto; align-items: flex-start; padding-bottom: 20px; }
+.rc-board::-webkit-scrollbar { height: 5px; }
+.rc-board::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+.rc-stage-col { min-width: 200px; width: 200px; flex-shrink: 0; display: flex; flex-direction: column; }
+.rc-stage-header {
+  display: flex; align-items: center; gap: 6px; padding: 8px 10px;
+  border-radius: 9px 9px 0 0; font-size: .74rem; font-weight: 700; letter-spacing: .02em;
+  border: 1px solid rgba(0,0,0,.07); border-bottom: none;
+  position: sticky; top: 0; z-index: 5; backdrop-filter: blur(4px);
+}
+.rc-stage-count { margin-left: auto; background: rgba(0,0,0,.09); border-radius: 10px; padding: 1px 7px; font-size: .67rem; font-weight: 700; }
+.rc-stage-body {
+  background: #f4f6f9; border: 1px solid rgba(0,0,0,.07); border-top: none;
+  border-radius: 0 0 9px 9px; min-height: 80px; padding: 7px;
+  display: flex; flex-direction: column; gap: 7px; flex: 1;
+}
+.rc-stage-col[data-step="6"] .rc-stage-body { background: #f0fdf4; }
+
+/* ── BN Card ────────────────────────────────────── */
+.bn-card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 9px;
+  padding: 9px 10px 8px;
+  display: flex; flex-direction: column; gap: 5px;
+  transition: box-shadow .15s, transform .15s;
+  animation: cardFadeIn .2s ease; position: relative;
+}
+@keyframes cardFadeIn { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:translateY(0); } }
+.bn-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.09); transform: translateY(-1px); }
+.bn-card.overdue   { border-left: 3px solid #ef4444; }
+.bn-card.completed { border-left: 3px solid #16a34a; opacity: .8; }
+.bn-card.rc-hidden { display: none !important; }
+.bn-card.is-loading::after { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,.65); border-radius: 9px; z-index: 10; }
+
+.bn-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; }
+.bn-name-wrap { display: flex; align-items: flex-start; gap: 4px; min-width: 0; flex: 1; }
+.bn-overdue-dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; flex-shrink: 0; margin-top: 4px; }
+.bn-name { font-size: .81rem; font-weight: 700; color: #1e293b; word-break: break-word; line-height: 1.3; }
+.bn-log-btn { background: none; border: none; padding: 2px 4px; color: #94a3b8; font-size: .73rem; cursor: pointer; border-radius: 5px; flex-shrink: 0; transition: color .15s, background .15s; }
+.bn-log-btn:hover { color: #6366f1; background: #eef2ff; }
+
+.bn-card-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: .67rem; color: #64748b; }
+.bn-gender { padding: 1px 6px; border-radius: 99px; font-weight: 600; font-size: .65rem; }
+.bn-gender.male   { background: #eff6ff; color: #2563eb; }
+.bn-gender.female { background: #fdf2f8; color: #db2777; }
+
+.bn-checklist-note { font-size: .67rem; color: #92400e; background: #fffbeb; border-radius: 5px; padding: 3px 7px; line-height: 1.4; word-break: break-word; }
+
+/* ── Action buttons ─────────────────────────────── */
+.bn-actions { display: flex; gap: 5px; margin-top: 1px; }
+
+.btn-return {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  flex: 0 0 auto;
+  font-size: .69rem; font-weight: 600; padding: 5px 7px;
+  border: 1px solid #fed7aa; border-radius: 7px;
+  background: #fff7ed; color: #c2410c; cursor: pointer;
+  transition: background .15s, border-color .15s, transform .15s;
+  white-space: nowrap;
+}
+.btn-return:hover  { background: #ffedd5; border-color: #fb923c; transform: translateY(-1px); }
+.btn-return:active { transform: none; }
+
+.btn-advance {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: .72rem; font-weight: 600; padding: 5px 7px;
+  border: none; border-radius: 7px;
+  background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; cursor: pointer;
+  transition: opacity .15s, transform .15s;
+}
+.btn-advance:hover  { opacity: .88; transform: translateY(-1px); }
+.btn-advance:active { transform: none; }
+
+.bn-done-badge { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: .7rem; font-weight: 600; color: #16a34a; background: #dcfce7; border-radius: 7px; padding: 4px 8px; }
+
+/* ── Modals ─────────────────────────────────────── */
+.rcm-header { padding: 16px 20px 4px; }
+.rcm-title  { font-size: .95rem; font-weight: 700; color: #1e293b; }
+.rcm-sub    { font-size: .78rem; color: #64748b; margin-top: 2px; }
+.rcm-body   { padding: 12px 20px 18px; }
+.rcm-footer { padding: 0 20px 16px; border-top: none; }
+.rcm-step-badge { display: inline-flex; align-items: center; gap: 6px; font-size: .77rem; font-weight: 600; padding: 5px 11px; border-radius: 7px; margin-bottom: 12px; }
+.rc-note-label { font-size: .78rem; font-weight: 600; color: #374151; margin-bottom: 4px; display: block; }
+.rc-note-textarea { width: 100%; font-size: .82rem; border: 1px solid #e2e8f0; border-radius: 7px; padding: 8px 11px; resize: vertical; min-height: 72px; outline: none; transition: border-color .15s; }
+.rc-note-textarea:focus { border-color: #6366f1; }
+.rc-note-textarea.return-area:focus { border-color: #f97316; }
+.rc-scan-input { font-size: 1rem; font-weight: 700; text-align: center; letter-spacing: .06em; border: 2px solid #e2e8f0; border-radius: 9px; padding: 10px 14px; width: 100%; outline: none; transition: border-color .15s; }
+.rc-scan-input:focus { border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,.1); }
+.rc-scan-hint { font-size: .73rem; color: #64748b; margin-top: 6px; text-align: center; }
+
+/* Return modal specifics */
+.rcm-return-header { background: #fff7ed; padding: 16px 20px 12px; border-bottom: 1px solid #fed7aa; }
+.rcm-return-title  { font-size: .95rem; font-weight: 700; color: #9a3412; }
+.rcm-return-sub    { font-size: .77rem; color: #c2410c; margin-top: 2px; }
+
+/* ── Toast ──────────────────────────────────────── */
+.rc-feedback { position: fixed; bottom: 26px; right: 26px; z-index: 9999; display: flex; flex-direction: column; gap: 7px; align-items: flex-end; pointer-events: none; }
+.rc-toast { display: flex; align-items: center; gap: 8px; padding: 9px 15px; border-radius: 9px; font-size: .82rem; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.12); pointer-events: auto; animation: toastSlide .22s ease; }
+@keyframes toastSlide { from { opacity:0; transform:translateX(16px); } to { opacity:1; transform:translateX(0); } }
+.rc-toast.ok   { background: #dcfce7; color: #166534; }
+.rc-toast.err  { background: #fee2e2; color: #991b1b; }
+.rc-toast.warn { background: #fff7ed; color: #9a3412; }
+
+.stage-empty-msg { text-align: center; color: #cbd5e1; font-size: .71rem; padding: 14px 0; user-select: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrapper app-shell-wrapper">
+
+  <!-- Toolbar -->
+  <div class="rc-toolbar">
+    <div class="rc-toolbar-left">
+      <a href="{% url 'record_completion:company_list' %}" class="rc-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Công ty
+      </a>
+      <span class="rc-company-title">{{ company.name }}</span>
+      <div class="rc-ci-strip">
+        <span class="rc-ci-chip total">
+          <i class="fa-solid fa-users"></i>
+          {{ checkin_stats.checked_in_count }}/{{ checkin_stats.total_patients }} đã check-in
+        </span>
+        {% if checkin_stats.not_checked_count > 0 %}
+        <span class="rc-ci-chip notyet"><i class="fa-regular fa-clock"></i> {{ checkin_stats.not_checked_count }} chưa đến</span>
+        {% endif %}
+        {% if checkin_stats.deferred_count > 0 %}
+        <span class="rc-ci-chip deferred"><i class="fa-solid fa-rotate-right"></i> {{ checkin_stats.deferred_count }} quay lại sau</span>
+        {% endif %}
+        <span class="rc-ci-chip done"><i class="fa-solid fa-circle-check"></i> {{ pipeline.completed_count }} hoàn tất ({{ pipeline.pct }}%)</span>
+        {% if pipeline.overdue_count > 0 %}
+        <span class="rc-ci-chip overdue"><i class="fa-solid fa-triangle-exclamation"></i> {{ pipeline.overdue_count }} quá hạn</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="rc-view-toggle" id="viewToggle">
+      <button class="rc-view-btn active" data-mode="all"><i class="fa-solid fa-table-columns me-1"></i>Tất cả BN</button>
+      <button class="rc-view-btn" data-mode="active"><i class="fa-solid fa-spinner me-1"></i>Đang xử lý</button>
+      <button class="rc-view-btn" data-mode="checkin"><i class="fa-solid fa-person-walking-arrow-right me-1"></i>Đã check-in</button>
+    </div>
+  </div>
+
+  <div class="rc-overall-progress" title="{{ pipeline.pct }}% hoàn tất">
+    <div class="rc-overall-fill {% if pipeline.pct == 100 %}full{% endif %}" style="width:{{ pipeline.pct }}%"></div>
+  </div>
+
+  <!-- Board bar: filter -->
+  <div class="rc-board-bar">
+    <form method="get" id="filter-form" class="rc-search-wrap" style="margin:0;">
+      <i class="fa-solid fa-magnifying-glass si"></i>
+      <input type="text" name="q" id="filter-input"
+             value="{{ ma_bn_filter }}" placeholder="Lọc mã BN…"
+             autocomplete="off" spellcheck="false">
+      {% if ma_bn_filter %}
+      <a href="?" class="clr" title="Xoá"><i class="fa-solid fa-times"></i></a>
+      {% endif %}
+    </form>
+    <span style="font-size:.73rem; color:#94a3b8;" id="visible-count"></span>
+  </div>
+
+  <!-- Pipeline Board -->
+  <div class="rc-board" id="rc-board">
+    {% for stage in pipeline.stages %}
+    {% with cfg=stage.config %}
+    <div class="rc-stage-col" data-step="{{ cfg.index }}">
+      <div class="rc-stage-header"
+           style="background:{{ cfg.bg_light }}; color:{{ cfg.color }}; border-color:{{ cfg.border_color }};">
+        <i class="{{ cfg.icon }}"></i>
+        {{ cfg.label }}
+        <span class="rc-stage-count" id="count-{{ cfg.index }}">{{ stage.count }}</span>
+      </div>
+      <div class="rc-stage-body" id="stage-{{ cfg.index }}">
+        {% for completion in stage.completions %}
+          {% include "record_completion/staff/_card.html" %}
+        {% empty %}
+        <div class="stage-empty-msg" id="empty-{{ cfg.index }}">
+          <i class="fa-regular fa-face-smile-beam" style="font-size:1.1rem;display:block;margin-bottom:3px;"></i>Trống
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- MODAL: xác&nbsp;nhận bước -->
+<div class="modal fade" id="advanceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:410px;">
+    <div class="modal-content border-0 shadow-lg" style="border-radius:15px;overflow:hidden;">
+      <div class="rcm-header">
+        <div class="rcm-title">xác&nbsp;nhận bước</div>
+        <div class="rcm-sub" id="adv-sub"></div>
+      </div>
+      <div class="rcm-body">
+        <div class="rcm-step-badge" id="adv-badge" style="background:#eef2ff;color:#4f46e5;"></div>
+        <div id="noteGroup" style="display:none;margin-bottom:11px;">
+          <label class="rc-note-label" for="advNote">Ghi chú dịch vụ chưa / không thực hiện</label>
+          <textarea class="rc-note-textarea" id="advNote" placeholder="VD: Chưa làm siêu âm bụng do BN từ chối…"></textarea>
+        </div>
+        <div id="scanGroup" style="display:none;">
+          <label class="rc-note-label" for="advScan">Quét / nhập mã bệnh nhân để xác&nbsp;nhận gửi</label>
+          <input type="text" class="rc-scan-input" id="advScan" placeholder="VD: BN000123" autocomplete="off" spellcheck="false">
+          <p class="rc-scan-hint"><i class="fa-solid fa-barcode"></i> Mã BN phải khớp chính xác</p>
+        </div>
+        <div id="optGroup" style="display:none;margin-top:8px;">
+          <label class="rc-note-label" for="advNoteOpt">Ghi chú <span style="font-weight:400;color:#94a3b8;">(tuỳ chọn)</span></label>
+          <textarea class="rc-note-textarea" id="advNoteOpt" placeholder="Ghi chú thêm nếu cần…" style="min-height:56px;"></textarea>
+        </div>
+      </div>
+      <div class="rcm-footer d-flex gap-2 justify-content-end">
+        <button type="button" class="btn btn-light btn-sm px-4" data-bs-dismiss="modal">Huỷ</button>
+        <button type="button" id="advConfirmBtn" class="btn btn-sm px-4 text-white"
+                style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:7px;font-weight:600;">
+          <i class="fa-solid fa-circle-check me-1"></i>xác&nbsp;nhận
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Trả về bước trước -->
+<div class="modal fade" id="returnModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+    <div class="modal-content border-0 shadow-lg" style="border-radius:15px;overflow:hidden;">
+      <div class="rcm-return-header">
+        <div class="rcm-return-title"><i class="fa-solid fa-rotate-left me-2"></i>Trả về bước trước</div>
+        <div class="rcm-return-sub" id="ret-sub"></div>
+      </div>
+      <div class="rcm-body">
+        <div class="rcm-step-badge" id="ret-badge" style="background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;"></div>
+        <label class="rc-note-label" for="retNote">
+          Lý do trả về <span style="color:#dc2626;">*</span>
+        </label>
+        <textarea class="rc-note-textarea return-area" id="retNote"
+                  placeholder="Mô tả vấn đề cần bổ sung / chỉnh sửa…"
+                  style="min-height:88px;"></textarea>
+        <p style="font-size:.72rem; color:#94a3b8; margin-top:6px; margin-bottom:0;">
+          <i class="fa-solid fa-circle-info me-1"></i>Lý do bắt buộc và sẽ được lưu vào nhật ký hồ sơ.
+        </p>
+      </div>
+      <div class="rcm-footer d-flex gap-2 justify-content-end">
+        <button type="button" class="btn btn-light btn-sm px-4" data-bs-dismiss="modal">Huỷ</button>
+        <button type="button" id="retConfirmBtn" class="btn btn-sm px-4 text-white"
+                style="background:linear-gradient(135deg,#f97316,#ea580c);border:none;border-radius:7px;font-weight:600;">
+          <i class="fa-solid fa-rotate-left me-1"></i>xác&nbsp;nhận trả về
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Log timeline -->
+<div class="modal fade" id="logModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:440px;">
+    <div class="modal-content border-0 shadow-lg" style="border-radius:15px;overflow:hidden;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" style="font-size:.91rem;font-weight:700;">
+          <i class="fa-regular fa-clock me-2 text-primary"></i>Lịch sử xác&nbsp;nhận
+        </h5>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="logBody">
+        <div class="text-center text-muted py-4" style="font-size:.82rem;">
+          <i class="fa-solid fa-spinner fa-spin me-2"></i>Đang tải…
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="rc-feedback" id="rcFeedback"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  "use strict";
+
+  var ADVANCEABLE = new Set({{ advanceable_steps_json|safe }});
+  var CSRF        = "{{ csrf_token }}";
+  var ADV_BASE    = "{% url 'record_completion:advance_step' 0 %}";
+  var RET_BASE    = "{% url 'record_completion:return_step'  0 %}";
+  var LOG_BASE    = "{% url 'record_completion:log_timeline' 0 %}";
+
+  function advUrl(id) { return ADV_BASE.replace("/0/", "/" + id + "/"); }
+  function retUrl(id) { return RET_BASE.replace("/0/", "/" + id + "/"); }
+  function logUrl(id) { return LOG_BASE.replace("/0/", "/" + id + "/"); }
+
+  var curId = null, curStep = null;
+
+  /* ── Toast ──────────────────────────────────────── */
+  function toast(msg, type) {
+    var el = document.createElement("div");
+    el.className = "rc-toast " + (type || "ok");
+    var icon = type === "err" ? "circle-xmark" : type === "warn" ? "rotate-left" : "circle-check";
+    el.innerHTML = '<i class="fa-solid fa-' + icon + '"></i> ' + msg;
+    document.getElementById("rcFeedback").appendChild(el);
+    setTimeout(function () { el.remove(); }, 4000);
+  }
+
+  /* ── Column helpers ─────────────────────────────── */
+  function deltaCount(step, d) {
+    var el = document.getElementById("count-" + step);
+    if (el) el.textContent = Math.max(0, parseInt(el.textContent || "0") + d);
+  }
+  function removeEmptyMsg(step) {
+    var el = document.getElementById("empty-" + step);
+    if (el) el.remove();
+  }
+  function maybeAddEmptyMsg(step) {
+    var body = document.getElementById("stage-" + step);
+    if (!body) return;
+    if (!body.querySelector(".bn-card:not(.rc-hidden)") && !body.querySelector(".stage-empty-msg")) {
+      var msg = document.createElement("div");
+      msg.className = "stage-empty-msg"; msg.id = "empty-" + step;
+      msg.innerHTML = '<i class="fa-regular fa-face-smile-beam" style="font-size:1.1rem;display:block;margin-bottom:3px;"></i>Trống';
+      body.appendChild(msg);
+    }
+  }
+
+  /* ── Board delegation ───────────────────────────── */
+  document.getElementById("rc-board").addEventListener("click", function (e) {
+    var advBtn = e.target.closest(".btn-advance");
+    if (advBtn) { openAdvModal(advBtn); return; }
+    var retBtn = e.target.closest(".btn-return");
+    if (retBtn) { openRetModal(retBtn); return; }
+    var logBtn = e.target.closest(".bn-log-btn");
+    if (logBtn) { openLogModal(logBtn.dataset.id); }
+  });
+
+  /* ── moveCard: shared helper ────────────────────── */
+  function moveCard(completionId, oldStep, data) {
+    var cardEl = document.getElementById("card-" + completionId);
+    if (cardEl) cardEl.remove();
+    deltaCount(oldStep, -1);
+    maybeAddEmptyMsg(oldStep);
+
+    var newBody = document.getElementById("stage-" + data.new_step);
+    if (newBody) {
+      removeEmptyMsg(data.new_step);
+      var wrap = document.createElement("div");
+      wrap.innerHTML = data.card_html.trim();
+      var newCard = wrap.firstElementChild;
+      newBody.insertBefore(newCard, newBody.firstChild);
+      deltaCount(data.new_step, 1);
+      newCard.style.boxShadow = "0 0 0 3px rgba(99,102,241,.28)";
+      setTimeout(function () { newCard.style.boxShadow = ""; }, 1400);
+    }
+    applyCurrentViewMode();
+  }
+
+  /* ── Advance modal ──────────────────────────────── */
+  var advModal = new bootstrap.Modal(document.getElementById("advanceModal"));
+
+  function openAdvModal(btn) {
+    curId   = btn.dataset.id;
+    curStep = parseInt(btn.dataset.step, 10);
+    var needsScan = btn.dataset.needsScan === "true";
+    var hasNote   = btn.dataset.hasNote   === "true";
+    var label     = btn.dataset.stepLabel || "";
+    var name      = btn.dataset.patient   || btn.closest(".bn-card").querySelector(".bn-name").textContent.trim();
+
+    document.getElementById("adv-sub").textContent   = "Bệnh nhân: " + name;
+    document.getElementById("adv-badge").innerHTML   = '<i class="fa-solid fa-circle-check me-1"></i> Bước ' + (curStep + 1) + ': ' + label;
+    document.getElementById("noteGroup").style.display = hasNote   ? "block" : "none";
+    document.getElementById("scanGroup").style.display = needsScan ? "block" : "none";
+    document.getElementById("optGroup").style.display  = (!hasNote && !needsScan) ? "block" : "none";
+    document.getElementById("advNote").value    = "";
+    document.getElementById("advNoteOpt").value = "";
+    document.getElementById("advScan").value    = "";
+
+    advModal.show();
+    setTimeout(function () {
+      if (needsScan)    document.getElementById("advScan").focus();
+      else if (hasNote) document.getElementById("advNote").focus();
+      else              document.getElementById("advNoteOpt").focus();
+    }, 310);
+  }
+
+  document.getElementById("advScan").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); doAdvance(); }
+  });
+  document.getElementById("advConfirmBtn").addEventListener("click", doAdvance);
+
+  function doAdvance() {
+    if (curId === null) return;
+    var scanVis = document.getElementById("scanGroup").style.display !== "none";
+    var noteVis = document.getElementById("noteGroup").style.display !== "none";
+    var optVis  = document.getElementById("optGroup").style.display  !== "none";
+    var note       = noteVis ? document.getElementById("advNote").value.trim()
+                   : optVis  ? document.getElementById("advNoteOpt").value.trim() : "";
+    var ma_bn_scan = scanVis ? document.getElementById("advScan").value.trim() : "";
+
+    var btn = document.getElementById("advConfirmBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Đang xử lý…';
+
+    var oldStep = curStep;
+    var cardEl  = document.getElementById("card-" + curId);
+    if (cardEl) cardEl.classList.add("is-loading");
+
+    fetch(advUrl(curId), {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-CSRFToken": CSRF},
+      body: JSON.stringify({note: note, ma_bn_scan: ma_bn_scan}),
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>xác&nbsp;nhận';
+      if (cardEl) cardEl.classList.remove("is-loading");
+      if (!data.success) { toast(data.error || "Có lỗi xảy ra.", "err"); return; }
+      advModal.hide();
+      moveCard(curId, oldStep, data);
+      toast(data.is_completed ? "Hồ sơ đã hoàn tất toàn bộ quy trình!" : "Đã xác&nbsp;nhận bước thành công.", "ok");
+    })
+    .catch(function () {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>xác&nbsp;nhận';
+      if (cardEl) cardEl.classList.remove("is-loading");
+      toast("Lỗi kết nối, vui lòng thử lại.", "err");
+    });
+  }
+
+  /* ── Return modal ───────────────────────────────── */
+  var retModal = new bootstrap.Modal(document.getElementById("returnModal"));
+  var retCurId = null, retCurStep = null;
+
+  function openRetModal(btn) {
+    retCurId   = btn.dataset.id;
+    retCurStep = parseInt(btn.dataset.step, 10);
+    var prevLabel = btn.dataset.prevLabel || "Bước trước";
+    var name      = btn.dataset.patient   || btn.closest(".bn-card").querySelector(".bn-name").textContent.trim();
+
+    document.getElementById("ret-sub").textContent = "Bệnh nhân: " + name;
+    document.getElementById("ret-badge").innerHTML =
+      '<i class="fa-solid fa-rotate-left me-1"></i>'
+      + 'Bước ' + (retCurStep + 1) + ' → Trả về: ' + prevLabel;
+    document.getElementById("retNote").value = "";
+
+    retModal.show();
+    setTimeout(function () { document.getElementById("retNote").focus(); }, 310);
+  }
+
+  document.getElementById("retConfirmBtn").addEventListener("click", doReturn);
+
+  function doReturn() {
+    if (retCurId === null) return;
+    var note = document.getElementById("retNote").value.trim();
+    if (!note) {
+      document.getElementById("retNote").focus();
+      document.getElementById("retNote").style.borderColor = "#f97316";
+      setTimeout(function () { document.getElementById("retNote").style.borderColor = ""; }, 1500);
+      toast("Vui lòng nhập lý do trả về.", "err");
+      return;
+    }
+
+    var btn = document.getElementById("retConfirmBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Đang xử lý…';
+
+    var oldStep = retCurStep;
+    var cardEl  = document.getElementById("card-" + retCurId);
+    if (cardEl) cardEl.classList.add("is-loading");
+
+    fetch(retUrl(retCurId), {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-CSRFToken": CSRF},
+      body: JSON.stringify({note: note}),
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-rotate-left me-1"></i>xác&nbsp;nhận trả về';
+      if (cardEl) cardEl.classList.remove("is-loading");
+      if (!data.success) { toast(data.error || "Có lỗi xảy ra.", "err"); return; }
+      retModal.hide();
+      moveCard(retCurId, oldStep, data);
+      toast("Đã trả hồ sơ về bước trước.", "warn");
+    })
+    .catch(function () {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-rotate-left me-1"></i>xác&nbsp;nhận trả về';
+      if (cardEl) cardEl.classList.remove("is-loading");
+      toast("Lỗi kết nối, vui lòng thử lại.", "err");
+    });
+  }
+
+  /* ── Log modal ──────────────────────────────────── */
+  var logModal = new bootstrap.Modal(document.getElementById("logModal"));
+
+  function openLogModal(id) {
+    document.getElementById("logBody").innerHTML =
+      '<div class="text-center text-muted py-4" style="font-size:.82rem;"><i class="fa-solid fa-spinner fa-spin me-2"></i>Đang tải…</div>';
+    logModal.show();
+    fetch(logUrl(id))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        document.getElementById("logBody").innerHTML = data.success ? data.html
+          : '<div class="text-danger text-center py-3">' + (data.error || "Lỗi") + '</div>';
+      })
+      .catch(function () {
+        document.getElementById("logBody").innerHTML = '<div class="text-danger text-center py-3">Lỗi kết nối.</div>';
+      });
+  }
+
+  /* ── View mode ──────────────────────────────────── */
+  var currentMode = "all";
+
+  document.getElementById("viewToggle").addEventListener("click", function (e) {
+    var btn = e.target.closest(".rc-view-btn");
+    if (!btn) return;
+    document.querySelectorAll(".rc-view-btn").forEach(function (b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    currentMode = btn.dataset.mode;
+    applyCurrentViewMode();
+  });
+
+  function applyCurrentViewMode() {
+    var q = document.getElementById("filter-input").value.trim().toLowerCase();
+    document.querySelectorAll(".bn-card").forEach(function (card) {
+      var step     = parseInt(card.dataset.step, 10);
+      var isComp   = card.classList.contains("completed");
+      var maBn     = (card.dataset.maBn || "").toLowerCase();
+      var modeHide = (currentMode === "active" && isComp) || (currentMode === "checkin" && step === 6);
+      var filtHide = q !== "" && !maBn.includes(q);
+      card.classList.toggle("rc-hidden", modeHide || filtHide);
+    });
+    var compCol = document.querySelector('.rc-stage-col[data-step="6"]');
+    if (compCol) compCol.style.display = (currentMode === "checkin") ? "none" : "";
+    updateVisibleCount();
+  }
+
+  function updateVisibleCount() {
+    var n  = document.querySelectorAll(".bn-card:not(.rc-hidden)").length;
+    var el = document.getElementById("visible-count");
+    if (el) el.textContent = n > 0 ? n + " hồ sơ" : "";
+  }
+
+  /* ── Filter ─────────────────────────────────────── */
+  document.getElementById("filter-input").addEventListener("input", function () { applyCurrentViewMode(); });
+  document.getElementById("filter-input").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); document.getElementById("filter-form").submit(); }
+  });
+
+  updateVisibleCount();
+})();
+</script>
+{% endblock %}

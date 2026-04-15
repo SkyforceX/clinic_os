@@ -191,6 +191,7 @@ function loadQuotationData(qid) {
 
   const companyIdInput = document.getElementById('company_id_input');
   const companyNameInput = document.getElementById('company_name_input');
+  const taxCodeInput = document.querySelector('[name="tax_code"]');
   const maleDisplay = document.getElementById('male_count_display');
   const fsDisplay = document.getElementById('fs_count_display');
   const ffDisplay = document.getElementById('ff_count_display');
@@ -204,6 +205,7 @@ function loadQuotationData(qid) {
     companyNameInput.value = '';
     document.getElementById('company_address_input').value = '';
     document.getElementById('contact_input').value = '';
+    if (taxCodeInput) taxCodeInput.value = '';
 
     if (maleDisplay) maleDisplay.value = 0;
     if (fsDisplay) fsDisplay.value = 0;
@@ -218,6 +220,7 @@ function loadQuotationData(qid) {
 
   document.getElementById('company_address_input').value = opt.dataset.address || '';
   document.getElementById('contact_input').value = opt.dataset.contact || '';
+  if (taxCodeInput) taxCodeInput.value = opt.dataset.taxCode || '';
 
   if (maleDisplay) maleDisplay.value = opt.dataset.male || 0;
   if (fsDisplay) fsDisplay.value = opt.dataset.fs || 0;

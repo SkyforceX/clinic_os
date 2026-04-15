@@ -1,0 +1,187 @@
+{% extends "base_admin.html" %}
+{% load static %}
+{% block title %}Tiến trình hồ sơ – Danh sách công ty{% endblock %}
+
+{% block extra_head %}
+<style>
+.rc-page-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+}
+.rc-page-icon {
+  width: 44px; height: 44px; flex-shrink: 0;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 1.2rem;
+}
+.rc-page-title { font-size: 1.4rem; font-weight: 700; color: #0f172a; margin: 0; }
+.rc-page-sub   { font-size: .82rem; color: #64748b; margin: 0; }
+
+.rc-company-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.rc-company-card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+  padding: 18px 20px; text-decoration: none; color: inherit;
+  display: flex; flex-direction: column; gap: 12px;
+  transition: box-shadow .18s, transform .18s, border-color .18s;
+  position: relative; overflow: hidden;
+}
+.rc-company-card:hover {
+  box-shadow: 0 8px 28px rgba(0,0,0,.1); transform: translateY(-2px);
+  border-color: #c7d2fe; color: inherit; text-decoration: none;
+}
+.rc-company-card.has-overdue { border-left: 4px solid #ef4444; }
+
+.rc-company-name {
+  font-size: .96rem; font-weight: 700; color: #1e293b;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.rc-company-avatar {
+  width: 38px; height: 38px; flex-shrink: 0;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: .84rem; font-weight: 700;
+}
+
+/* Progress */
+.rc-progress-wrap  { display: flex; flex-direction: column; gap: 5px; }
+.rc-progress-labels { display: flex; justify-content: space-between; font-size: .74rem; color: #64748b; }
+.rc-progress-bg    { height: 7px; border-radius: 99px; background: #f1f5f9; overflow: hidden; }
+.rc-progress-fill  {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  transition: width .4s ease;
+}
+.rc-progress-fill.full { background: linear-gradient(90deg, #16a34a, #22c55e); }
+
+/* Checkin stats grid */
+.rc-ci-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+}
+.rc-ci-cell {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 6px 4px; border-radius: 8px; gap: 2px;
+}
+.rc-ci-cell.total     { background: #f8fafc; }
+.rc-ci-cell.checkin   { background: #eff6ff; }
+.rc-ci-cell.notyet    { background: #f8fafc; }
+.rc-ci-cell.deferred  { background: #fff7ed; }
+.rc-ci-num  { font-size: 1rem; font-weight: 700; line-height: 1.2; }
+.rc-ci-lbl  { font-size: .66rem; font-weight: 500; text-align: center; line-height: 1.2; }
+.rc-ci-cell.total    .rc-ci-num { color: #475569; }
+.rc-ci-cell.total    .rc-ci-lbl { color: #94a3b8; }
+.rc-ci-cell.checkin  .rc-ci-num { color: #2563eb; }
+.rc-ci-cell.checkin  .rc-ci-lbl { color: #3b82f6; }
+.rc-ci-cell.notyet   .rc-ci-num { color: #94a3b8; }
+.rc-ci-cell.notyet   .rc-ci-lbl { color: #94a3b8; }
+.rc-ci-cell.deferred .rc-ci-num { color: #d97706; }
+.rc-ci-cell.deferred .rc-ci-lbl { color: #f59e0b; }
+
+/* Bottom badges */
+.rc-badges-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.rc-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .72rem; font-weight: 600; padding: 2px 9px;
+  border-radius: 99px;
+}
+.rc-badge.done    { background: #dcfce7; color: #16a34a; }
+.rc-badge.overdue { background: #fee2e2; color: #dc2626; }
+
+.rc-card-arrow {
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  color: #cbd5e1; font-size: .88rem; transition: color .18s, transform .18s;
+}
+.rc-company-card:hover .rc-card-arrow { color: #6366f1; transform: translateY(-50%) translateX(3px); }
+
+.rc-empty {
+  text-align: center; padding: 64px 24px; color: #94a3b8;
+}
+.rc-empty i { font-size: 3rem; margin-bottom: 16px; display: block; opacity: .4; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrapper app-shell-wrapper">
+
+  <div class="rc-page-header">
+    <div class="rc-page-icon"><i class="fa-solid fa-clipboard-check"></i></div>
+    <div>
+      <h1 class="rc-page-title">Hoàn tất hồ sơ</h1>
+      <p class="rc-page-sub">Theo dõi tiến độ kiểm tra &amp; hoàn thiện hồ sơ sau khám</p>
+    </div>
+  </div>
+
+  {% if summaries %}
+  <div class="rc-company-grid">
+    {% for s in summaries %}
+    <a href="{% url 'record_completion:pipeline' s.company.id %}"
+       class="rc-company-card {% if s.overdue_count > 0 %}has-overdue{% endif %}">
+
+      <div class="rc-company-name">
+        <div class="rc-company-avatar">{{ s.company.name|slice:":2"|upper }}</div>
+        <span style="line-height:1.3; padding-top:3px;">{{ s.company.name }}</span>
+      </div>
+
+      <!-- Checkin stats -->
+      <div class="rc-ci-grid">
+        <div class="rc-ci-cell total">
+          <span class="rc-ci-num">{{ s.total_patients }}</span>
+          <span class="rc-ci-lbl">Tổng BN</span>
+        </div>
+        <div class="rc-ci-cell checkin">
+          <span class="rc-ci-num">{{ s.checked_in_count }}</span>
+          <span class="rc-ci-lbl">Đã check-in</span>
+        </div>
+        <div class="rc-ci-cell notyet">
+          <span class="rc-ci-num">{{ s.not_checked_count }}</span>
+          <span class="rc-ci-lbl">Chưa check</span>
+        </div>
+        <div class="rc-ci-cell deferred">
+          <span class="rc-ci-num">{{ s.deferred_count }}</span>
+          <span class="rc-ci-lbl">Quay lại</span>
+        </div>
+      </div>
+
+      <!-- Completion progress -->
+      <div class="rc-progress-wrap">
+        <div class="rc-progress-labels">
+          <span>Tiến độ hoàn tất hồ sơ</span>
+          <span>{{ s.completed }}/{{ s.total }} ({{ s.pct }}%)</span>
+        </div>
+        <div class="rc-progress-bg">
+          <div class="rc-progress-fill {% if s.pct == 100 %}full{% endif %}"
+               style="width:{{ s.pct }}%"></div>
+        </div>
+      </div>
+
+      <div class="rc-badges-row">
+        <span class="rc-badge done">
+          <i class="fa-solid fa-circle-check"></i> {{ s.completed }} hoàn tất
+        </span>
+        {% if s.overdue_count > 0 %}
+        <span class="rc-badge overdue">
+          <i class="fa-solid fa-triangle-exclamation"></i> {{ s.overdue_count }} quá hạn
+        </span>
+        {% endif %}
+      </div>
+
+      <i class="fa-solid fa-chevron-right rc-card-arrow"></i>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="rc-empty">
+    <i class="fa-solid fa-clipboard-check"></i>
+    <p>Chưa có công ty nào có hồ sơ cần hoàn tất.<br>
+       Hồ sơ sẽ xuất hiện sau khi bệnh nhân check-out tại lễ tân.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

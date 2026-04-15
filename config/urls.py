@@ -22,6 +22,7 @@ urlpatterns = [
     path("scheduling/", include("apps.scheduling.urls", namespace="scheduling")),
     path("tiep-nhan/check-in/", include("apps.reception.urls", namespace="reception")),
     path("clinical/", include("apps.clinical.urls", namespace="clinical")),
+    path("record-completion/", include("apps.record_completion.urls")),
     path("notifications/", include("apps.notifications.urls", namespace="notifications")),
     path("hrm/", include("apps.hrm.urls", namespace="hrm")),
     path("analytics/", include("apps.analytics.urls", namespace="analytics")),

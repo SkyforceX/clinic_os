@@ -53,6 +53,8 @@ body {
 
 body.sidebar-collapsed .main-content {
   margin-left: var(--sidebar-collapsed-width);
+  width: calc(100% - var(--sidebar-collapsed-width));
+  max-width: calc(100% - var(--sidebar-collapsed-width));
 }
 
 .wrapper.app-shell-wrapper {
@@ -197,6 +199,8 @@ body.sidebar-collapsed .main-content {
 
   body.sidebar-collapsed .main-content {
     margin-left: 0;
+    width: 100%;
+    max-width: 100%;
   }
 
   .wrapper.app-shell-wrapper {

@@ -37,6 +37,30 @@ def _is_executive(user) -> bool:
     ).exists()
 
 
+def _can_view_record_completion(user) -> bool:
+    return getattr(user, "is_superuser", False) or user.groups.filter(
+        name__in=[
+            "Executive",
+            "Executives",
+            "Medical Director",
+            "Director",
+            "Manager",
+            "Managers",
+            "Operations Team",
+            "Operations",
+            "VH",
+            "Vận hành",
+            "Van hanh",
+            "Nurses",
+            "Nursing",
+            "Điều dưỡng",
+            "Dieu duong",
+            "DD",
+            "ĐD",
+        ]
+    ).exists()
+
+
 def _is_it_admin(user) -> bool:
     return getattr(user, "is_superuser", False) or user.groups.filter(
         name__in=["IT Admin", "IT", "IT Support"]
@@ -227,6 +251,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
     is_doctor = _is_doctor(user)
     is_hr_admin = _is_hr_admin(user)
     is_executive = _is_executive(user)
+    can_view_record_completion = _can_view_record_completion(user)
     is_it_admin = _is_it_admin(user)
     is_care = _is_care(user)
 
@@ -385,11 +410,46 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                         active_app_names=["organizations"],
                         active_url_name_contains=["company"],
                     ),
+                    _item(
+                        request=request,
+                        label="Danh sách KH - HIS",
+                        url_name="patients:his_patient_sync_list",
+                        icon="fa-regular fa-building",
+                        active_app_names=["patients"],
+                        active_url_name_contains=["his_patient_sync_list"],
+                    ),
+                    _item(
+                        request=request,
+                        label="Tiến trình hồ sơ",
+                        url_name="record_completion:company_list",
+                        icon="fa-solid fa-clipboard-check",
+                        active_app_names=["record_completion"],
+                        active_url_name_contains=["completion", "pipeline"],
+                    ),
                 ],
             ),
         )
 
     # ── KPI ─────────────────────────────────────────────────────────────────
+    if can_view_record_completion and not (is_sales or is_executive or is_manager):
+        _append_section(
+            sections,
+            _section(
+                "Quản lý Doanh nghiệp",
+                "🏢",
+                [
+                    _item(
+                        request=request,
+                        label="Tiến trình hồ sơ",
+                        url_name="record_completion:company_list",
+                        icon="fa-solid fa-clipboard-check",
+                        active_app_names=["record_completion"],
+                        active_url_name_contains=["completion", "pipeline"],
+                    ),
+                ],
+            ),
+        )
+
     if is_sales or is_executive:
         kpi_items = [
             _item(

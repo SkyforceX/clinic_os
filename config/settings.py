@@ -42,17 +42,25 @@ USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# ==== HIS MSSQL CONNECTION SETTINGS ==== #
+HIS_MSSQL = {
+    "DRIVER": "{ODBC Driver 18 for SQL Server}",
+    "SERVER": os.getenv("HIS_DB_HOST"),
+    "DATABASE": os.getenv("HIS_DB_NAME"),
+    "UID": os.getenv("HIS_DB_USER"),
+    "PWD": os.getenv("HIS_DB_PASSWORD"),
+}
 
 # ==== HIS AUTOMATION ==== #
-HIS_AUTOMATION = {
-    "BASE_URL": env("HIS_BASE_URL", default="https://bvhcm.vncare.vn/vnpthis/main/manager.jsp"),
-    "USERNAME": env("HIS_USERNAME", default=""),
-    "PASSWORD": env("HIS_PASSWORD", default=""),
-    "FORM_FUNC": env("HIS_FORM_FUNC", default="../ksk/KSK01D004_KetQuaKham"),
-    "IFRAME_SELECTOR": env("HIS_IFRAME_SELECTOR", default="iframe#ifmain"),
-    "HEADLESS": env.bool("HIS_HEADLESS", True),
-    "SLOW_MO_MS": env.int("HIS_SLOW_MO_MS", 0),
-}
+# HIS_AUTOMATION = {
+#     "BASE_URL": env("HIS_BASE_URL", default="https://bvhcm.vncare.vn/vnpthis/main/manager.jsp"),
+#     "USERNAME": env("HIS_USERNAME", default=""),
+#     "PASSWORD": env("HIS_PASSWORD", default=""),
+#     "FORM_FUNC": env("HIS_FORM_FUNC", default="../ksk/KSK01D004_KetQuaKham"),
+#     "IFRAME_SELECTOR": env("HIS_IFRAME_SELECTOR", default="iframe#ifmain"),
+#     "HEADLESS": env.bool("HIS_HEADLESS", True),
+#     "SLOW_MO_MS": env.int("HIS_SLOW_MO_MS", 0),
+# }
 
 # local dev http sẽ đỡ bị kẹt cookie hơn
 CSRF_COOKIE_SECURE = not DEBUG
@@ -95,6 +103,7 @@ INSTALLED_APPS = [
     "apps.contract",
     "apps.scheduling",
     "apps.reception",
+    "apps.record_completion",
     "apps.clinical",
     "apps.catalogs",
     "apps.notifications",

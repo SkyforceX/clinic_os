@@ -156,6 +156,7 @@ def ajax_lookup(request):
         "already_checked_in":  result["already_checked_in"],
         "already_checked_out": result["already_checked_out"],
         "is_deferred":         result["is_deferred"],
+        "contract_done":       result["contract_done"],
     })
 
 
@@ -192,7 +193,7 @@ def ajax_action(request):
     elif action == "checkout":
         if not record_id:
             return JsonResponse({"ok": False, "error": "Thiếu record_id."})
-        record, err = do_checkout(int(record_id), note, operator, today)
+        record, err = do_checkout(int(record_id), note, operator)
         if err:
             return JsonResponse({"ok": False, "error": err})
         msg = f"✓ Check-out thành công: {record.snapshot_ho_ten}"
@@ -200,7 +201,7 @@ def ajax_action(request):
     elif action == "defer":
         if not record_id:
             return JsonResponse({"ok": False, "error": "Thiếu record_id."})
-        record, err = do_defer(int(record_id), note, operator, today)
+        record, err = do_defer(int(record_id), note, operator)
         if err:
             return JsonResponse({"ok": False, "error": err})
         msg = f"↩ Đã đánh dấu quay lại sau: {record.snapshot_ho_ten}"

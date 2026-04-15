@@ -1,0 +1,118 @@
+<!-- Log timeline: hiển thị toàn bộ lịch sử theo thời gian thực -->
+<!-- Context: record, enriched_logs (list of {log, config, is_return}) -->
+<div class="log-tl">
+
+  <div class="log-tl-head">
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <strong style="font-size:.93rem;">{{ record.checkin_record.snapshot_ho_ten }}</strong>
+      <span class="text-muted" style="font-size:.77rem;">{{ record.checkin_record.snapshot_ma_bn }}</span>
+    </div>
+    <div style="font-size:.74rem; color:#64748b;">
+      Ngày khám: {{ record.checkin_record.exam_date|date:"d/m/Y" }}
+      {% if record.is_completed %}
+      &nbsp;·&nbsp;<span style="color:#16a34a; font-weight:600;">
+        <i class="fa-solid fa-circle-check"></i> Đã hoàn tất
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if enriched_logs %}
+  <div class="log-tl-track">
+    {% for item in enriched_logs %}
+    {% with log=item.log cfg=item.config %}
+    <div class="log-tl-item {% if item.is_return %}is-return{% else %}is-advance{% endif %}">
+
+      <div class="log-tl-dot"
+           style="{% if item.is_return %}background:#f97316; border-color:#f97316;{% else %}background:{{ cfg.color }}; border-color:{{ cfg.color }};{% endif %}">
+        {% if item.is_return %}
+        <i class="fa-solid fa-rotate-left" style="font-size:.58rem; color:#fff;"></i>
+        {% else %}
+        <i class="{{ cfg.icon }}" style="font-size:.58rem; color:#fff;"></i>
+        {% endif %}
+      </div>
+
+      <div class="log-tl-body">
+        <div class="log-tl-step">
+          {% if item.is_return %}
+          <span class="log-badge-return">
+            <i class="fa-solid fa-rotate-left me-1"></i>Trả về: {{ cfg.label }}
+          </span>
+          {% else %}
+          <span class="log-badge-advance" style="color:{{ cfg.color }};">
+            <i class="{{ cfg.icon }} me-1"></i>{{ cfg.label }}
+          </span>
+          {% endif %}
+        </div>
+
+        <div class="log-tl-meta">
+          <span>
+            <i class="fa-regular fa-user"></i>
+            {% if log.actor %}{{ log.actor.get_full_name|default:log.actor.username }}{% else %}—{% endif %}
+          </span>
+          <span><i class="fa-regular fa-clock"></i> {{ log.confirmed_at|date:"d/m/Y H:i" }}</span>
+        </div>
+
+        {% if log.note %}
+        <div class="log-tl-note {% if item.is_return %}return-note{% endif %}">
+          <i class="fa-solid fa-{% if item.is_return %}triangle-exclamation{% else %}note-sticky{% endif %} me-1"></i>{{ log.note }}
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+    {% endwith %}
+    {% endfor %}
+
+    <!-- Hoàn tất node -->
+    {% if record.is_completed %}
+    <div class="log-tl-item is-advance">
+      <div class="log-tl-dot" style="background:#16a34a; border-color:#16a34a;">
+        <i class="fa-solid fa-flag-checkered" style="font-size:.58rem; color:#fff;"></i>
+      </div>
+      <div class="log-tl-body">
+        <div class="log-tl-step">
+          <span class="log-badge-advance" style="color:#16a34a;">
+            <i class="fa-solid fa-circle-check me-1"></i>Hoàn tất hồ sơ
+          </span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% else %}
+  <div class="text-center text-muted py-3" style="font-size:.8rem;">
+    <i class="fa-regular fa-clock me-1"></i>Chưa có lịch sử xác nhận
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+.log-tl-head { padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; margin-bottom: 14px; }
+.log-tl-track { position: relative; padding-left: 30px; display: flex; flex-direction: column; }
+.log-tl-track::before {
+  content: ""; position: absolute; left: 10px; top: 8px; bottom: 8px;
+  width: 2px; background: #e2e8f0; border-radius: 2px;
+}
+.log-tl-item { display: flex; align-items: flex-start; gap: 9px; padding: 6px 0; position: relative; }
+.log-tl-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid #e2e8f0; background: #f8fafc;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; position: absolute; left: -30px; z-index: 1;
+}
+.log-tl-item.is-advance .log-tl-dot { box-shadow: 0 0 0 3px rgba(99,102,241,.1); }
+.log-tl-item.is-return  .log-tl-dot { box-shadow: 0 0 0 3px rgba(249,115,22,.12); }
+.log-tl-body { min-width: 0; padding-left: 2px; }
+.log-tl-step { margin-bottom: 3px; }
+.log-badge-advance { font-size: .79rem; font-weight: 700; }
+.log-badge-return  { font-size: .79rem; font-weight: 700; color: #ea580c; display: inline-flex; align-items: center; }
+.log-tl-meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: .71rem; color: #64748b; }
+.log-tl-note {
+  font-size: .71rem; color: #475569; background: #f8fafc;
+  border-radius: 5px; padding: 4px 8px; margin-top: 4px; line-height: 1.4; word-break: break-word;
+}
+.log-tl-note.return-note { background: #fff7ed; color: #9a3412; border-left: 2px solid #fb923c; }
+</style>
