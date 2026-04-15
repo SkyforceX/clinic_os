@@ -93,15 +93,33 @@ class Command(BaseCommand):
 
     def _connect_his(self):
         his_cfg = settings.HIS_MSSQL
+
+        driver = his_cfg.get("DRIVER", "{ODBC Driver 18 for SQL Server}")
+        server = str(his_cfg.get("SERVER", "")).strip()
+        port = str(his_cfg.get("PORT", "")).strip()
+        database = his_cfg.get("DATABASE", "")
+        uid = his_cfg.get("UID", "")
+        pwd = his_cfg.get("PWD", "")
+        encrypt = str(his_cfg.get("ENCRYPT", "no")).strip()
+        trust_cert = str(his_cfg.get("TRUST_SERVER_CERTIFICATE", "yes")).strip()
+        timeout = int(his_cfg.get("TIMEOUT", 5))
+
+        if not server:
+            raise RuntimeError("Thiếu HIS_MSSQL['SERVER'].")
+
+        server_part = f"{server},{port}" if port else server
+
         conn_str = (
-            f"DRIVER={his_cfg['DRIVER']};"
-            f"SERVER={his_cfg['SERVER']};"
-            f"DATABASE={his_cfg['DATABASE']};"
-            f"UID={his_cfg['UID']};"
-            f"PWD={his_cfg['PWD']};"
-            "TrustServerCertificate=yes;"
+            f"DRIVER={driver};"
+            f"SERVER={server_part};"
+            f"DATABASE={database};"
+            f"UID={uid};"
+            f"PWD={pwd};"
+            f"Encrypt={encrypt};"
+            f"TrustServerCertificate={trust_cert};"
         )
-        return pyodbc.connect(conn_str)
+
+        return pyodbc.connect(conn_str, timeout=timeout)
 
     def _fetch_batch(self, cursor, last_auto_id: int, batch_size: int):
         query = f"""
