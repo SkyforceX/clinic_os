@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-
+import os
 import pyodbc
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -104,7 +104,12 @@ class Command(BaseCommand):
         timeout = int(his_cfg.get("TIMEOUT", 5))
 
         if not server:
-            raise RuntimeError("Thiếu cấu hình HIS_MSSQL['SERVER']")
+            raise RuntimeError(
+                "❌ Thiếu cấu hình HIS_MSSQL['SERVER']\n"
+                f"→ HIS_MSSQL hiện tại: {his_cfg}\n"
+                f"→ ENV HIS_DB_HOST: {os.getenv('HIS_DB_HOST')}\n"
+                f"→ ENV HIS_DB_PORT: {os.getenv('HIS_DB_PORT')}\n"
+            )
 
         server_part = f"{server},{port}" if port else server
 
