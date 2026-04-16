@@ -94,18 +94,17 @@ class Command(BaseCommand):
     def _connect_his(self):
         his_cfg = settings.HIS_MSSQL
 
-        driver = his_cfg.get("DRIVER", "{ODBC Driver 18 for SQL Server}")
-        server = str(his_cfg.get("HIS_DB_HOST", "")).strip()
-        port = str(his_cfg.get("HIS_DB_PORT", "")).strip()
-        database = his_cfg.get("HIS_DB_NAME", "")
-        uid = his_cfg.get("HIS_DB_USER", "")
-        pwd = his_cfg.get("HIS_DB_PASSWORD", "")
-        encrypt = str(his_cfg.get("ENCRYPT", "no")).strip()
+        driver = str(his_cfg.get("DRIVER", "{ODBC Driver 18 for SQL Server}")).strip()
+        server = str(his_cfg.get("SERVER", "")).strip()
+        port = str(his_cfg.get("PORT", "")).strip()
+        database = str(his_cfg.get("DATABASE", "")).strip()
+        uid = str(his_cfg.get("UID", "")).strip()
+        pwd = str(his_cfg.get("PWD", "")).strip()
         trust_cert = str(his_cfg.get("TRUST_SERVER_CERTIFICATE", "yes")).strip()
         timeout = int(his_cfg.get("TIMEOUT", 5))
 
         if not server:
-            raise RuntimeError("Thiếu HIS_MSSQL['SERVER'].")
+            raise RuntimeError("Thiếu cấu hình HIS_MSSQL['SERVER']")
 
         server_part = f"{server},{port}" if port else server
 
@@ -115,7 +114,6 @@ class Command(BaseCommand):
             f"DATABASE={database};"
             f"UID={uid};"
             f"PWD={pwd};"
-            f"Encrypt={encrypt};"
             f"TrustServerCertificate={trust_cert};"
         )
 

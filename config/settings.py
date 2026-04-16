@@ -44,11 +44,14 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # ==== HIS MSSQL CONNECTION SETTINGS ==== #
 HIS_MSSQL = {
-    "DRIVER": "{ODBC Driver 18 for SQL Server}",
+    "DRIVER": os.getenv("HIS_DB_DRIVER", "{ODBC Driver 18 for SQL Server}"),
     "SERVER": os.getenv("HIS_DB_HOST"),
+    "PORT": os.getenv("HIS_DB_PORT", "1433"),
     "DATABASE": os.getenv("HIS_DB_NAME"),
     "UID": os.getenv("HIS_DB_USER"),
     "PWD": os.getenv("HIS_DB_PASSWORD"),
+    "TRUST_SERVER_CERTIFICATE": os.getenv("HIS_DB_TRUST_CERT", "yes"),
+    "TIMEOUT": int(os.getenv("HIS_DB_TIMEOUT", "5")),
 }
 
 # ==== HIS AUTOMATION ==== #
