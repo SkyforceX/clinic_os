@@ -95,11 +95,11 @@ class Command(BaseCommand):
         his_cfg = settings.HIS_MSSQL
 
         driver = his_cfg.get("DRIVER", "{ODBC Driver 18 for SQL Server}")
-        server = str(his_cfg.get("SERVER", "")).strip()
-        port = str(his_cfg.get("PORT", "")).strip()
-        database = his_cfg.get("DATABASE", "")
-        uid = his_cfg.get("UID", "")
-        pwd = his_cfg.get("PWD", "")
+        server = str(his_cfg.get("HIS_DB_HOST", "")).strip()
+        port = str(his_cfg.get("HIS_DB_PORT", "")).strip()
+        database = his_cfg.get("HIS_DB_NAME", "")
+        uid = his_cfg.get("HIS_DB_USER", "")
+        pwd = his_cfg.get("HIS_DB_PASSWORD", "")
         encrypt = str(his_cfg.get("ENCRYPT", "no")).strip()
         trust_cert = str(his_cfg.get("TRUST_SERVER_CERTIFICATE", "yes")).strip()
         timeout = int(his_cfg.get("TIMEOUT", 5))
