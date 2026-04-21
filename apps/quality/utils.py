@@ -163,7 +163,7 @@ def convert_docx_to_pdf_with_libreoffice(docx_path: str, pdf_path: str):
     print(">>> RUN:", " ".join(cmd))
 
     # Nếu LibreOffice lỗi sẽ raise CalledProcessError
-    subprocess.run(cmd, condition=True)
+    subprocess.run(cmd, check=True)
 
     # Một số bản LibreOffice có thể đặt tên file hơi khác, nên chuẩn hoá lại
     if not os.path.exists(pdf_path):
