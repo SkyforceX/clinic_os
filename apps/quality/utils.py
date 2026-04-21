@@ -137,7 +137,7 @@ def build_incident_report_context(incident: IncidentReport) -> dict:
 def convert_docx_to_pdf_with_libreoffice(docx_path: str, pdf_path: str):
     """
     Convert .docx -> .pdf bằng LibreOffice headless trên Ubuntu/Linux.
-    Ưu tiên dùng trực tiếp soffice, không dùng wrapper libreoffice.
+    Ưu tiên gọi trực tiếp soffice thay vì wrapper libreoffice.
     """
     docx_file = Path(str(docx_path)).resolve()
     pdf_file = Path(str(pdf_path)).resolve()
@@ -148,19 +148,27 @@ def convert_docx_to_pdf_with_libreoffice(docx_path: str, pdf_path: str):
 
     outdir.mkdir(parents=True, exist_ok=True)
 
-    configured_path = getattr(settings, "LIBREOFFICE_PATH", "") or ""
-    soffice_path = None
+    configured_path = str(getattr(settings, "LIBREOFFICE_PATH", "") or "").strip()
 
-    # Chỉ chấp nhận binary thật; ưu tiên soffice
+    soffice_path = None
     if configured_path and Path(configured_path).exists():
-        soffice_path = configured_path
+        configured_name = Path(configured_path).name.lower()
+
+        # Nếu đang trỏ vào wrapper libreoffice thì đổi sang soffice cùng thư mục
+        if configured_name == "libreoffice":
+            sibling_soffice = Path(configured_path).with_name("soffice")
+            if sibling_soffice.exists():
+                soffice_path = str(sibling_soffice)
+            else:
+                soffice_path = configured_path
+        else:
+            soffice_path = configured_path
     else:
-        soffice_path = shutil.which("soffice")
+        soffice_path = shutil.which("soffice") or shutil.which("libreoffice")
 
     if not soffice_path:
         raise RuntimeError(
-            "Không tìm thấy binary 'soffice'. "
-            "Hãy cài LibreOffice đầy đủ và cấu hình LIBREOFFICE_PATH=/usr/bin/soffice"
+            "Không tìm thấy LibreOffice. Hãy cài libreoffice và cấu hình LIBREOFFICE_PATH=/usr/bin/soffice"
         )
 
     cmd = [
@@ -174,9 +182,13 @@ def convert_docx_to_pdf_with_libreoffice(docx_path: str, pdf_path: str):
         str(docx_file),
     ]
 
+    env = os.environ.copy()
+    if not env.get("PATH"):
+        env["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
     result = subprocess.run(
         cmd,
-        cwd=str(outdir),
+        env=env,
         capture_output=True,
         text=True,
         check=False,
@@ -204,3 +216,5 @@ def convert_docx_to_pdf_with_libreoffice(docx_path: str, pdf_path: str):
         if pdf_file.exists():
             pdf_file.unlink()
         generated_pdf.replace(pdf_file)
+
+    return str(pdf_file)
