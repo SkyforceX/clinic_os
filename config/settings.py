@@ -216,7 +216,9 @@ USE_TZ = True
 
 STATIC_URL  = "/static/"
 STATIC_ROOT = Path(env("STATIC_ROOT", default=BASE_DIR / "staticfiles"))
-#STATICFILES_DIRS = [Path(env("STATICFILES_DIRS", default=BASE_DIR / "static"))]
+STATICFILES_DIRS = [
+    Path(env("STATICFILES_DIRS", default=BASE_DIR / "static"))
+]
 
 MEDIA_URL  = "/media/"
 MEDIA_ROOT = Path(env("MEDIA_ROOT", default=BASE_DIR / "media"))
