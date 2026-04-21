@@ -77,8 +77,10 @@ RESULTS_ROOT = os.environ.get("RESULTS_ROOT", r"D:\data\results")
 RESULTS_URL = "/data/results"
 
 QUALITY_AUDIT_TEMPLATE = BASE_DIR / "templates" / "word" / "medical_record_audit_template.docx"
-QUALITY_DOCX_TMP_DIR = BASE_DIR / "tmp_docs"
-QUALITY_DOCX_TMP_DIR.mkdir(exist_ok=True)
+QUALITY_DOCX_TMP_DIR = Path(
+    env("QUALITY_DOCX_TMP_DIR", default=str(ROOT_DIR / "tmp_docs"))
+)
+QUALITY_DOCX_TMP_DIR.mkdir(parents=True, exist_ok=True)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
