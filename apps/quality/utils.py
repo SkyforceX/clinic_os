@@ -132,22 +132,32 @@ def build_incident_report_context(incident: IncidentReport) -> dict:
 
 def convert_docx_to_pdf_with_libreoffice(docx_path: str, pdf_path: str):
     """
-    Convert .docx -> .pdf bằng LibreOffice headless.
-    Phù hợp chạy trong service (uvicorn + IIS reverse proxy).
+    Convert .docx -> .pdf bằng LibreOffice headless trên Ubuntu/Linux.
+    Ưu tiên dùng trực tiếp soffice, không dùng wrapper libreoffice.
     """
-    docx_path = os.path.abspath(str(docx_path))
-    pdf_path = os.path.abspath(str(pdf_path))
+    docx_file = Path(str(docx_path)).resolve()
+    pdf_file = Path(str(pdf_path)).resolve()
+    outdir = pdf_file.parent
 
-    if not os.path.exists(docx_path):
-        raise FileNotFoundError(f"Không tìm thấy file DOCX: {docx_path}")
+    if not docx_file.exists():
+        raise FileNotFoundError(f"Không tìm thấy file DOCX: {docx_file}")
 
-    outdir = os.path.dirname(pdf_path)
+    outdir.mkdir(parents=True, exist_ok=True)
 
-    soffice_path = getattr(settings, "LIBREOFFICE_PATH", "soffice")
-    if os.name == "nt" and soffice_path.lower().endswith("soffice.exe"):
-        console_path = soffice_path[:-4] + ".com"
-        if os.path.exists(console_path):
-            soffice_path = console_path
+    configured_path = getattr(settings, "LIBREOFFICE_PATH", "") or ""
+    soffice_path = None
+
+    # Chỉ chấp nhận binary thật; ưu tiên soffice
+    if configured_path and Path(configured_path).exists():
+        soffice_path = configured_path
+    else:
+        soffice_path = shutil.which("soffice")
+
+    if not soffice_path:
+        raise RuntimeError(
+            "Không tìm thấy binary 'soffice'. "
+            "Hãy cài LibreOffice đầy đủ và cấu hình LIBREOFFICE_PATH=/usr/bin/soffice"
+        )
 
     cmd = [
         soffice_path,
@@ -156,23 +166,37 @@ def convert_docx_to_pdf_with_libreoffice(docx_path: str, pdf_path: str):
         "--convert-to",
         "pdf",
         "--outdir",
-        outdir,
-        docx_path,
+        str(outdir),
+        str(docx_file),
     ]
 
-    print(">>> RUN:", " ".join(cmd))
+    result = subprocess.run(
+        cmd,
+        cwd=str(outdir),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
-    # Nếu LibreOffice lỗi sẽ raise CalledProcessError
-    subprocess.run(cmd, check=True)
+    if result.returncode != 0:
+        raise RuntimeError(
+            "LibreOffice convert lỗi.\n"
+            f"Return code: {result.returncode}\n"
+            f"CMD: {' '.join(cmd)}\n"
+            f"STDOUT: {result.stdout}\n"
+            f"STDERR: {result.stderr}"
+        )
 
-    # Một số bản LibreOffice có thể đặt tên file hơi khác, nên chuẩn hoá lại
-    if not os.path.exists(pdf_path):
-        base = os.path.splitext(os.path.basename(docx_path))[0]
-        for fname in os.listdir(outdir):
-            if fname.lower() == f"{base}.pdf":
-                real_pdf = os.path.join(outdir, fname)
-                os.replace(real_pdf, pdf_path)
-                break
+    generated_pdf = outdir / f"{docx_file.stem}.pdf"
+    if not generated_pdf.exists():
+        raise RuntimeError(
+            "LibreOffice đã chạy nhưng không tạo được file PDF.\n"
+            f"Expected: {generated_pdf}\n"
+            f"STDOUT: {result.stdout}\n"
+            f"STDERR: {result.stderr}"
+        )
 
-    if not os.path.exists(pdf_path):
-        raise RuntimeError(f"LibreOffice đã chạy nhưng không tạo được PDF cho {docx_path}")
+    if generated_pdf != pdf_file:
+        if pdf_file.exists():
+            pdf_file.unlink()
+        generated_pdf.replace(pdf_file)
