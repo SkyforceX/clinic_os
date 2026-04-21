@@ -136,8 +136,8 @@ def build_incident_report_context(incident: IncidentReport) -> dict:
 
 def convert_docx_to_pdf_with_libreoffice(docx_path: str, pdf_path: str):
     """
-    Convert .docx -> .pdf bằng LibreOffice headless trên Ubuntu/Linux.
-    Ưu tiên gọi trực tiếp soffice thay vì wrapper libreoffice.
+    Convert .docx -> .pdf bằng LibreOffice headless trên Ubuntu.
+    Ép PATH chuẩn cho subprocess để wrapper /usr/bin/soffice chạy đúng.
     """
     docx_file = Path(str(docx_path)).resolve()
     pdf_file = Path(str(pdf_path)).resolve()
@@ -149,26 +149,17 @@ def convert_docx_to_pdf_with_libreoffice(docx_path: str, pdf_path: str):
     outdir.mkdir(parents=True, exist_ok=True)
 
     configured_path = str(getattr(settings, "LIBREOFFICE_PATH", "") or "").strip()
-
     soffice_path = None
+
     if configured_path and Path(configured_path).exists():
-        configured_name = Path(configured_path).name.lower()
-
-        # Nếu đang trỏ vào wrapper libreoffice thì đổi sang soffice cùng thư mục
-        if configured_name == "libreoffice":
-            sibling_soffice = Path(configured_path).with_name("soffice")
-            if sibling_soffice.exists():
-                soffice_path = str(sibling_soffice)
-            else:
-                soffice_path = configured_path
-        else:
-            soffice_path = configured_path
+        soffice_path = configured_path
     else:
-        soffice_path = shutil.which("soffice") or shutil.which("libreoffice")
+        soffice_path = shutil.which("soffice") or "/usr/bin/soffice"
 
-    if not soffice_path:
+    if not Path(soffice_path).exists():
         raise RuntimeError(
-            "Không tìm thấy LibreOffice. Hãy cài libreoffice và cấu hình LIBREOFFICE_PATH=/usr/bin/soffice"
+            "Không tìm thấy binary soffice. Hãy cài LibreOffice và cấu hình "
+            "LIBREOFFICE_PATH=/usr/bin/soffice"
         )
 
     cmd = [
@@ -183,8 +174,7 @@ def convert_docx_to_pdf_with_libreoffice(docx_path: str, pdf_path: str):
     ]
 
     env = os.environ.copy()
-    if not env.get("PATH"):
-        env["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    env["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
     result = subprocess.run(
         cmd,
