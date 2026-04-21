@@ -264,7 +264,7 @@ AI_SYSTEM_PROMPT = env(
 )
 
 # ==== PDF / DOCUMENT SETTINGS ==== #
-LIBREOFFICE_PATH = r"C:\Program Files\LibreOffice\program\soffice.exe"
+LIBREOFFICE_PATH = env("LIBREOFFICE_PATH", default="/usr/bin/soffice")
 PDF_ENGINE = env("PDF_ENGINE", default="auto")  # auto | weasy | libreoffice
 PDF_PREFER_HTML = env.bool("PDF_PREFER_HTML", default=True)
 PDF_CONVERT_TIMEOUT = env.int("PDF_CONVERT_TIMEOUT", default=180)
