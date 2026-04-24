@@ -10,6 +10,7 @@ from django.views import View
 from django.views.generic import ListView
 
 from .models import Conversation, Message
+from .services import get_ollama_base_url
 from .permissions import AiAssistantAccessMixin
 from .services import (
     auto_generate_title,
@@ -189,7 +190,7 @@ class OllamaHealthView(AiAssistantAccessMixin, View):
         import requests as http_requests
         from django.conf import settings
 
-        base_url = getattr(settings, "OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+        base_url = get_ollama_base_url()
         model = getattr(settings, "OLLAMA_MODEL", "qwen2.5:3b")
 
         try:

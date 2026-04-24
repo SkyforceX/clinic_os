@@ -89,6 +89,18 @@ def _get_schedule_creator_from_config(config):
     return _get_salesperson_from_config(config)
 
 
+def _is_actor_owned_config(config, actor):
+    if not actor:
+        return False
+
+    salesperson = _get_salesperson_from_config(config)
+    if getattr(salesperson, "id", None) == actor.id:
+        return True
+
+    creator = getattr(config, "registered_by", None)
+    return getattr(creator, "id", None) == actor.id
+
+
 def _get_slots_for_config(config):
     contract_profile = getattr(config, "contract", None)
     contract_obj = getattr(contract_profile, "contract", None) if contract_profile else None
@@ -248,16 +260,16 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
         own_configs = [
             config
             for config in all_configs
-            if getattr(config.quotation, "created_by_id", None) == actor.id
+            if _is_actor_owned_config(config, actor)
         ]
         own_ids = {config.id for config in own_configs}
-        other_unconfirmed = [
+        other_configs = [
             config
             for config in all_configs
-            if config.id not in own_ids and not config.is_confirmed
+            if config.id not in own_ids
         ]
-        visible_configs = own_configs + other_unconfirmed
-        masked_config_ids = {config.id for config in other_unconfirmed}
+        visible_configs = own_configs + other_configs
+        masked_config_ids = {config.id for config in other_configs}
 
     day_totals = defaultdict(
         lambda: {
@@ -305,14 +317,16 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
 
         is_masked = config.id in masked_config_ids
         company_name = "Lịch khám dự kiến" if is_masked else _get_company_name_from_config(config)
+        if is_masked:
+            company_name = (
+                "Lịch khám đã chốt" if config.is_confirmed else "Lịch khám dự kiến"
+            )
         salesperson = _get_salesperson_from_config(config)
         schedule_creator = getattr(config, "registered_by", None)
         if not schedule_creator:
             schedule_creator = _get_schedule_creator_from_config(config)
         creator_name = _display_user_name(schedule_creator)
-        if is_masked:
-            company_name = creator_name or "Lich kham du kien"
-        elif not company_name:
+        if not is_masked and not company_name:
             company_name = creator_name or company_name
 
         blood_collection_list = _get_blood_rows_for_config(config)
@@ -363,6 +377,12 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
             and not config.is_ended
             and SchedulingPolicy.can_end_schedule(actor, owner_id)
         )
+        can_confirm = (
+            (not is_masked)
+            and (not config.is_confirmed)
+            and (not config.is_ended)
+            and SchedulingPolicy.can_manage_quote_schedule(actor, owner_id)
+        )
 
         row = {
             "planned_employee_count": config.planned_employee_count,
@@ -378,12 +398,15 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
             "salesperson_id": salesperson.id if salesperson else "",
             "schedule_creator_name": creator_name,
             "can_delete_schedule": (
+                (not config.is_confirmed)
+                and
                 (not contract_profile)
                 and SchedulingPolicy.can_manage_quote_schedule(
                     actor,
                     getattr(quotation, "created_by_id", None),
                 )
             ),
+            "can_confirm_schedule": can_confirm,
             "can_end_schedule": can_end,
             "is_confirmed": config.is_confirmed,
             "is_masked_company": is_masked,

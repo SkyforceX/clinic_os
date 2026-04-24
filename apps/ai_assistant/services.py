@@ -1,5 +1,6 @@
 import json
 import logging
+from urllib.parse import urlparse
 
 import requests
 from django.conf import settings
@@ -7,8 +8,22 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+def _is_loopback_url(url):
+    hostname = urlparse((url or "").strip()).hostname
+    return hostname in {"127.0.0.1", "localhost", "::1"}
+
+
 def get_ollama_base_url():
-    return getattr(settings, "OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+    ollama_url = getattr(settings, "OLLAMA_BASE_URL", "").strip()
+    ai_url = getattr(settings, "AI_BASE_URL", "").strip()
+
+    candidates = [url for url in (ollama_url, ai_url) if url]
+    if not candidates:
+        return "http://127.0.0.1:11434"
+
+    non_loopback_candidates = [url for url in candidates if not _is_loopback_url(url)]
+    selected_url = non_loopback_candidates[0] if non_loopback_candidates else candidates[0]
+    return selected_url.rstrip("/")
 
 
 def get_ollama_model():

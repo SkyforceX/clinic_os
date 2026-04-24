@@ -19,8 +19,74 @@ from datetime import date, timedelta
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncDate, TruncHour, TruncWeek, TruncMonth
 
+from apps.contract.policies import ContractPolicy
 
-def get_active_company_progress(reference_date=None):
+
+def _is_sales_actor(actor) -> bool:
+    return ContractPolicy.is_sales(actor)
+
+
+def _scoped_schedule_configs_qs(*, actor=None):
+    from apps.scheduling.models import ContractScheduleConfig
+
+    qs = ContractScheduleConfig.objects.all()
+    if _is_sales_actor(actor):
+        qs = qs.filter(
+            Q(quotation__created_by=actor)
+            | Q(contract__contract__created_by=actor)
+        )
+    return qs
+
+
+def _scoped_checkin_records_qs(*, actor=None, date_from=None, date_to=None):
+    from apps.reception.models import CheckInRecord
+
+    qs = CheckInRecord.objects.all()
+    if date_from and date_to:
+        qs = qs.filter(exam_date__range=[date_from, date_to])
+
+    if not _is_sales_actor(actor):
+        return qs
+
+    scoped_configs = (
+        _scoped_schedule_configs_qs(actor=actor)
+        .filter(exam_start_date__lte=date_to, exam_end_date__gte=date_from)
+        .select_related("quotation", "quotation__company", "his_package", "his_package__organization", "contract")
+    )
+
+    config_ids = []
+    company_ranges: list[tuple[str, date, date]] = []
+    for cfg in scoped_configs:
+        config_ids.append(cfg.pk)
+
+        his_package = getattr(cfg, "his_package", None)
+        quotation = getattr(cfg, "quotation", None)
+        contract_profile = getattr(cfg, "contract", None)
+
+        company_name = (
+            getattr(his_package, "company_name", "")
+            or getattr(getattr(his_package, "organization", None), "name", "")
+            or getattr(quotation, "company_name", "")
+            or getattr(getattr(quotation, "company", None), "name", "")
+            or getattr(contract_profile, "company_name_snapshot", "")
+        )
+        if company_name:
+            company_ranges.append((company_name, cfg.exam_start_date, cfg.exam_end_date))
+
+    if not config_ids and not company_ranges:
+        return qs.none()
+
+    scope_filter = Q(schedule_config_id__in=config_ids)
+    for company_name, start_date, end_date in company_ranges:
+        scope_filter |= Q(
+            snapshot_company_name=company_name,
+            exam_date__range=[start_date, end_date],
+        )
+
+    return qs.filter(scope_filter).distinct()
+
+
+def get_active_company_progress(reference_date=None, *, actor=None):
     """
     Lấy danh sách công ty đang có lịch khám (chưa kết thúc),
     gồm: tổng KH đăng ký, đã check-in, đã check-out, hoãn, chưa đến.
@@ -33,7 +99,7 @@ def get_active_company_progress(reference_date=None):
     ref = reference_date or date.today()
 
     configs = (
-        ContractScheduleConfig.objects
+        _scoped_schedule_configs_qs(actor=actor)
         .filter(exam_end_date__gte=ref)
         .select_related("quotation", "quotation__company", "his_package", "his_package__organization")
         .order_by("exam_start_date")
@@ -110,7 +176,7 @@ def get_active_company_progress(reference_date=None):
     return result
 
 
-def get_daily_summary(date_from, date_to):
+def get_daily_summary(date_from, date_to, *, actor=None):
     """
     Thống kê theo từng ngày trong khoảng [date_from, date_to].
 
@@ -123,8 +189,7 @@ def get_daily_summary(date_from, date_to):
     from apps.reception.models import CheckInRecord, CheckInStatus
 
     records = (
-        CheckInRecord.objects
-        .filter(exam_date__range=[date_from, date_to])
+        _scoped_checkin_records_qs(actor=actor, date_from=date_from, date_to=date_to)
         .values("exam_date", "status", "snapshot_company_name")
     )
 
@@ -177,7 +242,7 @@ def get_daily_summary(date_from, date_to):
     return {"dates": dates, "rows": rows, "totals": totals}
 
 
-def get_period_aggregate():
+def get_period_aggregate(*, actor=None):
     """
     Tổng hợp cho hôm nay / tuần này / tháng này.
 
@@ -200,7 +265,7 @@ def get_period_aggregate():
             "total": total, "companies": companies,
         }
 
-    base = CheckInRecord.objects
+    base = _scoped_checkin_records_qs(actor=actor, date_from=month_start, date_to=today)
     return {
         "today": counts(base.filter(exam_date=today)),
         "week":  counts(base.filter(exam_date__gte=week_start, exam_date__lte=today)),
@@ -208,7 +273,7 @@ def get_period_aggregate():
     }
 
 
-def get_peak_hours(date_from, date_to):
+def get_peak_hours(date_from, date_to, *, actor=None):
     """
     Phân bố số lượt check-in theo giờ (0-23) trong khoảng thời gian.
     Returns list[{hour, count}] sorted by hour.
@@ -218,8 +283,11 @@ def get_peak_hours(date_from, date_to):
 
     local_tz = pytz.timezone("Asia/Ho_Chi_Minh")
 
-    records = CheckInRecord.objects.filter(
-        exam_date__range=[date_from, date_to],
+    records = _scoped_checkin_records_qs(
+        actor=actor,
+        date_from=date_from,
+        date_to=date_to,
+    ).filter(
         checked_in_at__isnull=False,
     ).exclude(status=CheckInStatus.CHECKED_OUT)
 
@@ -232,7 +300,7 @@ def get_peak_hours(date_from, date_to):
     return [{"hour": h, "count": hour_map.get(h, 0)} for h in range(7, 20)]
 
 
-def get_company_completion_table(date_from, date_to):
+def get_company_completion_table(date_from, date_to, *, actor=None):
     """
     Bảng tỷ lệ hoàn thành theo công ty trong khoảng thời gian.
     Kết hợp dữ liệu từ CheckInRecord + ContractScheduleConfig.
@@ -243,8 +311,7 @@ def get_company_completion_table(date_from, date_to):
     from apps.scheduling.models import ContractScheduleConfig
 
     records = (
-        CheckInRecord.objects
-        .filter(exam_date__range=[date_from, date_to])
+        _scoped_checkin_records_qs(actor=actor, date_from=date_from, date_to=date_to)
         .values("snapshot_company_name", "status", "schedule_config_id")
     )
 
@@ -271,7 +338,7 @@ def get_company_completion_table(date_from, date_to):
 
     planned_map = {}
     if all_config_ids:
-        for cfg in ContractScheduleConfig.objects.filter(pk__in=all_config_ids):
+        for cfg in _scoped_schedule_configs_qs(actor=actor).filter(pk__in=all_config_ids):
             q = cfg.quotation
             name = getattr(q, "company_name", "") if q else ""
             if not name and q and q.company:
@@ -303,7 +370,7 @@ def get_company_completion_table(date_from, date_to):
     return sorted(result, key=lambda x: x["arrived"], reverse=True)
 
 
-def get_admin_insights(date_from, date_to):
+def get_admin_insights(date_from, date_to, *, actor=None):
     """
     Insights quản trị:
     - Ngày bận nhất
@@ -315,8 +382,7 @@ def get_admin_insights(date_from, date_to):
     from apps.reception.models import CheckInRecord, CheckInStatus
 
     records = list(
-        CheckInRecord.objects
-        .filter(exam_date__range=[date_from, date_to])
+        _scoped_checkin_records_qs(actor=actor, date_from=date_from, date_to=date_to)
         .values("exam_date", "status", "snapshot_company_name", "checked_in_at")
     )
 
@@ -379,7 +445,7 @@ def get_chart_data(rows):
     }
 
 
-def get_patient_checkin_list(company_name, date_from, date_to):
+def get_patient_checkin_list(company_name, date_from, date_to, *, actor=None):
     """
     Danh sách bệnh nhân của một công ty trong kỳ lọc, kèm trạng thái.
 
@@ -401,11 +467,8 @@ def get_patient_checkin_list(company_name, date_from, date_to):
 
     # ── 1. Bệnh nhân đã check-in (từ snapshot) ──────────────────────
     checkin_qs = (
-        CheckInRecord.objects
-        .filter(
-            snapshot_company_name=company_name,
-            exam_date__range=[date_from, date_to],
-        )
+        _scoped_checkin_records_qs(actor=actor, date_from=date_from, date_to=date_to)
+        .filter(snapshot_company_name=company_name)
         .order_by("snapshot_ma_bn", "-checked_in_at")
     )
 
@@ -436,7 +499,7 @@ def get_patient_checkin_list(company_name, date_from, date_to):
         from apps.scheduling.models import ContractScheduleConfig
 
         configs = (
-            ContractScheduleConfig.objects
+            _scoped_schedule_configs_qs(actor=actor)
             .filter(
                 exam_start_date__lte=date_to,
                 exam_end_date__gte=date_from,

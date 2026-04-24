@@ -68,25 +68,25 @@ def checkin_stats(request):
     date_from, date_to, period = parse_date_range(request)
 
     # 1. Công ty đang có lịch (chưa kết thúc)
-    active_companies = get_active_company_progress(today)
+    active_companies = get_active_company_progress(today, actor=request.user)
 
     # 2. Thống kê theo ngày trong kỳ được chọn
-    daily = get_daily_summary(date_from, date_to)
+    daily = get_daily_summary(date_from, date_to, actor=request.user)
 
     # 3. Tổng hợp hôm nay / tuần / tháng (luôn tính cố định)
-    period_agg = get_period_aggregate()
+    period_agg = get_period_aggregate(actor=request.user)
 
     # 4. Chart data
     chart_data = get_chart_data(daily["rows"])
 
     # 5. Peak hours
-    peak_hours = get_peak_hours(date_from, date_to)
+    peak_hours = get_peak_hours(date_from, date_to, actor=request.user)
 
     # 6. Bảng theo công ty
-    company_table = get_company_completion_table(date_from, date_to)
+    company_table = get_company_completion_table(date_from, date_to, actor=request.user)
 
     # 7. Admin insights
-    insights = get_admin_insights(date_from, date_to)
+    insights = get_admin_insights(date_from, date_to, actor=request.user)
 
     # Format date_from/to để truyền vào template cho custom picker
     date_from_str = date_from.strftime("%Y-%m-%d")
@@ -119,11 +119,11 @@ def checkin_stats_api(request):
     today = date.today()
     date_from, date_to, period = parse_date_range(request)
 
-    daily      = get_daily_summary(date_from, date_to)
-    period_agg = get_period_aggregate()
+    daily      = get_daily_summary(date_from, date_to, actor=request.user)
+    period_agg = get_period_aggregate(actor=request.user)
     chart_data = get_chart_data(daily["rows"])
-    peak_hours = get_peak_hours(date_from, date_to)
-    insights   = get_admin_insights(date_from, date_to)
+    peak_hours = get_peak_hours(date_from, date_to, actor=request.user)
+    insights   = get_admin_insights(date_from, date_to, actor=request.user)
 
     return JsonResponse({
         "ok":         True,
@@ -166,7 +166,7 @@ def patient_list_api(request):
     if date_from > date_to:
         date_from, date_to = date_to, date_from
 
-    patients = get_patient_checkin_list(company_name, date_from, date_to)
+    patients = get_patient_checkin_list(company_name, date_from, date_to, actor=request.user)
 
     counts = {
         "total":       len(patients),

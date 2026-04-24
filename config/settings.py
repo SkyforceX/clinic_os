@@ -243,7 +243,10 @@ CSRF_FAILURE_VIEW = "apps.core.views.custom_csrf_failure"
 
 # ─── Cấu hình Ollama ───────────────────────────────────────────────
 # URL tới Ollama server (dùng env variable để dễ đổi giữa môi trường)
-OLLAMA_BASE_URL = env("OLLAMA_BASE_URL", default="http://127.0.0.1:11434")
+OLLAMA_BASE_URL = env(
+    "OLLAMA_BASE_URL",
+    default=env("AI_BASE_URL", default="http://127.0.0.1:11434"),
+)
 OLLAMA_MODEL    = env("OLLAMA_MODEL",    default="qwen2.5:3b")
 OLLAMA_TIMEOUT  = int(env("OLLAMA_TIMEOUT", default="120"))
 
@@ -259,7 +262,7 @@ OLLAMA_SYSTEM_PROMPT = (
 # Tên group phải khớp đúng với Group.name trong database
 AI_ASSISTANT_ALLOWED_GROUPS = ["Executives"]
 
-AI_BASE_URL = env("AI_BASE_URL", default="http://127.0.0.1:11434")
+AI_BASE_URL = env("AI_BASE_URL", default=OLLAMA_BASE_URL)
 AI_MODEL = env("AI_MODEL", default="Qwen/Qwen2.5-3B-Instruct")
 AI_API_KEY = env("AI_API_KEY", default="")
 AI_TIMEOUT = env.int("AI_TIMEOUT", default=120)

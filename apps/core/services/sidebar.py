@@ -386,7 +386,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
         schedule_items.append(
             _item(
                 request=request,
-                label="Lịch khám chi tiết",
+                label="Bảng lịch khám chi tiết",
                 url_name="scheduling:schedule_table",
                 icon="fa-solid fa-table-cells-large",
                 active_app_names=["scheduling"],
