@@ -14,7 +14,7 @@
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <small class="text-muted">Chỉ dành cho Executives và quản trị viên</small>
         <span class="vr d-none d-sm-inline"></span>
-        <!-- Ollama status badge — tự fetch qua JS -->
+        <!-- AI status badge — tự fetch qua JS -->
         <span id="ollama-status" class="badge bg-secondary" style="font-size:.72rem;">
           <span class="spinner-border spinner-border-sm me-1" style="width:.65rem;height:.65rem;"></span>
           Đang kiểm tra kết nối AI...
@@ -115,15 +115,12 @@
   fetch(HEALTH_URL)
     .then(function (r) { return r.json(); })
     .then(function (data) {
-      if (data.ok && data.model_loaded) {
+      if (data.ok && data.ready) {
         badge.className = "badge bg-success";
-        badge.innerHTML = '<i class="fa-solid fa-circle me-1" style="font-size:.5rem;vertical-align:middle;"></i>AI đang chạy &mdash; ' + data.model;
-      } else if (data.ok && !data.model_loaded) {
-        badge.className = "badge bg-warning text-dark";
-        badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i>Ollama kết nối được nhưng chưa thấy model <strong>' + data.model + '</strong>';
+        badge.innerHTML = '<i class="fa-solid fa-circle me-1" style="font-size:.5rem;vertical-align:middle;"></i>Dịch vụ AI sẵn sàng';
       } else {
         badge.className = "badge bg-danger";
-        badge.innerHTML = '<i class="fa-solid fa-circle-xmark me-1"></i>Không kết nối được AI server';
+        badge.innerHTML = '<i class="fa-solid fa-circle-xmark me-1"></i>Dịch vụ AI chưa sẵn sàng';
         badge.title = data.error || "";
       }
     })

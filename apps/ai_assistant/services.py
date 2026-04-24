@@ -112,19 +112,15 @@ def stream_completion(messages_payload):
     except requests.exceptions.ConnectionError as exc:
         logger.error("Không thể kết nối Ollama tại %s: %s", url, exc)
         raise RuntimeError(
-            f"Không thể kết nối đến máy chủ AI ({base_url}). "
-            "Vui lòng kiểm tra Ollama đang chạy."
+            "Không thể kết nối đến máy chủ AI. "
+            "Vui lòng liên hệ quản trị viên hệ thống."
         ) from exc
     except requests.exceptions.Timeout as exc:
         logger.error("Ollama timeout sau %ss", get_ollama_timeout())
         raise RuntimeError("Máy chủ AI phản hồi quá lâu. Vui lòng thử lại.") from exc
     except requests.exceptions.HTTPError as exc:
         logger.error("Ollama HTTP error: %s", exc)
-        try:
-            detail = response.text
-        except Exception:
-            detail = str(exc)
-        raise RuntimeError(f"Lỗi máy chủ AI: {detail}") from exc
+        raise RuntimeError("Máy chủ AI tạm thời không khả dụng. Vui lòng thử lại sau.") from exc
 
 
 def complete_sync(messages_payload):

@@ -182,46 +182,27 @@ class ConversationRenameView(AiAssistantAccessMixin, View):
 
 class OllamaHealthView(AiAssistantAccessMixin, View):
     """
-    AJAX GET: kiểm tra kết nối và trạng thái Ollama server.
-    Trả về JSON { ok, model, base_url, model_loaded, available_models?, error? }
+    AJAX GET: kiểm tra kết nối dịch vụ AI.
+    Trả về JSON tối giản để tránh lộ thông tin hạ tầng/model.
     """
 
     def get(self, request):
         import requests as http_requests
-        from django.conf import settings
 
         base_url = get_ollama_base_url()
-        model = getattr(settings, "OLLAMA_MODEL", "qwen2.5:3b")
 
         try:
             resp = http_requests.get(f"{base_url}/api/tags", timeout=5)
             resp.raise_for_status()
-            data = resp.json()
-
-            available_models = [m.get("name") for m in data.get("models", []) if m.get("name")]
-
-            model_loaded = any(
-                m == model or m.startswith(model.split(":")[0])
-                for m in available_models
-            )
-
-            return JsonResponse(
-                {
-                    "ok": True,
-                    "model": model,
-                    "model_loaded": model_loaded,
-                    "available_models": available_models,
-                    "base_url": base_url,
-                }
-            )
+            return JsonResponse({"ok": True, "ready": True})
 
         except Exception as exc:
+            logger.warning("AI health check failed: %s", exc)
             return JsonResponse(
                 {
                     "ok": False,
-                    "model": model,
-                    "base_url": base_url,
-                    "error": str(exc),
+                    "ready": False,
+                    "error": "Dịch vụ AI hiện chưa sẵn sàng.",
                 },
                 status=503,
             )
