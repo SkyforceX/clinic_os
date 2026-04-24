@@ -234,7 +234,7 @@ class EmployeeAdmin(admin.ModelAdmin):
                     ((g.name,) for g in groups),
                 )
             else:
-                groups_html = format_html('<em style="color:#999">Chưa có nhóm nào</em>')
+                groups_html = '<em style="color:#999">Chưa có nhóm nào</em>'
 
             status_color = "#2e7d32" if obj.user.is_active else "#c62828"
             status_text = "Đang hoạt động" if obj.user.is_active else "Bị khóa"
