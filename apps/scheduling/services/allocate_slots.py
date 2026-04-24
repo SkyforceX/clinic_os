@@ -8,12 +8,15 @@ from apps.core.models import SystemGeneralSetting
 from apps.scheduling.models import ScheduleSlot, SlotType, TimeShift
 
 
-def _working_days(start_date, end_date):
+def _working_days(start_date, end_date, allowed_weekdays=None, holiday_dates=None):
     if not start_date or not end_date:
         raise ValidationError("Thiếu ngày bắt đầu hoặc ngày kết thúc khám.")
 
     if end_date < start_date:
         raise ValidationError("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.")
+
+    allowed = set(allowed_weekdays) if allowed_weekdays else None
+    holidays = set(holiday_dates) if holiday_dates else set()
 
     return [
         day
@@ -22,6 +25,8 @@ def _working_days(start_date, end_date):
             for i in range((end_date - start_date).days + 1)
         )
         if day.weekday() != 6
+        and (allowed is None or day.weekday() in allowed)
+        and day not in holidays
     ]
 
 
@@ -33,6 +38,7 @@ def _effective_schedule_values(
     employee_count=None,
     am_capacity_limit=None,
     pm_capacity_limit=None,
+    allowed_weekdays=None,
 ):
     config = None
     if contract:
@@ -43,8 +49,9 @@ def _effective_schedule_values(
     eff_start_date = start_date or getattr(config, "exam_start_date", None) or getattr(contract, "start_date", None)
     eff_end_date = end_date or getattr(config, "exam_end_date", None) or getattr(contract, "end_date", None)
     eff_employee_count = employee_count or getattr(config, "planned_employee_count", None) or getattr(contract, "employee_count", 0)
-    eff_am_limit = am_capacity_limit or getattr(config, "am_capacity_limit", None)
-    eff_pm_limit = pm_capacity_limit or getattr(config, "pm_capacity_limit", None)
+    eff_am_limit = am_capacity_limit if am_capacity_limit is not None else getattr(config, "am_capacity_limit", None)
+    eff_pm_limit = pm_capacity_limit if pm_capacity_limit is not None else getattr(config, "pm_capacity_limit", None)
+    eff_allowed_weekdays = allowed_weekdays if allowed_weekdays is not None else (getattr(config, "allowed_weekdays", None) or [])
 
     return {
         "start_date": eff_start_date,
@@ -52,6 +59,7 @@ def _effective_schedule_values(
         "employee_count": int(eff_employee_count or 0),
         "am_capacity_limit": int(eff_am_limit or 0),
         "pm_capacity_limit": int(eff_pm_limit or 0),
+        "allowed_weekdays": eff_allowed_weekdays,
     }
 
 
@@ -82,6 +90,7 @@ def allocate_contract_slots(
     employee_count=None,
     am_capacity_limit=None,
     pm_capacity_limit=None,
+    allowed_weekdays=None,
 ):
     if contract is None and quotation is None:
         raise ValidationError("Thiếu hợp đồng hoặc báo giá để phân bổ slot.")
@@ -93,6 +102,7 @@ def allocate_contract_slots(
         employee_count=employee_count,
         am_capacity_limit=am_capacity_limit,
         pm_capacity_limit=pm_capacity_limit,
+        allowed_weekdays=allowed_weekdays,
     )
 
     total_needed = int(values["employee_count"] or 0)
@@ -106,8 +116,11 @@ def allocate_contract_slots(
     requested_am_limit = int(values["am_capacity_limit"] or 0)
     requested_pm_limit = int(values["pm_capacity_limit"] or 0)
 
-    if requested_am_limit <= 0 or requested_pm_limit <= 0:
-        raise ValidationError("Giới hạn slot sáng/chiều của hợp đồng phải lớn hơn 0.")
+    if requested_am_limit < 0 or requested_pm_limit < 0:
+        raise ValidationError("Giới hạn slot sáng/chiều của hợp đồng không được âm.")
+
+    if requested_am_limit == 0 and requested_pm_limit == 0:
+        raise ValidationError("Cần ít nhất một buổi có slot lớn hơn 0 (sáng hoặc chiều).")
 
     if requested_am_limit > system_am_limit:
         raise ValidationError(
@@ -118,9 +131,16 @@ def allocate_contract_slots(
             f"Giới hạn slot chiều của hợp đồng ({requested_pm_limit}) vượt quá giới hạn hệ thống ({system_pm_limit})."
         )
 
-    days = _working_days(values["start_date"], values["end_date"])
+    from apps.core.models import PublicHoliday
+    holiday_dates = set(
+        PublicHoliday.objects
+        .filter(date__range=(values["start_date"], values["end_date"]))
+        .values_list("date", flat=True)
+    )
+
+    days = _working_days(values["start_date"], values["end_date"], values.get("allowed_weekdays"), holiday_dates)
     if not days:
-        raise ValidationError("Khoảng thời gian đăng ký không có ngày làm việc hợp lệ.")
+        raise ValidationError("Khoảng thời gian đăng ký không có ngày làm việc hợp lệ (sau khi loại trừ ngày nghỉ lễ).")
 
     owner_q = _owner_filter(contract=contract, quotation=quotation)
 

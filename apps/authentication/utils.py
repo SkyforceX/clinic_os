@@ -45,6 +45,7 @@ def patient_access_required(view_func):
         patient = get_current_patient_from_session(request)
         if not patient:
             request.session.pop("patient_id", None)
+            request.session.pop("his_patient_sync_id", None)
             request.session.pop("patient_code", None)
             request.session.pop("patient_name", None)
             request.session.pop("is_patient", None)

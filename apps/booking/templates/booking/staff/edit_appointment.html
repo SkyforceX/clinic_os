@@ -215,6 +215,7 @@ document.getElementById('add-blood-row').addEventListener('click', function () {
       <td><button type="button" class="btn btn-danger btn-sm remove-row">🗑️</button></td>
     `;
     tbody.appendChild(newRow);
+    if (window.reinitRowDatePickers) reinitRowDatePickers(newRow);
 });
 
 document.getElementById('blood-collection-tbody').addEventListener('click', function (e) {

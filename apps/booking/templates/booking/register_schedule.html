@@ -111,6 +111,7 @@
       <form method="post" action="{% url 'booking:submit_registration' %}">
         {% csrf_token %}
         <input type="hidden" name="date" id="selected-date" required>
+        <input type="hidden" name="schedule_config_id" value="{{ schedule_config_id }}">
         <input type="hidden" name="contract_id" value="{{ contract_id }}">
         <div class="slot-options">
           <label for="check-am" id="label-am">

@@ -23,7 +23,7 @@ def patient_profile(request):
         messages.error(request, "Bạn không có quyền xem hồ sơ này.")
         return redirect("authentication:patient_login")
 
-    request.session["patient_id"] = patient.id
+    request.session["his_patient_sync_id"] = patient.id
     request.session["patient_code"] = patient.ma_bn
     request.session["patient_name"] = patient.ho_ten
     request.session["is_patient"] = True

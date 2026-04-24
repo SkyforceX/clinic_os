@@ -17,7 +17,6 @@ from apps.clinical.services.pathology_commands import (
     save_pathology_result,
     update_pathology_evaluation_value,
 )
-from apps.patients.models import Patient
 
 
 @login_required(login_url="authentication:staff_login")
@@ -31,7 +30,7 @@ def pathology(request):
         )
     return render(
         request,
-        "clinic/staff/pathology.html",
+        "clinical/staff/pathology.html",
         build_pathology_page_context(actor=request.user),
     )
 
@@ -47,7 +46,7 @@ def pathology_detail(request):
         )
     return render(
         request,
-        "clinic/staff/pathology_detail.html",
+        "clinical/staff/pathology_detail.html",
         build_pathology_detail_context(actor=request.user),
     )
 
@@ -100,8 +99,8 @@ def get_pathology_data(request, patient_id):
     try:
         payload = build_pathology_results_payload(patient_id=patient_id)
         return JsonResponse({"status": "success", "data": payload})
-    except Patient.DoesNotExist:
-        return JsonResponse({"status": "error", "message": "Không tìm thấy bệnh nhân."}, status=404)
+    except ValueError as exc:
+        return JsonResponse({"status": "error", "message": str(exc)}, status=404)
     except Exception as exc:
         return JsonResponse({"status": "error", "message": str(exc)}, status=400)
 

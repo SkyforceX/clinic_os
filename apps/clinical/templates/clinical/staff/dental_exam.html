@@ -261,8 +261,8 @@
 
 <script>
   window.CLINIC_PATIENT_AJAX = {
-    getAllPatientsUrl:        "{% url 'patients:get_all_patients' %}",
-    getPatientsByCompanyUrl: "{% url 'patients:get_patients_by_company' 0 %}",
+    getAllPatientsUrl:        "{% url 'clinical:get_his_all_patients' %}",
+    getPatientsByCompanyUrl: "{% url 'clinical:get_his_patients_by_company' 0 %}",
     getDentalDataUrl:        "{% url 'clinical:get_dental_data' 0 %}",
     dentalExamHistoryUrl:    "{% url 'clinical:dental_exam_history' 0 %}",
     dentalExamFormUrl:       "{% url 'clinical:dental_exam_form' %}"
@@ -314,7 +314,7 @@
         <div class="patient-mode-bar">
           <span class="mode-badge walkin" id="modeBadge">
             <i class="fa-solid fa-user-plus"></i>
-            <span id="modeBadgeText">Khách lẻ — nhập tự do</span>
+            <span id="modeBadgeText">Khách lẻ — tìm theo tên/mã BN hoặc nhập tự do</span>
           </span>
           <button type="button" class="btn-deselect" id="btnDeselect" onclick="deselect()">
             <i class="fa-solid fa-xmark"></i> Bỏ chọn bệnh nhân
@@ -331,7 +331,6 @@
             <label>Ngày sinh <span style="color:#ef4444;">*</span></label>
             <input type="text" name="dob" id="dob"
                    placeholder="dd/mm/yyyy" autocomplete="off">
-            <div class="field-hint">Định dạng: 15/08/1990</div>
           </div>
           <div class="de-field">
             <label>Giới tính</label>
@@ -342,7 +341,7 @@
             <label>Mã bệnh nhân</label>
             <input type="text" name="patient_code" id="patient_code"
                    placeholder="Để trống = tự sinh" autocomplete="off">
-            <div class="field-hint">Khách lẻ: để trống nếu chưa có mã</div>
+            <div class="field-hint" style="display: none;">Khách lẻ: để trống nếu chưa có mã</div>
           </div>
         </div>
       </div>
@@ -462,14 +461,14 @@
             <i class="fa-solid fa-file-medical" style="color:#6366f1;"></i> Kết luận
           </label>
           <button type="button" class="btn-autofill" onclick="autofillConclusion()">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> Tự động điền từ bảng răng
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Tự động điền dữ liệu
           </button>
         </div>
         <textarea id="conclusion" name="conclusion" class="de-textarea" rows="4"
                   placeholder="Ví dụ: R18 Mòn cổ răng, R36 Sâu răng... hoặc nhấn 'Tự động điền'"></textarea>
         <div style="margin-top:6px;font-size:11.5px;color:#94a3b8;">
           <i class="fa-regular fa-lightbulb"></i>
-          Nhấn "Tự động điền" để ghép tình trạng răng thành câu kết luận (bỏ ô trống và ký hiệu 0).
+          Nhấn "Tự động điền dữ liệu" để ghép tình trạng răng thành câu kết luận (bỏ ô trống và ký hiệu 0).
         </div>
       </div>
 
@@ -497,8 +496,8 @@
           </button>
         </div>
         <div style="margin-top:10px;font-size:12px;color:#94a3b8;">
-          <i class="fa-solid fa-circle-info"></i>
-          Khách lẻ: nhập thông tin bệnh nhân trực tiếp.
+          <!-- <i class="fa-solid fa-circle-info"></i> -->
+
         </div>
       </div>
 
@@ -612,7 +611,7 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
     var btnDesel  = document.getElementById("btnDeselect");
 
     if (badge)     { badge.className = "mode-badge walkin"; }
-    if (badgeText) { badgeText.textContent = "Khách lẻ — nhập tự do"; }
+    if (badgeText) { badgeText.textContent = "Khách lẻ — tìm theo tên/mã BN hoặc nhập tự do"; }
     if (btnDesel)  { btnDesel.classList.remove("visible"); }
   }
 
@@ -721,6 +720,9 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
       var val = el ? el.value.trim() : "";
       if (val && val !== "0" && map[val]) parts.push("R" + t + " " + map[val]);
     });
+    var otherConditionsEl = document.getElementById("other_oral_conditions");
+    var otherConditions = otherConditionsEl ? otherConditionsEl.value.trim() : "";
+    if (otherConditions) parts.push(otherConditions);
     var el = document.getElementById("conclusion");
     el.value = parts.length ? parts.join(", ") : "Răng tốt";
     el.focus();
@@ -894,4 +896,3 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
 }());
 </script>
 {% endblock %}
-

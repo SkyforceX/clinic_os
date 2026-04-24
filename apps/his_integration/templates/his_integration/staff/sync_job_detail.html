@@ -1,0 +1,163 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Chi tiết job đồng bộ{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-tasks me-2"></i>Chi tiết job đồng bộ
+        </h2>
+        <a href="{% url 'his_integration:job_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Thông tin job</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small">ID</label>
+                        <div><code>#{{ job.id }}</code></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="text-muted small">Loại dữ liệu</label>
+                        <div class="fw-bold">{{ job.get_entity_type_display }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="text-muted small">Trạng thái</label>
+                        <div>
+                            {% if job.status == 'SUCCESS' %}
+                            <span class="badge bg-success fs-6">
+                                <i class="fas fa-check me-1"></i>Thành công
+                            </span>
+                            {% elif job.status == 'FAILED' %}
+                            <span class="badge bg-danger fs-6">
+                                <i class="fas fa-times me-1"></i>Lỗi
+                            </span>
+                            {% elif job.status == 'RUNNING' %}
+                            <span class="badge bg-primary fs-6">
+                                <i class="fas fa-spinner fa-spin me-1"></i>Đang chạy
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary fs-6">Chờ xử lý</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="text-muted small">Người kích hoạt</label>
+                        <div>
+                            {% if job.triggered_by %}
+                            {{ job.triggered_by.full_name }}
+                            {% else %}
+                            <span class="text-muted">Tự động (Celery Beat)</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="text-muted small">Thời gian bắt đầu</label>
+                        <div>
+                            {% if job.started_at %}
+                            {{ job.started_at|date:"d/m/Y H:i:s" }}
+                            {% else %}
+                            <span class="text-muted">Chưa bắt đầu</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="text-muted small">Thời gian hoàn thành</label>
+                        <div>
+                            {% if job.completed_at %}
+                            {{ job.completed_at|date:"d/m/Y H:i:s" }}
+                            {% else %}
+                            <span class="text-muted">Chưa hoàn thành</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if job.started_at and job.completed_at %}
+                    <div>
+                        <label class="text-muted small">Thời gian xử lý</label>
+                        <div>
+                            {% widthratio job.completed_at|timeuntil:job.started_at 1 1 %} giây
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Kết quả</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="h1 mb-0 text-secondary">{{ job.total_records }}</div>
+                                <div class="text-muted">Tổng số record</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="h1 mb-0 text-success">{{ job.synced_records }}</div>
+                                <div class="text-muted">Thành công</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="h1 mb-0 text-danger">{{ job.failed_records }}</div>
+                                <div class="text-muted">Lỗi</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if job.total_records > 0 %}
+                    <div class="mt-4">
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar bg-success" style="width: {% widthratio job.synced_records job.total_records 100 %}%">
+                                {% widthratio job.synced_records job.total_records 100 %}%
+                            </div>
+                            {% if job.failed_records > 0 %}
+                            <div class="progress-bar bg-danger" style="width: {% widthratio job.failed_records job.total_records 100 %}%">
+                                {% widthratio job.failed_records job.total_records 100 %}%
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if job.error_log %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 text-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Log lỗi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for key, error in job.error_log.items %}
+                    <div class="alert alert-danger mb-2">
+                        <div class="fw-bold">{{ key }}</div>
+                        <div class="small">{{ error }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

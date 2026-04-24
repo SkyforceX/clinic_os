@@ -86,13 +86,11 @@ function renderPatients() {
     div.style.cursor = "pointer";
     div.onclick = () => selectPatient(p.id, currentFormType);
 
-    const isWalkin = !p.company_id;
     const isMale = (p.gioi_tinh || "").toLowerCase().includes("nam");
 
     div.innerHTML = `
       <div class="pi-name">
         ${p.ho_ten || ""}
-        ${isWalkin ? '<span class="pi-walkin-badge"><i class="fa-solid fa-user-plus"></i> Khách lẻ</span>' : ""}
       </div>
       <div class="pi-row">
         <span class="pi-gender ${isMale ? "pi-male" : "pi-female"}">
@@ -192,7 +190,7 @@ function selectPatient(patient_id, form_type) {
   if (form_type === "dental") {
     url = window.CLINIC_PATIENT_AJAX?.getDentalDataUrl?.replace("/0/", `/${patient_id}/`) || "";
   } else if (form_type === "pathology" || form_type === "pathology_detail") {
-    url = `get_pathology_data/${patient_id}/`;
+    url = window.CLINIC_PATIENT_AJAX?.getPathologyDataUrl?.replace("/0/", `/${patient_id}/`) || "";
   } else {
     alert("Loại form không hợp lệ.");
     return;
@@ -422,11 +420,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   if (patientContainer) {
-    if (!companyFilter?.value) {
-      setPatientContainerMessage("Vui lòng chọn công ty để hiển thị danh sách bệnh nhân.");
-    } else {
-      fetchPatients();
-    }
+    setPatientContainerMessage("Nhập họ tên hoặc mã BN để tìm bệnh nhân.");
   }
 
   const btnSaveAndPrint = document.getElementById("btnSaveAndPrint");
@@ -819,7 +813,9 @@ function updateEvaluation(resultId) {
     <span class="spinner-border spinner-border-sm me-1"></span>Đang cập nhật...
   </div>`;
 
-  fetch(`update_pathology_evaluation/`, {
+  const updateUrl = window.CLINIC_PATIENT_AJAX?.updatePathologyEvaluationUrl || "update_pathology_evaluation/";
+
+  fetch(updateUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -983,7 +979,15 @@ function initListCompanyPatientActions() {
       document.getElementById("edit_ma_bn").value = editBtn.dataset.maBn || "";
       document.getElementById("edit_ho_ten").value = editBtn.dataset.hoTen || "";
       document.getElementById("edit_gioi_tinh").value = editBtn.dataset.gioiTinh || "";
-      document.getElementById("edit_ngay_sinh").value = editBtn.dataset.ngaySinh || "";
+      const ngaySinhEl = document.getElementById("edit_ngay_sinh");
+      if (ngaySinhEl) {
+        const dateVal = editBtn.dataset.ngaySinh || null;
+        if (ngaySinhEl._flatpickr) {
+          ngaySinhEl._flatpickr.setDate(dateVal, false);
+        } else {
+          ngaySinhEl.value = dateVal || "";
+        }
+      }
 
       editModal.show();
       return;

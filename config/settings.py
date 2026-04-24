@@ -54,6 +54,16 @@ HIS_MSSQL = {
     "TIMEOUT": int(os.getenv("HIS_DB_TIMEOUT", "5")),
 }
 
+HIS_LOCAL_PG = {
+    "HOST": os.getenv("HIS_LOCAL_PG_HOST", os.getenv("PGHOST", "127.0.0.1")),
+    "PORT": int(os.getenv("HIS_LOCAL_PG_PORT", os.getenv("PGPORT", "5432"))),
+    "NAME": os.getenv("HIS_LOCAL_PG_NAME", os.getenv("PGDATABASE", "PK_HCM")),
+    "USER": os.getenv("HIS_LOCAL_PG_USER", os.getenv("PGUSER", "postgres")),
+    "PASSWORD": os.getenv("HIS_LOCAL_PG_PASSWORD", os.getenv("PGPASSWORD", "postgres")),
+    "SCHEMA": os.getenv("HIS_LOCAL_PG_SCHEMA", "dbo"),
+}
+HIS_LOCAL_SYNC_ENABLED = DEBUG and env.bool("HIS_LOCAL_SYNC_ENABLED", default=True)
+
 # ==== HIS AUTOMATION ==== #
 # HIS_AUTOMATION = {
 #     "BASE_URL": env("HIS_BASE_URL", default="https://bvhcm.vncare.vn/vnpthis/main/manager.jsp"),
@@ -105,6 +115,7 @@ INSTALLED_APPS = [
     "apps.approvals",
     "apps.organizations",
     "apps.patients",
+    "apps.his_integration",
     "apps.contract",
     "apps.scheduling",
     "apps.reception",

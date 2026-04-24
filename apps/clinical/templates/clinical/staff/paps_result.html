@@ -10,9 +10,18 @@
 
 {% block content %}
 
+<script>
+  window.CLINIC_PATIENT_AJAX = {
+    getAllPatientsUrl:        "{% url 'clinical:get_his_all_patients' %}",
+    getPatientsByCompanyUrl: "{% url 'clinical:get_his_patients_by_company' 0 %}",
+    getPathologyDataUrl:     "{% url 'clinical:get_pathology_data' 0 %}",
+    updatePathologyEvaluationUrl: "{% url 'clinical:update_pathology_evaluation' %}"
+  };
+</script>
+
 <div style="display: flex;">
 <!-- Danh sách bệnh nhân -->
-{% include "clinic/includes/list_patient.html" %}
+{% include "clinical/includes/list_patient.html" %}
 
 <div class="form-container js-form-container">
     <div class="form-header">
@@ -84,7 +93,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{% static 'clinic/js/clinic.js' %}"></script>
+<script src="{% static 'clinical/js/clinic.js' %}"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {

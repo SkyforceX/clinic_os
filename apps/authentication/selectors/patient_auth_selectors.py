@@ -1,12 +1,8 @@
-from apps.patients.models import Patient
+from apps.his_integration.selectors import find_his_patient_for_login
 
 
 def find_patient_for_login(*, patient_code):
-    return (
-        Patient.objects.select_related("company")
-        .filter(ma_bn__iexact=str(patient_code or "").strip())
-        .first()
-    )
+    return find_his_patient_for_login(patient_code=patient_code)
 
 
 def _normalize_phone(value):
@@ -22,11 +18,7 @@ def find_patient_for_reset(*, patient_code, phone):
     normalized_code = str(patient_code or "").strip()
     normalized_phone = _normalize_phone(phone)
 
-    patient = (
-        Patient.objects.select_related("company")
-        .filter(ma_bn__iexact=normalized_code)
-        .first()
-    )
+    patient = find_his_patient_for_login(patient_code=normalized_code)
     if not patient:
         return None
 

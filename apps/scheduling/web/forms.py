@@ -1,18 +1,21 @@
 from django import forms
 
-from apps.core.models import SystemGeneralSetting
+from apps.core.models import PublicHoliday, SystemGeneralSetting
 
 
 class SystemGeneralSettingForm(forms.ModelForm):
     class Meta:
         model = SystemGeneralSetting
-        fields = ["default_am_slot_limit", "default_pm_slot_limit"]
+        fields = ["default_am_slot_limit", "default_pm_slot_limit", "max_blood_location_per_day"]
         widgets = {
             "default_am_slot_limit": forms.NumberInput(
                 attrs={"class": "form-control", "min": 1}
             ),
             "default_pm_slot_limit": forms.NumberInput(
                 attrs={"class": "form-control", "min": 1}
+            ),
+            "max_blood_location_per_day": forms.NumberInput(
+                attrs={"class": "form-control", "min": 0}
             ),
         }
 
@@ -27,3 +30,15 @@ class SystemGeneralSettingForm(forms.ModelForm):
         if value <= 0:
             raise forms.ValidationError("Giới hạn slot chiều phải lớn hơn 0.")
         return value
+
+
+class PublicHolidayForm(forms.ModelForm):
+    class Meta:
+        model = PublicHoliday
+        fields = ["date", "name"]
+        widgets = {
+            "date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ví dụ: Tết Nguyên Đán"}
+            ),
+        }

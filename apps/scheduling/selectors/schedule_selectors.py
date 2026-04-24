@@ -3,7 +3,8 @@ from datetime import date
 
 from apps.booking.models import Appointment
 from apps.contract.models import CLOSED_STATUSES, Contract
-from apps.scheduling.models import ScheduleSlot, TimeShift
+from apps.his_integration.selectors import get_latest_schedule_config_for_his_patient
+from apps.scheduling.models import ContractScheduleConfig, ScheduleSlot, SlotType, TimeShift
 
 
 def list_schedule_contracts_for_actor(*, user):
@@ -25,16 +26,52 @@ def get_contract_for_actor(*, user, contract_id):
 
 
 def get_latest_contract_for_patient(patient):
-    if not getattr(patient, "company_id", None):
+    company_id = getattr(patient, "company_id", None)
+    if not company_id:
         return None
 
     return (
         Contract.objects
-        .filter(company_id=patient.company_id)
+        .filter(company_id=company_id)
         .exclude(status__in=CLOSED_STATUSES)
         .order_by("-start_date", "-id")
         .first()
     )
+
+
+def _schedule_config_actual_contract(config):
+    profile = getattr(config, "contract", None)
+    return getattr(profile, "contract", None) if profile else None
+
+
+def get_latest_schedule_config_for_patient(patient):
+    patient_code = getattr(patient, "ma_bn", "")
+    his_config = get_latest_schedule_config_for_his_patient(patient_code=patient_code)
+    if his_config:
+        return his_config
+
+    company_id = getattr(patient, "company_id", None)
+    if not company_id:
+        return None
+
+    return (
+        ContractScheduleConfig.objects.select_related(
+            "quotation",
+            "quotation__company",
+            "contract",
+            "contract__contract",
+            "his_package",
+        )
+        .filter(quotation__company_id=company_id)
+        .order_by("-exam_start_date", "-id")
+        .first()
+    )
+
+
+def _appointment_patient_filter(patient):
+    if getattr(patient, "his_patient_code", None):
+        return {"his_patient_sync": patient}
+    return {"patient": patient}
 
 
 def get_existing_appointment_for_patient_in_contract(*, patient, contract):
@@ -42,18 +79,73 @@ def get_existing_appointment_for_patient_in_contract(*, patient, contract):
         Appointment.objects
         .select_related("schedule_slot")
         .filter(
-            patient=patient,
+            **_appointment_patient_filter(patient),
             schedule_slot__contract=contract,
         )
         .first()
     )
 
 
-def build_patient_registration_calendar(*, contract):
-    schedules = ScheduleSlot.objects.filter(contract=contract).order_by("date", "shift")
+def get_existing_appointment_for_patient_in_schedule_config(*, patient, schedule_config):
+    actual_contract = _schedule_config_actual_contract(schedule_config)
+    if actual_contract:
+        return get_existing_appointment_for_patient_in_contract(
+            patient=patient,
+            contract=actual_contract,
+        )
+
+    return (
+        Appointment.objects
+        .select_related("schedule_slot")
+        .filter(
+            **_appointment_patient_filter(patient),
+            schedule_slot__quotation=schedule_config.quotation,
+            schedule_slot__contract__isnull=True,
+        )
+        .first()
+    )
+
+
+def get_existing_appointment_for_patient_in_slot(*, patient, schedule_slot):
+    return (
+        Appointment.objects
+        .select_related("schedule_slot")
+        .filter(
+            **_appointment_patient_filter(patient),
+            schedule_slot=schedule_slot,
+        )
+        .first()
+    )
+
+
+def _schedule_slots_for_registration(*, contract=None, schedule_config=None):
+    if schedule_config:
+        actual_contract = _schedule_config_actual_contract(schedule_config)
+        if actual_contract:
+            return ScheduleSlot.objects.filter(
+                contract=actual_contract,
+                slot_type=SlotType.CONTRACT,
+            )
+        return ScheduleSlot.objects.filter(
+            quotation=schedule_config.quotation,
+            contract__isnull=True,
+            slot_type=SlotType.CONTRACT,
+        )
+
+    return ScheduleSlot.objects.filter(contract=contract).order_by("date", "shift")
+
+
+def build_patient_registration_calendar(*, contract=None, schedule_config=None):
+    schedules = _schedule_slots_for_registration(
+        contract=contract,
+        schedule_config=schedule_config,
+    ).order_by("date", "shift")
     slot_map = {(slot.date, slot.shift): slot for slot in schedules}
 
-    month_list = get_month_list(contract.start_date, contract.end_date)
+    start_date = getattr(schedule_config, "exam_start_date", None) if schedule_config else getattr(contract, "start_date", None)
+    end_date = getattr(schedule_config, "exam_end_date", None) if schedule_config else getattr(contract, "end_date", None)
+
+    month_list = get_month_list(start_date, end_date)
     months_data = []
     slot_status = {}
 
@@ -63,7 +155,7 @@ def build_patient_registration_calendar(*, contract):
         schedule_data = {}
 
         for day in days_in_month:
-            in_range = contract.start_date <= day <= contract.end_date
+            in_range = start_date <= day <= end_date
             day_data = {}
             any_open = False
 

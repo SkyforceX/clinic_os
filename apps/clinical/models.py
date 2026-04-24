@@ -12,8 +12,15 @@ def pathology_upload_path(instance, filename):
         text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("utf-8")
         return slugify(text, allow_unicode=False).replace("-", "_")
 
-    patient_code = normalize(getattr(instance.patient, "ma_bn", "unknown"))
-    full_name = normalize(getattr(instance.patient, "ho_ten", "unknown"))
+    patient = getattr(instance, "his_patient", None) or getattr(instance, "patient", None)
+    patient_code = normalize(
+        getattr(patient, "his_patient_code", None)
+        or getattr(patient, "ma_bn", "unknown")
+    )
+    full_name = normalize(
+        getattr(patient, "full_name", None)
+        or getattr(patient, "ho_ten", "unknown")
+    )
     location = normalize(getattr(instance, "location", "unknown"))
 
     result_date = instance.result_date
@@ -33,8 +40,18 @@ def pathology_upload_path(instance, filename):
 class DentalExamination(models.Model):
     patient = models.ForeignKey(
         "patients.Patient",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="clinical_dental_examinations",
+    )
+    his_patient = models.ForeignKey(
+        "his_integration.HisPatientSync",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="dental_examinations",
+        verbose_name="Bệnh nhân HIS",
     )
     # nullable để hỗ trợ khách lẻ không thuộc công ty nào
     company = models.ForeignKey(
@@ -72,7 +89,18 @@ class DentalExamination(models.Model):
         verbose_name_plural = "Dental Examinations"
 
     def __str__(self):
-        return f"Examination - {self.patient.ho_ten} ({self.patient.ma_bn})"
+        patient = self.his_patient or self.patient
+        patient_name = (
+            getattr(patient, "full_name", None)
+            or getattr(patient, "ho_ten", None)
+            or "unknown"
+        )
+        patient_code = (
+            getattr(patient, "his_patient_code", None)
+            or getattr(patient, "ma_bn", None)
+            or ""
+        )
+        return f"Examination - {patient_name} ({patient_code})"
 
 
 class ToothNotation(models.Model):
@@ -98,8 +126,18 @@ class PathologyResult(models.Model):
 
     patient = models.ForeignKey(
         "patients.Patient",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="clinical_pathology_results",
+    )
+    his_patient = models.ForeignKey(
+        "his_integration.HisPatientSync",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pathology_results",
+        verbose_name="Bệnh nhân HIS",
     )
     location = models.CharField(max_length=255)
     file_url = models.FileField(upload_to=pathology_upload_path)
@@ -124,4 +162,9 @@ class PathologyResult(models.Model):
         verbose_name_plural = "Pathology Results"
 
     def __str__(self):
-        return f"Kết quả GPB - {self.patient.ho_ten} ({self.location})"
+        patient_name = (
+            getattr(self.his_patient, "full_name", None)
+            or getattr(self.patient, "ho_ten", None)
+            or "unknown"
+        )
+        return f"Kết quả GPB - {patient_name} ({self.location})"

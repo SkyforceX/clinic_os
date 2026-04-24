@@ -9,6 +9,10 @@ from datetime import date, datetime, timezone
 from django.contrib.auth import authenticate
 from django.db import transaction
 
+from apps.his_integration.selectors import (
+    find_his_patient_for_login,
+    list_active_schedule_configs_for_his_patient,
+)
 from apps.reception.models import CheckInRecord, CheckInStatus
 from apps.reception.policies import ReceptionPolicy
 
@@ -34,41 +38,20 @@ def lookup_patient(ma_bn: str, exam_date: date = None):
 
     Trả về dict hoặc None nếu không tìm thấy.
     """
-    from apps.patients.models import Patient
-    from apps.scheduling.models import ContractScheduleConfig
-
     exam_date = exam_date or date.today()
 
-    try:
-        patient = Patient.objects.select_related("company").get(ma_bn=ma_bn.strip().upper())
-    except Patient.DoesNotExist:
+    patient = find_his_patient_for_login(patient_code=ma_bn)
+    if not patient:
         return None, "Không tìm thấy mã bệnh nhân này trong hệ thống."
 
-    # Tìm schedule config của công ty có khám ngày hôm nay
-    schedule_config = None
-    if patient.company_id:
-        schedule_config = (
-            ContractScheduleConfig.objects
-            .filter(
-                quotation__company_id=patient.company_id,
-                exam_start_date__lte=exam_date,
-                exam_end_date__gte=exam_date,
-            )
-            .select_related("quotation__company")
-            .first()
-        )
-        if not schedule_config:
-            # Thử qua contract
-            schedule_config = (
-                ContractScheduleConfig.objects
-                .filter(
-                    contract__contract__company_id=patient.company_id,
-                    exam_start_date__lte=exam_date,
-                    exam_end_date__gte=exam_date,
-                )
-                .select_related("contract__contract__company")
-                .first()
-            )
+    schedule_configs = list_active_schedule_configs_for_his_patient(
+        patient_code=patient.his_patient_code,
+    )
+    schedule_config = (
+        schedule_configs
+        .filter(exam_start_date__lte=exam_date, exam_end_date__gte=exam_date)
+        .first()
+    ) or schedule_configs.first()
 
     # Kiểm tra đã từng check-in trong kỳ khám của hợp đồng chưa.
     # Scope tìm kiếm: toàn bộ kỳ [exam_start, exam_end] của schedule_config
@@ -100,22 +83,34 @@ def lookup_patient(ma_bn: str, exam_date: date = None):
         )
 
     company_name = ""
+    company = None
     exam_start = None
     exam_end = None
 
-    if patient.company:
-        company_name = patient.company.name
     if schedule_config:
         exam_start = schedule_config.exam_start_date
         exam_end   = schedule_config.exam_end_date
-        if not company_name:
-            sc = schedule_config
-            if hasattr(sc, "quotation") and sc.quotation and sc.quotation.company:
-                company_name = sc.quotation.company.name
+        his_package = getattr(schedule_config, "his_package", None)
+        quotation = getattr(schedule_config, "quotation", None)
+        contract_profile = getattr(schedule_config, "contract", None)
+        contract = getattr(contract_profile, "contract", None) if contract_profile else None
+
+        company = (
+            getattr(his_package, "organization", None)
+            or getattr(quotation, "company", None)
+            or getattr(contract, "company", None)
+        )
+        company_name = (
+            getattr(his_package, "company_name", "")
+            or getattr(company, "name", "")
+            or getattr(quotation, "company_name", "")
+            or getattr(contract_profile, "company_name_snapshot", "")
+        )
 
     return {
         "patient":         patient,
         "schedule_config": schedule_config,
+        "company":         company,
         "company_name":    company_name,
         "exam_start":      exam_start,
         "exam_end":        exam_end,
@@ -138,6 +133,7 @@ def do_checkin(ma_bn: str, note: str, operator, exam_date: date = None):
 
     patient         = result["patient"]
     schedule_config = result["schedule_config"]
+    company         = result["company"]
     company_name    = result["company_name"]
 
     # Guard: không cho check-in nếu đã có record trong kỳ khám
@@ -148,9 +144,10 @@ def do_checkin(ma_bn: str, note: str, operator, exam_date: date = None):
 
     now = datetime.now(tz=timezone.utc)
     record = CheckInRecord.objects.create(
-        patient          = patient,
+        patient          = None,
+        his_patient_sync = patient,
         schedule_config  = schedule_config,
-        company          = patient.company,
+        company          = company,
         snapshot_ma_bn   = patient.ma_bn,
         snapshot_ho_ten  = patient.ho_ten,
         snapshot_gioi_tinh   = patient.gioi_tinh or "",

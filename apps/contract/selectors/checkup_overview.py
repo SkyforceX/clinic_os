@@ -1,14 +1,12 @@
 from django.utils.html import escape
 
 from apps.catalogs.models import CheckupCategory
-from apps.patients.selectors.patient_selectors import list_patients_by_company_for_actor
+from apps.his_integration.selectors import list_active_his_patients_for_organization
 
 
 def build_checkup_overview_payload(*, user, company_id):
     patients = list(
-        list_patients_by_company_for_actor(user=user, company_id=company_id)
-        .values("id", "ma_bn", "ho_ten", "gioi_tinh", "ngay_sinh")
-        .order_by("ho_ten")
+        list_active_his_patients_for_organization(organization_id=company_id)
     )
 
     categories = list(
@@ -65,11 +63,11 @@ def build_checkup_overview_payload(*, user, company_id):
 
     rows = []
     for idx, patient in enumerate(patients, start=1):
-        pid = patient["id"]
-        ma_bn = escape(patient["ma_bn"] or "")
-        ho_ten = escape(patient["ho_ten"] or "")
-        gioi_tinh = escape(patient["gioi_tinh"] or "")
-        ngay_sinh = patient["ngay_sinh"].strftime("%d/%m/%Y") if patient.get("ngay_sinh") else ""
+        pid = patient.id
+        ma_bn = escape(patient.ma_bn or "")
+        ho_ten = escape(patient.ho_ten or "")
+        gioi_tinh = escape(patient.gioi_tinh or "")
+        ngay_sinh = patient.ngay_sinh.strftime("%d/%m/%Y") if patient.ngay_sinh else ""
 
         row = [
             "<tr>",

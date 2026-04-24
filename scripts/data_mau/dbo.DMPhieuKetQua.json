@@ -1,0 +1,352 @@
+[
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_DienNao",
+    "TenPhieuKetQua": "PHIẾU ĐIỆN NÃO",
+    "MaNhomIn": "DienNao",
+    "ReportNameNGT": "XR_PhieuNoiSoi_DienNao",
+    "ReportNameNT": "XR_PhieuNoiSoi_DienNao_NT",
+    "IDKeys": 52,
+    "STT": null,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_DCNHH",
+    "TenPhieuKetQua": "Đo CNHH",
+    "MaNhomIn": "TTK",
+    "ReportNameNGT": "XR_PhieuNoiSoi_DCNHH",
+    "ReportNameNT": "XR_PhieuNoiSoi_DCNHH_NT",
+    "IDKeys": 54,
+    "STT": null,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_CTM",
+    "TenPhieuKetQua": "Phiếu kết quả can thiệp mạch",
+    "MaNhomIn": "CTM",
+    "ReportNameNGT": "XR_PhieuNoiSoi_CTM",
+    "ReportNameNT": "XR_PhieuNoiSoi_CTM_NT",
+    "IDKeys": 58,
+    "STT": null,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_XetNghiemViSinhTeBao",
+    "TenPhieuKetQua": "Xét nghiệm Vi sinh",
+    "MaNhomIn": "XNVS",
+    "ReportNameNGT": "XR_XetNghiemViSinh",
+    "ReportNameNT": "XR_XetNghiemViSinh",
+    "IDKeys": 60,
+    "STT": null,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_XetNghiemTeBao",
+    "TenPhieuKetQua": "Xét nghiệm Tế Bào",
+    "MaNhomIn": "XNTB",
+    "ReportNameNGT": "XR_XetNghiemTeBao",
+    "ReportNameNT": "XR_XetNghiemTeBao",
+    "IDKeys": 61,
+    "STT": null,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_SA1_KSK",
+    "TenPhieuKetQua": "1 ảnh KSK",
+    "MaNhomIn": "1",
+    "ReportNameNGT": "XR_PhieuNoiSoi_SA1_KSK",
+    "ReportNameNT": "XR_PhieuNoiSoi_SA1_KSK",
+    "IDKeys": 62,
+    "STT": 1,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi _KhongAnh",
+    "TenPhieuKetQua": "Phiếu in kết quả Xquang",
+    "MaNhomIn": "XQ",
+    "ReportNameNGT": "XR_PhieuNoiSoi _KhongAnh",
+    "ReportNameNT": "XR_PhieuNoiSoi _KhongAnh",
+    "IDKeys": 65,
+    "STT": 1,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_DT",
+    "TenPhieuKetQua": "Phiếu điện tim",
+    "MaNhomIn": "DienTim",
+    "ReportNameNGT": "XR_PhieuNoiSoi _DienTim",
+    "ReportNameNT": "XR_PhieuNoiSoi _DienTim",
+    "IDKeys": 66,
+    "STT": 1,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_NSSAN",
+    "TenPhieuKetQua": "Nội soi sản",
+    "MaNhomIn": "NSS",
+    "ReportNameNGT": "XR_PhieuNoiSoi_NSSAN",
+    "ReportNameNT": "XR_PhieuNoiSoi_NSSAN",
+    "IDKeys": 67,
+    "STT": null,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_DienCo",
+    "TenPhieuKetQua": "Đo độ loãng xương",
+    "MaNhomIn": "DienCo",
+    "ReportNameNGT": "XR_PhieuNoiSoi_DienCo",
+    "ReportNameNT": "XR_PhieuNoiSoi_DienCo",
+    "IDKeys": 68,
+    "STT": 1,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_ZNS2",
+    "TenPhieuKetQua": "Nội soi tiêu hóa 2 ảnh",
+    "MaNhomIn": "NSTH",
+    "ReportNameNGT": "XR_PhieuNoiSoi_NS2",
+    "ReportNameNT": "XR_PhieuNoiSoi_NS2",
+    "IDKeys": 69,
+    "STT": 1,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_ZNS3",
+    "TenPhieuKetQua": "Nội soi tiêu hóa 3 ảnh",
+    "MaNhomIn": "NSTH",
+    "ReportNameNGT": "XR_PhieuNoiSoi_NS3",
+    "ReportNameNT": "XR_PhieuNoiSoi_NS3",
+    "IDKeys": 70,
+    "STT": 2,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_ZNS4",
+    "TenPhieuKetQua": "Nội soi tiêu hóa 4 ảnh",
+    "MaNhomIn": "NSTH",
+    "ReportNameNGT": "XR_PhieuNoiSoi_NS4",
+    "ReportNameNT": "XR_PhieuNoiSoi_NS4",
+    "IDKeys": 71,
+    "STT": 3,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_CT",
+    "TenPhieuKetQua": "Phiếu CT",
+    "MaNhomIn": "CT",
+    "ReportNameNGT": "XR_PhieuNoiSoi_CT",
+    "ReportNameNT": "XR_PhieuNoiSoi_CT",
+    "IDKeys": 72,
+    "STT": null,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_CT",
+    "TenPhieuKetQua": "Phiếu CT",
+    "MaNhomIn": "CT",
+    "ReportNameNGT": "XR_PhieuNoiSoi_CT",
+    "ReportNameNT": "XR_PhieuNoiSoi_CT",
+    "IDKeys": 73,
+    "STT": null,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_MRI",
+    "TenPhieuKetQua": "Phiếu MRI",
+    "MaNhomIn": "MRI",
+    "ReportNameNGT": "XR_PhieuNoiSoi_MRI",
+    "ReportNameNT": "XR_PhieuNoiSoi_MRI",
+    "IDKeys": 74,
+    "STT": null,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_SATim",
+    "TenPhieuKetQua": "Siêu âm tim",
+    "MaNhomIn": "SAT1",
+    "ReportNameNGT": "XR_PhieuNoiSoi_SAT",
+    "ReportNameNT": "XR_PhieuNoiSoi_NT_SAT",
+    "IDKeys": 78,
+    "STT": 1,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_SAT4",
+    "TenPhieuKetQua": "Siêu âm tim 4 ",
+    "MaNhomIn": "SAT1",
+    "ReportNameNGT": "XR_PhieuNoiSoi_SAT4",
+    "ReportNameNT": "XR_PhieuNoiSoi_SAT4",
+    "IDKeys": 79,
+    "STT": 1,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuThuTienDichVu",
+    "TenPhieuKetQua": "Phiếu thu tiền dịch vụ",
+    "MaNhomIn": "PTDV",
+    "ReportNameNGT": "XR_PhieuThuTienDichVu",
+    "ReportNameNT": "XR_PhieuThuTienDichVu",
+    "IDKeys": 89,
+    "STT": 1,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuChi",
+    "TenPhieuKetQua": "Phiếu chi tiền",
+    "MaNhomIn": "PC",
+    "ReportNameNGT": "XR_PhieuChi",
+    "ReportNameNT": "XR_PhieuChi",
+    "IDKeys": 90,
+    "STT": 1,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuKhamBenhTongQuat",
+    "TenPhieuKetQua": "Phiếu khám bệnh tổng quát",
+    "MaNhomIn": "PKB",
+    "ReportNameNGT": "XR_PhieuKhamBenhTongQuat",
+    "ReportNameNT": "XR_PhieuKhamBenhTongQuat",
+    "IDKeys": 91,
+    "STT": 1,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuKhamBenh",
+    "TenPhieuKetQua": "Phiếu khám bệnh chung",
+    "MaNhomIn": "PKB",
+    "ReportNameNGT": "XR_PhieuKhamBenh",
+    "ReportNameNT": "XR_PhieuKhamBenh",
+    "IDKeys": 92,
+    "STT": 2,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuKhamBenhVaoVien",
+    "TenPhieuKetQua": "Phiếu khám bệnh vào viện",
+    "MaNhomIn": "PKB",
+    "ReportNameNGT": "XR_PhieuKhamBenhVaoVien",
+    "ReportNameNT": "XR_PhieuKhamBenhVaoVien",
+    "IDKeys": 93,
+    "STT": 3,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuKhamRHM",
+    "TenPhieuKetQua": "Phiếu khám Răng-Hàm-Mặt",
+    "MaNhomIn": "PKB",
+    "ReportNameNGT": "XR_PhieuKhamRHM",
+    "ReportNameNT": "XR_PhieuKhamRHM",
+    "IDKeys": 94,
+    "STT": 4,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuKhamTMH",
+    "TenPhieuKetQua": "Phiếu khám Tai-Mũi-Họng",
+    "MaNhomIn": "PKB",
+    "ReportNameNGT": "XR_PhieuKhamTMH",
+    "ReportNameNT": "XR_PhieuKhamTMH",
+    "IDKeys": 95,
+    "STT": 5,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_KetQuaKhamMat",
+    "TenPhieuKetQua": "Phiếu khám Mắt",
+    "MaNhomIn": "PKB",
+    "ReportNameNGT": "XR_KetQuaKhamMat",
+    "ReportNameNT": "XR_KetQuaKhamMat",
+    "IDKeys": 96,
+    "STT": 6,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_GiayHenTaiKham",
+    "TenPhieuKetQua": "Giấy hẹn khám lại",
+    "MaNhomIn": "PKB",
+    "ReportNameNGT": "XR_GiayHenTaiKham",
+    "ReportNameNT": "XR_GiayHenTaiKham",
+    "IDKeys": 97,
+    "STT": 7,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_GiaiPhauBenh",
+    "TenPhieuKetQua": "Phiếu giải phẫu bệnh",
+    "MaNhomIn": "NS",
+    "ReportNameNGT": "XR_PhieuNoiSoi_GiaiPhauBenh",
+    "ReportNameNT": "XR_PhieuNoiSoi_GiaiPhauBenh",
+    "IDKeys": 102,
+    "STT": 7,
+    "MaPhieuEMR": null
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_SAT_Moi",
+    "TenPhieuKetQua": "Phiếu KQ siêu âm",
+    "MaNhomIn": "SA",
+    "ReportNameNGT": "XR_PhieuNoiSoi_SAT_Moi",
+    "ReportNameNT": "XR_PhieuNoiSoi_SAT_Moi",
+    "IDKeys": 105,
+    "STT": 1,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_SAT",
+    "TenPhieuKetQua": "SIÊU ÂM DOPPLER TIM",
+    "MaNhomIn": "SA",
+    "ReportNameNGT": "XR_PhieuNoiSoi_SAT",
+    "ReportNameNT": "XR_PhieuNoiSoi_SAT",
+    "IDKeys": 106,
+    "STT": 2,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_NSTH9",
+    "TenPhieuKetQua": "Phiếu NS tiêu hóa",
+    "MaNhomIn": "NS",
+    "ReportNameNGT": "XR_PhieuNoiSoi_NSTH9",
+    "ReportNameNT": "XR_PhieuNoiSoi_NSTH9",
+    "IDKeys": 107,
+    "STT": 1,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi_NSTMH_6",
+    "TenPhieuKetQua": "Phiếu NS tai mũi họng",
+    "MaNhomIn": "NSTMH",
+    "ReportNameNGT": "XR_PhieuNoiSoi_NSTMH_6",
+    "ReportNameNT": "XR_PhieuNoiSoi_NSTMH_6",
+    "IDKeys": 108,
+    "STT": 1,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi _CoAnh",
+    "TenPhieuKetQua": "Phiếu KQ XQuang Có Ảnh",
+    "MaNhomIn": "XQ",
+    "ReportNameNGT": "XR_PhieuNoiSoi _CoAnh",
+    "ReportNameNT": "XR_PhieuNoiSoi _CoAnh",
+    "IDKeys": 109,
+    "STT": 2,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi _2Anh",
+    "TenPhieuKetQua": "Phiếu XQ 2 Ảnh",
+    "MaNhomIn": "XQ",
+    "ReportNameNGT": "XR_PhieuNoiSoi _2Anh",
+    "ReportNameNT": "XR_PhieuNoiSoi _2Anh",
+    "IDKeys": 110,
+    "STT": 3,
+    "MaPhieuEMR": ""
+  },
+  {
+    "MaPhieuKetQua": "XR_PhieuNoiSoi _4Anh",
+    "TenPhieuKetQua": "Phiếu XQ 4 Ảnh",
+    "MaNhomIn": "XQ",
+    "ReportNameNGT": "XR_PhieuNoiSoi _4Anh",
+    "ReportNameNT": "XR_PhieuNoiSoi _4Anh",
+    "IDKeys": 111,
+    "STT": 4,
+    "MaPhieuEMR": ""
+  }
+]

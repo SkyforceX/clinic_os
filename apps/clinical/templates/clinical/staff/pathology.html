@@ -10,6 +10,15 @@
 
 {% block content %}
 
+<script>
+  window.CLINIC_PATIENT_AJAX = {
+    getAllPatientsUrl:        "{% url 'clinical:get_his_all_patients' %}",
+    getPatientsByCompanyUrl: "{% url 'clinical:get_his_patients_by_company' 0 %}",
+    getPathologyDataUrl:     "{% url 'clinical:get_pathology_data' 0 %}",
+    updatePathologyEvaluationUrl: "{% url 'clinical:update_pathology_evaluation' %}"
+  };
+</script>
+
 <div style="display: flex;">
 <!-- Danh sách bệnh nhân -->
 {% include "clinical/includes/list_patient.html" %}
@@ -28,9 +37,9 @@
   {% endif %}
 
   <div class="form-body">
-    <form id="paps-form" action="{% url 'upload_pathology_pdf' %}" method="POST" enctype="multipart/form-data">
+    <form id="paps-form" action="{% url 'clinical:upload_pathology_pdf' %}" method="POST" enctype="multipart/form-data">
       {% csrf_token %}
-      <input type="hidden" name="patient_id" id="patient_id" value="{{ patient.id }}">
+      <input type="hidden" name="patient_id" id="patient_id" value="">
       
       <!-- Hàng 1: Thông tin bệnh nhân -->
       <div class="form-row">

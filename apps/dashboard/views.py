@@ -15,6 +15,7 @@ from apps.dashboard.selectors.selectors import (
     get_corporate_bookings_by_week,
     get_executive_stats,
     get_my_schedule_this_week,
+    get_sales_stats,
     get_staff_stats,
     get_week_bounds,
     get_week_days,
@@ -22,14 +23,29 @@ from apps.dashboard.selectors.selectors import (
     get_work_schedule_week_summary,
 )
 
-EXECUTIVE_GROUPS = {"Executives", "Executive", "Managers", "Manager"}
+# Nhóm thấy toàn bộ số liệu
+FULL_ACCESS_GROUPS = {"Executives", "Executive", "Managers", "Manager", "IT Staff"}
+# Nhóm Sales Team
+SALES_GROUPS = {"Sales Team", "Sales"}
 LOGIN_URL = "authentication:staff_login"
 
 
-def is_executive_or_manager(user):
+def _user_has_group(user, group_names):
     if user.is_superuser:
         return True
-    return user.groups.filter(name__in=EXECUTIVE_GROUPS).exists()
+    return user.groups.filter(name__in=group_names).exists()
+
+
+def is_full_access(user):
+    """Superadmin, IT Staff, Executives, Managers: thấy toàn bộ số liệu."""
+    return _user_has_group(user, FULL_ACCESS_GROUPS)
+
+
+def is_sales(user):
+    """Sales Team: thấy số liệu do chính user đó tạo."""
+    if user.is_superuser:
+        return False
+    return user.groups.filter(name__in=SALES_GROUPS).exists()
 
 
 @login_required(login_url=LOGIN_URL)
@@ -50,9 +66,12 @@ def overview(request):
     my_employee, my_week_schedule = get_my_schedule_this_week(request.user, week_start, week_end)
 
     # ── Personal stats theo role ──────────────────────────────────────────────
-    if is_executive_or_manager(request.user):
+    if is_full_access(request.user):
         personal_stats = get_executive_stats(request.user)
         user_role = "executive"
+    elif is_sales(request.user):
+        personal_stats = get_sales_stats(request.user)
+        user_role = "sales"
     else:
         personal_stats = get_staff_stats(request.user)
         user_role = "staff"

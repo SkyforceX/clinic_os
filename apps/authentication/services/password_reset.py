@@ -63,6 +63,6 @@ def reset_patient_password(*, patient_code, phone, new_password):
     if not patient:
         raise PasswordResetError("Có lỗi, không tìm thấy tài khoản")
 
-    patient.password = make_password(new_password)
-    patient.save(update_fields=["password"])
+    patient.password_raw = make_password(new_password)
+    patient.save(update_fields=["password_raw"])
     return patient

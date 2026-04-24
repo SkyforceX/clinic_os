@@ -46,13 +46,14 @@
         <thead>
           <tr>
             <th style="width:70px;">STT</th>
-            <th>Báo giá</th>
-            <th style="width:180px;">Hợp đồng</th>
-            <th>Công ty</th>
+            <th style="width:80px;">Báo giá</th>
+            <th style="width:80px;">Hợp đồng</th>
+            <th style="width:220px;">Công ty</th>
             <th style="width:140px;">Số KH</th>
             <th style="width:170px;">Khung khám</th>
-            <th style="width:170px;">Giới hạn Sáng / Chiều</th>
+            <th style="width:170px; display: none;">Giới hạn Sáng / Chiều</th>
             <th style="width:170px;">Người tạo lịch khám</th>
+            <th style="width:130px;">Trạng thái</th>
             <th style="width:320px;">Thao tác</th>
           </tr>
         </thead>
@@ -92,7 +93,7 @@
               – {{ config.exam_end_date|date:"d/m/Y" }}
             </td>
 
-            <td class="text-center">
+            <td class="text-center" style="display: none;">
               Sáng: {{ config.am_capacity_limit }}<br>
               Chiều: {{ config.pm_capacity_limit }}
             </td>
@@ -109,10 +110,48 @@
             </td>
 
             <td class="text-center">
+              {% if config.is_ended %}
+                <span class="badge bg-dark">Đã kết thúc</span>
+              {% elif config.is_confirmed %}
+                <span class="badge bg-success">Đã chốt</span>
+                {% if config.confirmed_by %}
+                  <div class="text-muted small mt-1" style="display: none;">{{ config.confirmed_by.get_full_name|default:config.confirmed_by.username }}</div>
+                {% endif %}
+                {% if config.confirmed_at %}
+                  <div class="text-muted small" style="display: none;">{{ config.confirmed_at|date:"d/m/Y H:i" }}</div>
+                {% endif %}
+                {% if config.can_end %}
+                  <div class="mt-1">
+                    <form method="post" action="{% url 'scheduling:end_schedule' config.id %}" onsubmit="return confirm('Kết thúc lịch khám này? Hành động này không thể hoàn tác.');" style="display:inline;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-secondary">Kết thúc lịch</button>
+                    </form>
+                  </div>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-secondary">Dự kiến</span>
+                {% if config.can_confirm %}
+                  <div class="mt-1">
+                    <form method="post" action="{% url 'contract:confirm_contract' config.id %}" onsubmit="return confirm('Chốt lịch khám này? Sau khi chốt không thể hoàn tác.');" style="display:inline;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-success">Chốt lịch</button>
+                    </form>
+                  </div>
+                {% endif %}
+              {% endif %}
+            </td>
+
+            <td class="text-center">
               <div class="d-flex gap-1 justify-content-center flex-wrap">
-                <a href="{% url 'contract:edit_contract' config.id %}" class="btn btn-sm btn-warning">
-                  Sửa
-                </a>
+                {% if config.is_confirmed %}
+                  <a href="{% url 'contract:edit_contract' config.id %}" class="btn btn-sm btn-secondary">
+                    Xem
+                  </a>
+                {% else %}
+                  <a href="{% url 'contract:edit_contract' config.id %}" class="btn btn-sm btn-warning">
+                    Sửa
+                  </a>
+                {% endif %}
 
                 <a href="{% url 'scheduling:schedule_table' %}" class="btn btn-sm btn-info">
                   Lịch chi tiết
@@ -143,7 +182,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="9" class="text-center py-4">Chưa có dữ liệu lịch khám.</td>
+            <td colspan="10" class="text-center py-4">Chưa có dữ liệu lịch khám.</td>
           </tr>
           {% endfor %}
         </tbody>

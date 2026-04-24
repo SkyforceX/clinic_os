@@ -1,0 +1,293 @@
+{% extends "base_admin.html" %}
+
+{% block title %}{{ record.his_record_code }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-file-medical me-2"></i>Hồ sơ khám: {{ record.his_record_code }}
+        </h2>
+        <a href="{% url 'his_integration:exam_record_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Thông tin bệnh nhân -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Thông tin bệnh nhân</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Mã BN HIS</label>
+                            <div><code>{{ record.patient_sync.his_patient_code }}</code></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Họ tên</label>
+                            <div class="fw-bold">{{ record.patient_sync.full_name }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Ngày sinh</label>
+                            <div>{{ record.patient_sync.birth_date_display|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Giới tính</label>
+                            <div>{{ record.patient_sync.get_gender_code_display|default:"N/A" }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">SĐT</label>
+                            <div>{{ record.patient_sync.phone|default:"N/A" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sinh hiệu -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Sinh hiệu</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="text-muted small">Mạch</label>
+                            <div class="h5 mb-0">{{ record.vital_signs.pulse|default:"--" }}</div>
+                            <small class="text-muted">lần/phút</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="text-muted small">Nhiệt độ</label>
+                            <div class="h5 mb-0">{{ record.vital_signs.temperature|default:"--" }}</div>
+                            <small class="text-muted">°C</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="text-muted small">Huyết áp</label>
+                            <div class="h5 mb-0">{{ record.vital_signs.blood_pressure|default:"--" }}</div>
+                            <small class="text-muted">mmHg</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="text-muted small">SpO2</label>
+                            <div class="h5 mb-0">{{ record.vital_signs.spo2|default:"--" }}</div>
+                            <small class="text-muted">%</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="text-muted small">Chiều cao</label>
+                            <div class="h5 mb-0">{{ record.vital_signs.height|default:"--" }}</div>
+                            <small class="text-muted">cm</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="text-muted small">Cân nặng</label>
+                            <div class="h5 mb-0">{{ record.vital_signs.weight|default:"--" }}</div>
+                            <small class="text-muted">kg</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="text-muted small">BMI</label>
+                            <div class="h5 mb-0">{{ record.vital_signs.bmi|default:"--" }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="text-muted small">Nhịp thở</label>
+                            <div class="h5 mb-0">{{ record.vital_signs.respiratory_rate|default:"--" }}</div>
+                            <small class="text-muted">lần/phút</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Khám lâm sàng -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Khám lâm sàng</h5>
+                </div>
+                <div class="card-body">
+                    {% if record.clinical_exam.general %}
+                    <div class="mb-3">
+                        <label class="text-muted small fw-bold">Toàn thân</label>
+                        <div>{{ record.clinical_exam.general }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if record.clinical_exam.circulatory %}
+                    <div class="mb-3">
+                        <label class="text-muted small fw-bold">Tuần hoàn</label>
+                        <div>{{ record.clinical_exam.circulatory }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if record.clinical_exam.respiratory %}
+                    <div class="mb-3">
+                        <label class="text-muted small fw-bold">Hô hấp</label>
+                        <div>{{ record.clinical_exam.respiratory }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if record.clinical_exam.digestive %}
+                    <div class="mb-3">
+                        <label class="text-muted small fw-bold">Tiêu hóa</label>
+                        <div>{{ record.clinical_exam.digestive }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if record.clinical_exam.body_parts %}
+                    <div class="mb-3">
+                        <label class="text-muted small fw-bold">Các bộ phận</label>
+                        <div>{{ record.clinical_exam.body_parts }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Chẩn đoán & Kết luận -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Chẩn đoán & Kết luận</h5>
+                </div>
+                <div class="card-body">
+                    {% if record.diagnosis %}
+                    <div class="mb-3">
+                        <label class="text-muted small fw-bold">Chẩn đoán</label>
+                        <div>{{ record.diagnosis }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if record.icd10_code_1 %}
+                    <div class="mb-3">
+                        <label class="text-muted small fw-bold">Mã ICD-10</label>
+                        <div>
+                            <span class="badge bg-info">{{ record.icd10_code_1 }}</span>
+                            {% if record.icd10_desc_1 %}
+                            <div class="mt-1">{{ record.icd10_desc_1 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if record.conclusion %}
+                    <div class="mb-3">
+                        <label class="text-muted small fw-bold">Kết luận</label>
+                        <div>{{ record.conclusion }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if record.treatment_method %}
+                    <div>
+                        <label class="text-muted small fw-bold">Cách xử lý</label>
+                        <div>{{ record.treatment_method }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Validation Status -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Trạng thái hồ sơ</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small">Trạng thái</label>
+                        <div>
+                            {% if record.is_complete %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check me-1"></i>Hoàn thành
+                            </span>
+                            {% else %}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Chưa hoàn thành
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if record.missing_fields %}
+                    <div class="mb-3">
+                        <label class="text-muted small">Trường thiếu</label>
+                        <ul class="list-unstyled mb-0">
+                            {% for field in record.missing_fields %}
+                            <li class="text-danger">
+                                <i class="fas fa-times me-1"></i>{{ field }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    {% if record.validation_errors %}
+                    <div>
+                        <label class="text-muted small">Lỗi validation</label>
+                        <ul class="list-unstyled mb-0">
+                            {% for error in record.validation_errors %}
+                            <li class="text-warning">
+                                <i class="fas fa-exclamation me-1"></i>{{ error }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Gói khám -->
+            {% if record.package_sync %}
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Gói khám đoàn</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <label class="text-muted small">Tên gói</label>
+                        <div>{{ record.package_sync.package_name }}</div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="text-muted small">Công ty</label>
+                        <div>{{ record.package_sync.company_name }}</div>
+                    </div>
+                    <div>
+                        <a href="{% url 'his_integration:package_detail' record.package_sync.pk %}" class="btn btn-sm btn-outline-primary w-100">
+                            Xem gói khám
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Metadata -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Thông tin khác</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <label class="text-muted small">Ngày khám</label>
+                        <div>{{ record.exam_date|date:"d/m/Y"|default:"N/A" }}</div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="text-muted small">Mã BS</label>
+                        <div>{{ record.doctor_code|default:"N/A" }}</div>
+                    </div>
+                    {% if record.department_position %}
+                    <div class="mb-2">
+                        <label class="text-muted small">Bộ phận</label>
+                        <div>{{ record.department_position }}</div>
+                    </div>
+                    {% endif %}
+                    {% if record.job_title %}
+                    <div class="mb-2">
+                        <label class="text-muted small">Chức vụ</label>
+                        <div>{{ record.job_title }}</div>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <label class="text-muted small">Lần đồng bộ cuối</label>
+                        <div>{{ record.last_synced_at|date:"d/m/Y H:i" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

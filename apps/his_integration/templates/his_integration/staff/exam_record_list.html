@@ -1,0 +1,138 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Danh sách hồ sơ khám{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-file-medical me-2"></i>Danh sách hồ sơ khám HIS
+        </h2>
+        <a href="{% url 'his_integration:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Gói khám</label>
+                    <select name="package" class="form-select">
+                        <option value="">Tất cả</option>
+                        {% for pkg in packages %}
+                        <option value="{{ pkg.id }}" {% if request.GET.package == pkg.id|stringformat:"s" %}selected{% endif %}>
+                            {{ pkg.package_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Trạng thái</label>
+                    <select name="is_complete" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="true" {% if request.GET.is_complete == 'true' %}selected{% endif %}>Hoàn thành</option>
+                        <option value="false" {% if request.GET.is_complete == 'false' %}selected{% endif %}>Chưa hoàn thành</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Lọc
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã hồ sơ</th>
+                            <th>Bệnh nhân</th>
+                            <th>Ngày khám</th>
+                            <th>Gói khám</th>
+                            <th>Chẩn đoán</th>
+                            <th>Hoàn thành</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td><code>{{ record.his_record_code }}</code></td>
+                            <td>
+                                <div class="fw-bold">{{ record.patient_sync.full_name }}</div>
+                                <small class="text-muted">{{ record.patient_sync.his_patient_code }}</small>
+                                {% if record.patient_sync.birth_date_display %}
+                                <small class="text-muted d-block">{{ record.patient_sync.birth_date_display }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ record.exam_date|date:"d/m/Y"|default:"N/A" }}</td>
+                            <td>
+                                {% if record.package_sync %}
+                                <div>{{ record.package_sync.package_name|truncatewords:5 }}</div>
+                                <small class="text-muted">{{ record.package_sync.company_name|truncatewords:5 }}</small>
+                                {% else %}
+                                <span class="text-muted">Khám lẻ</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ record.diagnosis|truncatewords:8|default:"Chưa có" }}</td>
+                            <td>
+                                {% if record.is_complete %}
+                                <span class="badge bg-success">Hoàn thành</span>
+                                {% else %}
+                                <span class="badge bg-warning">Chưa hoàn thành</span>
+                                {% if record.missing_fields %}
+                                <div class="small text-danger mt-1">
+                                    Thiếu {{ record.missing_fields|length }} trường
+                                </div>
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'his_integration:exam_record_detail' record.pk %}" class="btn btn-sm btn-outline-primary">
+                                    Chi tiết
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                Không tìm thấy hồ sơ khám nào
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if is_paginated %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.package %}&package={{ request.GET.package }}{% endif %}{% if request.GET.is_complete %}&is_complete={{ request.GET.is_complete }}{% endif %}">Trước</a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item disabled">
+                <span class="page-link">Trang {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.package %}&package={{ request.GET.package }}{% endif %}{% if request.GET.is_complete %}&is_complete={{ request.GET.is_complete }}{% endif %}">Sau</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

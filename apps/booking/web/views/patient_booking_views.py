@@ -6,14 +6,15 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
+from apps.authentication.selectors.session_selectors import get_current_patient_from_session
 from apps.authentication.utils import patient_access_required
-from apps.booking.models import Appointment
-from apps.patients.models import Patient
 from apps.scheduling.models import ScheduleSlot
 from apps.scheduling.selectors.schedule_selectors import (
     build_patient_registration_calendar,
-    get_existing_appointment_for_patient_in_contract,
+    get_existing_appointment_for_patient_in_schedule_config,
+    get_existing_appointment_for_patient_in_slot,
     get_latest_contract_for_patient,
+    get_latest_schedule_config_for_patient,
 )
 from apps.scheduling.services.appointment_commands import (
     RegistrationCommand,
@@ -30,38 +31,46 @@ def register_schedule(request):
     Yêu cầu: bệnh nhân đã đăng nhập qua patient session,
     và công ty của bệnh nhân có hợp đồng đang còn hiệu lực.
     """
-    patient_id = request.session.get("patient_id")
-    if not patient_id:
+    patient = getattr(request, "current_patient", None) or get_current_patient_from_session(request)
+    if not patient:
         return redirect("authentication:patient_login")
 
-    try:
-        patient = Patient.objects.select_related("company").get(id=patient_id)
-    except Patient.DoesNotExist:
-        messages.error(request, "Không tìm thấy bệnh nhân.")
-        return redirect("authentication:patient_dashboard")
-
+    schedule_config = get_latest_schedule_config_for_patient(patient)
     contract = get_latest_contract_for_patient(patient)
-    if not contract:
+    if not schedule_config:
         messages.error(
             request,
             "Bạn chưa thể đăng ký lịch khám<br>Hãy liên hệ Phòng khám để được hướng dẫn.",
         )
         return redirect("authentication:patient_dashboard")
 
-    calendar_payload    = build_patient_registration_calendar(contract=contract)
-    current_appointment = get_existing_appointment_for_patient_in_contract(
+    actual_contract = getattr(getattr(schedule_config, "contract", None), "contract", None)
+    effective_contract = actual_contract or contract
+    calendar_payload = build_patient_registration_calendar(schedule_config=schedule_config)
+    current_appointment = get_existing_appointment_for_patient_in_schedule_config(
         patient=patient,
-        contract=contract,
+        schedule_config=schedule_config,
+    )
+    his_package = getattr(schedule_config, "his_package", None)
+    company_name = (
+        getattr(his_package, "company_name", "")
+        or (
+            getattr(getattr(schedule_config, "quotation", None), "company", None)
+            and schedule_config.quotation.company.name
+        )
+        or getattr(getattr(schedule_config, "quotation", None), "company_name", "")
+        or (effective_contract.company.name if effective_contract else "")
     )
 
     context = {
         "months_data":      calendar_payload["months_data"],
         "today":            timezone.localdate(),
         "patient":          patient,
-        "contract_id":      contract.id,
-        "company_name":     contract.company.name,
-        "contract_start":   contract.start_date,
-        "contract_end":     contract.end_date,
+        "contract_id":      effective_contract.id if effective_contract else "",
+        "schedule_config_id": schedule_config.id,
+        "company_name":     company_name,
+        "contract_start":   schedule_config.exam_start_date,
+        "contract_end":     schedule_config.exam_end_date,
         "has_registered":   current_appointment is not None,
         "current_schedule": current_appointment.schedule_slot if current_appointment else None,
         "slot_status_json": json.dumps(calendar_payload["slot_status"]),
@@ -83,18 +92,17 @@ def submit_registration(request):
     if request.method != "POST":
         return redirect("booking:register_schedule")
 
-    patient_id = request.session.get("patient_id")
-    if not patient_id:
+    patient = getattr(request, "current_patient", None) or get_current_patient_from_session(request)
+    if not patient:
         messages.warning(request, "Vui lòng đăng nhập để tiếp tục.")
         return redirect("authentication:patient_login")
-
-    patient = get_object_or_404(Patient, id=patient_id)
 
     try:
         result = register_or_move_patient_appointment(
             RegistrationCommand(
                 patient=patient,
                 contract_id=request.POST.get("contract_id"),
+                schedule_config_id=request.POST.get("schedule_config_id"),
                 date_value=request.POST.get("date"),
                 shift_value=request.POST.get("slot"),
             )
@@ -132,8 +140,8 @@ def show_thank_you(request):
         schedule_id = request.GET.get("schedule_id")
         is_update   = request.GET.get("update") == "1"
 
-        patient_id = request.session.get("patient_id")
-        if not patient_id:
+        patient = getattr(request, "current_patient", None) or get_current_patient_from_session(request)
+        if not patient:
             messages.error(request, "Bạn cần đăng nhập để xem thông tin.")
             next_url = (
                 f"{reverse('booking:show_thank_you')}"
@@ -154,18 +162,16 @@ def show_thank_you(request):
         messages.info(request, "Vui lòng hoàn tất đặt lịch trước.")
         return redirect("booking:register_schedule")
 
-    patient_id = request.session.get("patient_id")
-    if not patient_id:
+    patient = getattr(request, "current_patient", None) or get_current_patient_from_session(request)
+    if not patient:
         messages.error(request, "Bạn cần đăng nhập để xem thông tin.")
         return redirect("authentication:patient_login")
 
     schedule = get_object_or_404(ScheduleSlot, id=ctx["schedule_id"])
-    patient  = get_object_or_404(Patient, id=patient_id)
 
-    appointment = (
-        Appointment.objects
-        .filter(patient=patient, schedule_slot=schedule)
-        .first()
+    appointment = get_existing_appointment_for_patient_in_slot(
+        patient=patient,
+        schedule_slot=schedule,
     )
     if not appointment:
         messages.error(request, "Bạn không có quyền xem lịch hẹn này.")

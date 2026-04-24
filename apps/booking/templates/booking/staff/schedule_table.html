@@ -5,6 +5,10 @@
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'booking/css/styles.css' %}">
   <meta name="description" content="Lịch khám sức khẻo công ty">
+  <style>
+    .col-holiday { background: #ede7f6 !important; }
+    .col-holiday-header { background: #7c3aed !important; color: #fff !important; }
+  </style>
 {% endblock %}
 
 {% block content %}
@@ -69,16 +73,19 @@
 
 <div class="row justify-content-center">
   <div class="col-12">
-    <div id="js-schedule-table-wrapper" class="schedule-table-wrapper" style="overflow: auto; max-height: 600px;">
+    <div id="js-schedule-table-wrapper" class="schedule-table-wrapper" style="overflow: auto; max-height: 900px;">
       <table border="1" class="schedule-table">
         <thead>
           <tr>
             <th rowspan="4">Công ty</th>
             {% for day in days %}
-              <td 
+              <td
               data-date="{{ day|date:'Y-m-d' }}"
-              {% if forloop.counter0 in sunday_indexes %}class="col-sunday"{% endif %}
+              {% if forloop.counter0 in sunday_indexes %}class="col-sunday"
+              {% elif forloop.counter0 in holiday_indexes %}class="col-holiday-header"
+              {% endif %}
               >
+                {% if forloop.counter0 in holiday_indexes %}🏖️<br>{% endif %}
                 {{ day|date:"l" }}<br>{{ day|date:"d/m" }}
               </td>
             {% endfor %}
@@ -87,11 +94,14 @@
             <tr>
               {% for info in blood_totals_per_day %}
                 {% if forloop.counter0 in sunday_indexes %}
-                 <td class="col-sunday"></td>
+                  <td class="col-sunday"></td>
+                {% elif forloop.counter0 in holiday_indexes %}
+                  <td class="col-holiday"></td>
                 {% else %}
                   <td style="background:#ffe0e0; color:#c62828;"
-                  title="Số địa điểm: {{ info.locations|default:'0' }} | Số người lấy máu: {{ info.people|default:'0' }} | Số nhân viên: {{ info.staff|default:'0' }}">
-                  {% if info.location != 0 and info.people != 0 and info.staff != 0 %}
+                  title="Số địa điểm: {{ info.locations|default:'0' }} | Số khách hàng: {{ info.people|default:'0' }} | Số điều dưỡng: {{ info.staff|default:'0' }}">
+                  {% if info.location == 0 and info.people == 0 and info.staff == 0 %}
+                  {% else %}
                     {{ info.locations|default:'0' }} | {{ info.people|default:'0' }} | {{ info.staff|default:'0' }}
                   {% endif %}
                   </td>
@@ -102,6 +112,8 @@
               {% for am in daily_am_totals %}
                 {% if forloop.counter0 in sunday_indexes %}
                   <td class="col-sunday"></td>
+                {% elif forloop.counter0 in holiday_indexes %}
+                  <td class="col-holiday"></td>
                 {% else %}
                   <td style="font-size: 11px; color: #1e88e5;">{{ am }}</td>
                 {% endif %}
@@ -111,6 +123,8 @@
               {% for pm in daily_pm_totals %}
                 {% if forloop.counter0 in sunday_indexes %}
                   <td class="col-sunday"></td>
+                {% elif forloop.counter0 in holiday_indexes %}
+                  <td class="col-holiday"></td>
                 {% else %}
                   <td style="font-size: 11px; color: #fb8c00;">{{ pm }}</td>
                 {% endif %}
@@ -122,23 +136,37 @@
           <!-- DÒNG 1: LẤY MÁU -->
           <tr class="blood-row" data-staff-id="{{ row.salesperson_id }}">
             <th rowspan="3">
-              {{ row.company_name }}<br>
-
-              {% if row.contract_number %}
-                <small class="text-muted d-block">HĐ: {{ row.contract_number }}</small>
+              {% if row.is_masked_company %}
+                <span style="color:#1565c0; font-weight:600;">{{ row.company_name }}</span>
               {% else %}
-                <small class="text-muted d-block">Theo báo giá</small>
+                {{ row.company_name }}
+              {% endif %}<br>
+
+              {% if not row.is_masked_company %}
+                {% if row.contract_number %}
+                  <small class="text-muted d-block">HĐ: {{ row.contract_number }}</small>
+                {% else %}
+                  <small class="text-muted d-block">Theo báo giá</small>
+                {% endif %}
               {% endif %}
 
               {% if row.salesperson_name %}
                 <small class="text-muted d-block">Sales: {{ row.salesperson_name }}</small>
               {% endif %}
 
-              {% if row.schedule_creator_name %}
-                <small class="text-muted d-block">Tạo lịch: {{ row.schedule_creator_name }}</small>
+              {% if row.schedule_creator_name and row.schedule_creator_name != row.salesperson_name %}
+                <small class="text-muted d-block">Nguoi tao lich: {{ row.schedule_creator_name }}</small>
               {% endif %}
 
               <div class="mt-2 d-flex flex-column gap-1">
+                {% if row.can_edit_slots %}
+                  <button type="button" class="btn btn-sm btn-outline-info js-open-slot-modal"
+                          data-config-id="{{ row.schedule_config_id }}"
+                          data-planned="{{ row.planned_employee_count }}">
+                    Sửa slot
+                  </button>
+                {% endif %}
+
                 {% if row.can_delete_schedule %}
                   <form method="post"
                         action="{% url 'contract:delete_contract' row.schedule_config_id %}"
@@ -146,6 +174,17 @@
                     {% csrf_token %}
                     <button type="submit" class="btn btn-sm btn-outline-danger">
                       Xóa lịch
+                    </button>
+                  </form>
+                {% endif %}
+
+                {% if row.can_end_schedule %}
+                  <form method="post"
+                        action="{% url 'scheduling:end_schedule' row.schedule_config_id %}"
+                        onsubmit="return confirm('Bạn chắc chắn muốn kết thúc lịch khám này? Hành động này không thể hoàn tác.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                      Kết thúc lịch
                     </button>
                   </form>
                 {% endif %}
@@ -185,6 +224,8 @@
             {% for cell in row.schedule %}
               {% if forloop.counter0 in sunday_indexes %}
                 <td class="col-sunday"></td>
+              {% elif forloop.counter0 in holiday_indexes %}
+                <td class="shift-block shift-blood col-holiday"></td>
               {% else %}
                 <td
                   {% if cell.is_blood %}
@@ -213,6 +254,8 @@
             {% for cell in row.schedule %}
               {% if forloop.counter0 in sunday_indexes %}
                 <td class="col-sunday"></td>
+              {% elif forloop.counter0 in holiday_indexes %}
+                <td class="shift-block shift-am col-holiday"></td>
               {% else %}
                 <td
                   {% if cell.is_full_am %}
@@ -240,6 +283,8 @@
             {% for cell in row.schedule %}
               {% if forloop.counter0 in sunday_indexes %}
                 <td class="col-sunday"></td>
+              {% elif forloop.counter0 in holiday_indexes %}
+                <td class="shift-block shift-pm col-holiday"></td>
               {% else %}
                 {% if cell.in_range %}
                   <td {% if cell.is_full_pm %} class="shift-block shift-pm is_full_flag" {% else %} class="shift-block shift-pm" {% endif %}>
@@ -548,9 +593,275 @@ scrollWrapper.addEventListener('touchmove', (e) => {
 
 </script>
 
+<!-- Modal sửa slot -->
+<div class="modal fade" id="slotEditModal" tabindex="-1" aria-labelledby="slotEditModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="slotEditModalLabel">Sửa phân bổ slot</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="slot-modal-loading" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+        <div id="slot-modal-error" class="alert alert-danger d-none"></div>
+        <div id="slot-modal-content" class="d-none">
+          <div class="alert alert-info py-2 mb-3" id="slot-modal-summary"></div>
+          <div class="alert alert-warning py-2 mb-2 d-none" id="slot-total-warning"></div>
+          <div class="table-responsive" style="max-height: 450px;">
+            <table class="table table-sm table-bordered align-middle" id="slot-edit-table">
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th style="min-width:90px;">Ngày</th>
+                  <th style="min-width:140px;">Slot sáng</th>
+                  <th style="min-width:140px;">Slot chiều</th>
+                </tr>
+              </thead>
+              <tbody id="slot-edit-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="me-auto text-muted small" id="slot-footer-total"></div>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        <button type="button" class="btn btn-primary" id="btn-save-slots" disabled>Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  let _currentConfigId = null;
+  let _plannedCount = 0;
+  let _daysData = [];
+
+  // ── mở modal ──────────────────────────────────────────────────
+  function openSlotModal(configId, planned) {
+    _currentConfigId = configId;
+    _plannedCount = planned;
+    _daysData = [];
+
+    document.getElementById('slot-modal-loading').classList.remove('d-none');
+    document.getElementById('slot-modal-content').classList.add('d-none');
+    document.getElementById('slot-modal-error').classList.add('d-none');
+    document.getElementById('slot-total-warning').classList.add('d-none');
+    document.getElementById('btn-save-slots').disabled = true;
+    document.getElementById('slot-footer-total').textContent = '';
+
+    var modal = new bootstrap.Modal(document.getElementById('slotEditModal'));
+    modal.show();
+
+    fetch('/scheduling/schedule-config/' + configId + '/slot-data/', {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) { showModalError(data.error); return; }
+        renderSlotTable(data);
+      })
+      .catch(function () { showModalError('Không thể tải dữ liệu slot.'); });
+  }
+
+  function showModalError(msg) {
+    document.getElementById('slot-modal-loading').classList.add('d-none');
+    var el = document.getElementById('slot-modal-error');
+    el.textContent = msg;
+    el.classList.remove('d-none');
+  }
+
+  // ── render bảng ───────────────────────────────────────────────
+  function renderSlotTable(data) {
+    _daysData = data.days;
+    _plannedCount = data.planned_employee_count;
+
+    document.getElementById('slot-modal-summary').textContent =
+      'Tổng BN đăng ký: ' + _plannedCount + ' người. Tổng slot hiện tại: ' + data.current_total + '.';
+
+    var tbody = document.getElementById('slot-edit-tbody');
+    tbody.innerHTML = '';
+
+    _daysData.forEach(function (day, idx) {
+      var isHoliday = !!day.is_holiday;
+      var amFreeNote = isHoliday ? '🏖️ Nghỉ lễ' : ('Trống: ' + day.am_free);
+      var pmFreeNote = isHoliday ? '🏖️ Nghỉ lễ' : ('Trống: ' + day.pm_free);
+      var rowStyle = isHoliday ? ' style="background:#ede7f6;"' : '';
+      var lockAttr = isHoliday ? ' disabled readonly' : '';
+      var inputClass = 'form-control form-control-sm slot-input' + (isHoliday ? ' bg-light' : '');
+
+      var tr = document.createElement('tr');
+      tr.setAttribute('data-holiday', isHoliday ? '1' : '0');
+      if (isHoliday) tr.style.background = '#ede7f6';
+      tr.innerHTML =
+        '<td class="fw-semibold">' + day.date_display + (isHoliday ? ' <span class="badge" style="background:#7c3aed;font-size:10px;">Nghỉ lễ</span>' : '') + '</td>' +
+        '<td>' +
+          '<input type="number" class="' + inputClass + '" ' +
+                 'min="' + day.am_booked + '" max="' + day.am_max + '" ' +
+                 'value="' + day.am_capacity + '" ' +
+                 'data-idx="' + idx + '" data-shift="am" ' +
+                 'data-max="' + day.am_max + '" data-booked="' + day.am_booked + '"' + lockAttr + '>' +
+          '<small class="' + (isHoliday ? 'text-muted' : 'text-muted') + ' am-note-' + idx + '">' + amFreeNote + '</small>' +
+          '<div class="text-danger small am-err-' + idx + '"></div>' +
+        '</td>' +
+        '<td>' +
+          '<input type="number" class="' + inputClass + '" ' +
+                 'min="' + day.pm_booked + '" max="' + day.pm_max + '" ' +
+                 'value="' + day.pm_capacity + '" ' +
+                 'data-idx="' + idx + '" data-shift="pm" ' +
+                 'data-max="' + day.pm_max + '" data-booked="' + day.pm_booked + '"' + lockAttr + '>' +
+          '<small class="' + (isHoliday ? 'text-muted' : 'text-muted') + ' pm-note-' + idx + '">' + pmFreeNote + '</small>' +
+          '<div class="text-danger small pm-err-' + idx + '"></div>' +
+        '</td>';
+
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('slot-modal-loading').classList.add('d-none');
+    document.getElementById('slot-modal-content').classList.remove('d-none');
+
+    updateTotalDisplay();
+  }
+
+  // ── validation per input ───────────────────────────────────────
+  document.getElementById('slot-edit-tbody').addEventListener('input', function (e) {
+    var inp = e.target;
+    if (!inp.classList.contains('slot-input')) return;
+
+    var idx = inp.dataset.idx;
+    var shift = inp.dataset.shift;
+    var max = parseInt(inp.dataset.max, 10);
+    var booked = parseInt(inp.dataset.booked, 10);
+    var val = parseInt(inp.value, 10);
+    var errEl = document.querySelector('.' + shift + '-err-' + idx);
+
+    if (isNaN(val) || val < 0) {
+      inp.value = 0;
+      val = 0;
+    }
+
+    if (val < booked) {
+      errEl.textContent = 'Tối thiểu ' + booked + ' (đã có BN đăng ký).';
+      inp.classList.add('is-invalid');
+    } else if (val > max) {
+      errEl.textContent = 'Vượt quá slot còn trống (' + max + ').';
+      inp.classList.add('is-invalid');
+    } else {
+      errEl.textContent = '';
+      inp.classList.remove('is-invalid');
+    }
+
+    updateTotalDisplay();
+  });
+
+  // ── tính tổng và cập nhật footer ──────────────────────────────
+  function updateTotalDisplay() {
+    var inputs = document.querySelectorAll('#slot-edit-tbody .slot-input');
+    var total = 0;
+    var hasError = false;
+
+    inputs.forEach(function (inp) {
+      var v = parseInt(inp.value, 10) || 0;
+      total += v;
+      if (inp.classList.contains('is-invalid')) hasError = true;
+    });
+
+    document.getElementById('slot-footer-total').textContent =
+      'Tổng slot: ' + total + ' / ' + _plannedCount;
+
+    var warning = document.getElementById('slot-total-warning');
+    var saveBtn = document.getElementById('btn-save-slots');
+
+    if (hasError) {
+      warning.textContent = 'Vui lòng sửa các ô đang lỗi trước khi lưu.';
+      warning.classList.remove('d-none');
+      saveBtn.disabled = true;
+    } else if (total !== _plannedCount) {
+      warning.textContent =
+        'Tổng slot (' + total + ') phải bằng số BN đăng ký (' + _plannedCount + '). ' +
+        'Cần ' + (_plannedCount > total ? 'thêm ' + (_plannedCount - total) : 'bớt ' + (total - _plannedCount)) + ' slot.';
+      warning.classList.remove('d-none');
+      saveBtn.disabled = true;
+    } else {
+      warning.classList.add('d-none');
+      saveBtn.disabled = false;
+    }
+  }
+
+  // ── lưu ───────────────────────────────────────────────────────
+  document.getElementById('btn-save-slots').addEventListener('click', function () {
+    var inputs = document.querySelectorAll('#slot-edit-tbody .slot-input');
+    var slotMap = {};
+
+    inputs.forEach(function (inp) {
+      var idx = inp.dataset.idx;
+      var shift = inp.dataset.shift;
+      if (!slotMap[idx]) slotMap[idx] = { date: _daysData[idx].date, am: 0, pm: 0 };
+      slotMap[idx][shift] = parseInt(inp.value, 10) || 0;
+    });
+
+    var slots = Object.values(slotMap);
+
+    var btn = document.getElementById('btn-save-slots');
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu…';
+
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    var csrf = csrfToken ? csrfToken.value : getCookie('csrftoken');
+
+    fetch('/scheduling/schedule-config/' + _currentConfigId + '/update-slots/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrf,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({ slots: slots }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        btn.textContent = 'Lưu thay đổi';
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('slotEditModal')).hide();
+          location.reload();
+        } else {
+          var errEl = document.getElementById('slot-modal-error');
+          errEl.textContent = data.error || 'Lỗi không xác định.';
+          errEl.classList.remove('d-none');
+          btn.disabled = false;
+        }
+      })
+      .catch(function () {
+        btn.textContent = 'Lưu thay đổi';
+        var errEl = document.getElementById('slot-modal-error');
+        errEl.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
+        errEl.classList.remove('d-none');
+        btn.disabled = false;
+      });
+  });
+
+  function getCookie(name) {
+    var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? v[2] : null;
+  }
+
+  // ── đăng ký sự kiện nút Sửa slot ─────────────────────────────
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.js-open-slot-modal');
+    if (!btn) return;
+    openSlotModal(
+      parseInt(btn.dataset.configId, 10),
+      parseInt(btn.dataset.planned, 10)
+    );
+  });
+})();
+</script>
+
 {% endblock %}
 
 
 {% block extra_scripts %}
 <script src="{% static 'booking/js/contract_list.js' %}"></script>
 {% endblock %}
+

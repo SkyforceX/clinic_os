@@ -5,6 +5,8 @@ from apps.clinical.web.views import (
     dental_exam_form,
     dental_exam_history,
     get_dental_data,
+    get_his_all_patients,
+    get_his_patients_by_company,
     get_pathology_data,
     load_fixture_data,
     pathology,
@@ -25,6 +27,10 @@ urlpatterns = [
     path("dental-exam/", dental_exam_form, name="dental_exam_form"),
     path("api/dental-exam-history/<int:patient_id>/", dental_exam_history, name="dental_exam_history"),
     path("get_dental_data/<int:patient_id>/", get_dental_data, name="get_dental_data"),
+
+    # HIS patient list (thay thế patients:get_all_patients / get_patients_by_company)
+    path("api/his-patients/", get_his_all_patients, name="get_his_all_patients"),
+    path("api/his-patients-by-company/<int:company_id>/", get_his_patients_by_company, name="get_his_patients_by_company"),
 
     # Pathology
     path("pathology/", pathology, name="pathology"),

@@ -1,0 +1,612 @@
+[
+  {
+    "MaPhanLoaiBenh": "COXUONGKHOP",
+    "MaBenh": "CXK001",
+    "TenBenhTiengViet": "Đau cột sống cổ, thắt lưng"
+  },
+  {
+    "MaPhanLoaiBenh": "COXUONGKHOP",
+    "MaBenh": "CXK002",
+    "TenBenhTiengViet": "Đau khớp gối"
+  },
+  {
+    "MaPhanLoaiBenh": "COXUONGKHOP",
+    "MaBenh": "CXK003",
+    "TenBenhTiengViet": "Viêm khớp"
+  },
+  {
+    "MaPhanLoaiBenh": "DALIEU",
+    "MaBenh": "DL",
+    "TenBenhTiengViet": "Sẹo mổ sinh"
+  },
+  {
+    "MaPhanLoaiBenh": "DALIEU",
+    "MaBenh": "DL001",
+    "TenBenhTiengViet": "Viêm da dị ứng"
+  },
+  {
+    "MaPhanLoaiBenh": "DALIEU",
+    "MaBenh": "DL002",
+    "TenBenhTiengViet": "Viêm da cơ địa"
+  },
+  {
+    "MaPhanLoaiBenh": "DALIEU",
+    "MaBenh": "DL003",
+    "TenBenhTiengViet": "Sẩn ngứa"
+  },
+  {
+    "MaPhanLoaiBenh": "DALIEU",
+    "MaBenh": "DL004",
+    "TenBenhTiengViet": "Dị ứng thời tiết"
+  },
+  {
+    "MaPhanLoaiBenh": "DALIEU",
+    "MaBenh": "DL005",
+    "TenBenhTiengViet": "Viêm nang lông"
+  },
+  {
+    "MaPhanLoaiBenh": "DALIEU",
+    "MaBenh": "DL006",
+    "TenBenhTiengViet": "Trứng cá"
+  },
+  {
+    "MaPhanLoaiBenh": "DALIEU",
+    "MaBenh": "DL007",
+    "TenBenhTiengViet": "Tàn nhang"
+  },
+  {
+    "MaPhanLoaiBenh": "DALIEU",
+    "MaBenh": "DL008",
+    "TenBenhTiengViet": "Á sừng"
+  },
+  {
+    "MaPhanLoaiBenh": "DALIEU",
+    "MaBenh": "DL009",
+    "TenBenhTiengViet": "Nám má"
+  },
+  {
+    "MaPhanLoaiBenh": "DIENTIM",
+    "MaBenh": "DT001",
+    "TenBenhTiengViet": "Ngoại tâm thu"
+  },
+  {
+    "MaPhanLoaiBenh": "DIENTIM",
+    "MaBenh": "DT002",
+    "TenBenhTiengViet": "Block nhánh"
+  },
+  {
+    "MaPhanLoaiBenh": "DIENTIM",
+    "MaBenh": "DT003",
+    "TenBenhTiengViet": "Block xoang"
+  },
+  {
+    "MaPhanLoaiBenh": "DIENTIM",
+    "MaBenh": "DT004",
+    "TenBenhTiengViet": "Nhịp xoang nhanh"
+  },
+  {
+    "MaPhanLoaiBenh": "DIENTIM",
+    "MaBenh": "DT005",
+    "TenBenhTiengViet": "Hình ảnh thiểu năng vành"
+  },
+  {
+    "MaPhanLoaiBenh": "DIENTIM",
+    "MaBenh": "DT006",
+    "TenBenhTiengViet": "Nhịp chậm xoang"
+  },
+  {
+    "MaPhanLoaiBenh": "DIENTIM",
+    "MaBenh": "DT007",
+    "TenBenhTiengViet": "Nhịp xoang không đều"
+  },
+  {
+    "MaPhanLoaiBenh": "HOHAP",
+    "MaBenh": "HH001",
+    "TenBenhTiengViet": "Viêm phế quản"
+  },
+  {
+    "MaPhanLoaiBenh": "MAT",
+    "MaBenh": "MAT001",
+    "TenBenhTiengViet": "Cận thị"
+  },
+  {
+    "MaPhanLoaiBenh": "MAT",
+    "MaBenh": "MAT002",
+    "TenBenhTiengViet": "Loạn thị"
+  },
+  {
+    "MaPhanLoaiBenh": "MAT",
+    "MaBenh": "MAT003",
+    "TenBenhTiengViet": "Viễn thị"
+  },
+  {
+    "MaPhanLoaiBenh": "MAT",
+    "MaBenh": "MAT004",
+    "TenBenhTiengViet": "Tật khúc xạ"
+  },
+  {
+    "MaPhanLoaiBenh": "MAT",
+    "MaBenh": "MAT005",
+    "TenBenhTiengViet": "Rối loạn điều tiết"
+  },
+  {
+    "MaPhanLoaiBenh": "MAT",
+    "MaBenh": "MAT006",
+    "TenBenhTiengViet": "Mộng độ I"
+  },
+  {
+    "MaPhanLoaiBenh": "MAT",
+    "MaBenh": "MAT007",
+    "TenBenhTiengViet": "Chắp mi"
+  },
+  {
+    "MaPhanLoaiBenh": "MAT",
+    "MaBenh": "MAT008",
+    "TenBenhTiengViet": "Nhược thị"
+  },
+  {
+    "MaPhanLoaiBenh": "MAT",
+    "MaBenh": "MAT009",
+    "TenBenhTiengViet": "Viêm kết mạc"
+  },
+  {
+    "MaPhanLoaiBenh": "NGOAIKHOA",
+    "MaBenh": "NGOAI001",
+    "TenBenhTiengViet": "Mổ sinh"
+  },
+  {
+    "MaPhanLoaiBenh": "NGOAIKHOA",
+    "MaBenh": "NGOAI002",
+    "TenBenhTiengViet": "Mổ ruột thừa"
+  },
+  {
+    "MaPhanLoaiBenh": "NGOAIKHOA",
+    "MaBenh": "NGOAI003",
+    "TenBenhTiengViet": "Mổ chửa ngoài"
+  },
+  {
+    "MaPhanLoaiBenh": "NGOAIKHOA",
+    "MaBenh": "NGOAI004",
+    "TenBenhTiengViet": "Mổ gãy xương"
+  },
+  {
+    "MaPhanLoaiBenh": "NGOAIKHOA",
+    "MaBenh": "NGOAI005",
+    "TenBenhTiengViet": "Mổ tuyến giáp"
+  },
+  {
+    "MaPhanLoaiBenh": "NGOAIKHOA",
+    "MaBenh": "NGOAI006",
+    "TenBenhTiengViet": "Gãy xương"
+  },
+  {
+    "MaPhanLoaiBenh": "NGOAIKHOA",
+    "MaBenh": "NGOAI007",
+    "TenBenhTiengViet": "Mổ u xơ vú"
+  },
+  {
+    "MaPhanLoaiBenh": "NGOAIKHOA",
+    "MaBenh": "NGOAI008",
+    "TenBenhTiengViet": "Mổ u xơ tử cung"
+  },
+  {
+    "MaPhanLoaiBenh": "NGOAIKHOA",
+    "MaBenh": "NGOAI009",
+    "TenBenhTiengViet": "Vỡ xương chậu"
+  },
+  {
+    "MaPhanLoaiBenh": "NGOAIKHOA",
+    "MaBenh": "NGOAI010",
+    "TenBenhTiengViet": "Sẹo mổ"
+  },
+  {
+    "MaPhanLoaiBenh": "NGOAIKHOA",
+    "MaBenh": "NK",
+    "TenBenhTiengViet": "Mổ u nang buồng trứng"
+  },
+  {
+    "MaPhanLoaiBenh": "NGOAIKHOA",
+    "MaBenh": "NK 1",
+    "TenBenhTiengViet": "Mổ apxe vú"
+  },
+  {
+    "MaPhanLoaiBenh": "NOITIET",
+    "MaBenh": "NT001",
+    "TenBenhTiengViet": "Bướu giáp đơn thuần"
+  },
+  {
+    "MaPhanLoaiBenh": "NOITIET",
+    "MaBenh": "NT002",
+    "TenBenhTiengViet": "Tuyến giáp to"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM",
+    "TenBenhTiengViet": "Chụp răng"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM 1",
+    "TenBenhTiengViet": "Cầu răng"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM001",
+    "TenBenhTiengViet": "Sâu răng"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM002",
+    "TenBenhTiengViet": "Hàn răng"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM003",
+    "TenBenhTiengViet": "Sâu đã điều trị"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM004",
+    "TenBenhTiengViet": "Viêm tủy hoại tử"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM005",
+    "TenBenhTiengViet": "Viêm tủy đã điều trị"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM006",
+    "TenBenhTiengViet": "Mất răng"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM007",
+    "TenBenhTiengViet": "Chân răng"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM008",
+    "TenBenhTiengViet": "Lợi trùm"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM009",
+    "TenBenhTiengViet": "Răng mọc lệch"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM010",
+    "TenBenhTiengViet": "Cao răng viêm lợi"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM011",
+    "TenBenhTiengViet": "Mẻ răng"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM012",
+    "TenBenhTiengViet": "Vỡ răng"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM013",
+    "TenBenhTiengViet": "Răng mọc lệch"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM014",
+    "TenBenhTiengViet": "Răng nhiễm Flour"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM015",
+    "TenBenhTiengViet": "Răng nhiễm tetraxyclin"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM016",
+    "TenBenhTiengViet": "Khớp cắn ngược"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM017",
+    "TenBenhTiengViet": "Khớp cắn đối"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM020",
+    "TenBenhTiengViet": "Mòn cổ răng"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM18",
+    "TenBenhTiengViet": "Mòn mặt nhai"
+  },
+  {
+    "MaPhanLoaiBenh": "RANGHAMMAT",
+    "MaBenh": "RHM19",
+    "TenBenhTiengViet": "Thiểu sản men răng"
+  },
+  {
+    "MaPhanLoaiBenh": "SIEUAM",
+    "MaBenh": "SA001",
+    "TenBenhTiengViet": "Gan nhiễm mỡ"
+  },
+  {
+    "MaPhanLoaiBenh": "SIEUAM",
+    "MaBenh": "SA002",
+    "TenBenhTiengViet": "Sỏi thận"
+  },
+  {
+    "MaPhanLoaiBenh": "SIEUAM",
+    "MaBenh": "SA003",
+    "TenBenhTiengViet": "Sỏi túi mật"
+  },
+  {
+    "MaPhanLoaiBenh": "SIEUAM",
+    "MaBenh": "SA004",
+    "TenBenhTiengViet": "Polyp túi mật"
+  },
+  {
+    "MaPhanLoaiBenh": "SIEUAM",
+    "MaBenh": "SA005",
+    "TenBenhTiengViet": "U máu gan"
+  },
+  {
+    "MaPhanLoaiBenh": "SIEUAM",
+    "MaBenh": "SA006",
+    "TenBenhTiengViet": "Nang gan"
+  },
+  {
+    "MaPhanLoaiBenh": "SIEUAM",
+    "MaBenh": "SA007",
+    "TenBenhTiengViet": "Nang thận"
+  },
+  {
+    "MaPhanLoaiBenh": "SIEUAM",
+    "MaBenh": "SA008",
+    "TenBenhTiengViet": "U nang buồng trứng"
+  },
+  {
+    "MaPhanLoaiBenh": "SIEUAM",
+    "MaBenh": "SA009",
+    "TenBenhTiengViet": "Nhân xơ tử cung"
+  },
+  {
+    "MaPhanLoaiBenh": "SIEUAM",
+    "MaBenh": "SA010",
+    "TenBenhTiengViet": "Bướu nhân tuyến giáp"
+  },
+  {
+    "MaPhanLoaiBenh": "SIEUAM",
+    "MaBenh": "SA011",
+    "TenBenhTiengViet": "Nhân giảm âm tuyến vú"
+  },
+  {
+    "MaPhanLoaiBenh": "SIEUAM",
+    "MaBenh": "SA012",
+    "TenBenhTiengViet": "Nang tuyến vú"
+  },
+  {
+    "MaPhanLoaiBenh": "TAIMUIHONG",
+    "MaBenh": "TMH001",
+    "TenBenhTiengViet": "Viêm họng mạn tính"
+  },
+  {
+    "MaPhanLoaiBenh": "TAIMUIHONG",
+    "MaBenh": "TMH0010",
+    "TenBenhTiengViet": "Viêm mũi xoang dị ứng"
+  },
+  {
+    "MaPhanLoaiBenh": "TAIMUIHONG",
+    "MaBenh": "TMH002",
+    "TenBenhTiengViet": "Amydal đã cắt"
+  },
+  {
+    "MaPhanLoaiBenh": "TAIMUIHONG",
+    "MaBenh": "TMH003",
+    "TenBenhTiengViet": "Viêm mũi dị ứng"
+  },
+  {
+    "MaPhanLoaiBenh": "TAIMUIHONG",
+    "MaBenh": "TMH004",
+    "TenBenhTiengViet": "Viêm thanh quản cấp"
+  },
+  {
+    "MaPhanLoaiBenh": "TAIMUIHONG",
+    "MaBenh": "TMH005",
+    "TenBenhTiengViet": "Viêm thanh quản mạn tính"
+  },
+  {
+    "MaPhanLoaiBenh": "TAIMUIHONG",
+    "MaBenh": "TMH006",
+    "TenBenhTiengViet": "Viêm tai giữa"
+  },
+  {
+    "MaPhanLoaiBenh": "TAIMUIHONG",
+    "MaBenh": "TMH007",
+    "TenBenhTiengViet": "Hạt xơ dây thanh"
+  },
+  {
+    "MaPhanLoaiBenh": "TAIMUIHONG",
+    "MaBenh": "TMH008",
+    "TenBenhTiengViet": "Dò luân nhĩ"
+  },
+  {
+    "MaPhanLoaiBenh": "TAIMUIHONG",
+    "MaBenh": "TMH009",
+    "TenBenhTiengViet": "Viêm amydal"
+  },
+  {
+    "MaPhanLoaiBenh": "THAN_TIETNIEU",
+    "MaBenh": "TTN001",
+    "TenBenhTiengViet": "Viêm đường tiết niệu"
+  },
+  {
+    "MaPhanLoaiBenh": "THANKINH",
+    "MaBenh": "TK",
+    "TenBenhTiengViet": "Hoa mắt chóng mặt"
+  },
+  {
+    "MaPhanLoaiBenh": "THANKINH",
+    "MaBenh": "TK001",
+    "TenBenhTiengViet": "Rối loạn tuần hoàn não"
+  },
+  {
+    "MaPhanLoaiBenh": "THANKINH",
+    "MaBenh": "TK002",
+    "TenBenhTiengViet": "Mất ngủ"
+  },
+  {
+    "MaPhanLoaiBenh": "THANKINH",
+    "MaBenh": "TK003",
+    "TenBenhTiengViet": "Đau đầu"
+  },
+  {
+    "MaPhanLoaiBenh": "TIEUHOA",
+    "MaBenh": "THOA001",
+    "TenBenhTiengViet": "Hội chứng dạ dày"
+  },
+  {
+    "MaPhanLoaiBenh": "TIEUHOA",
+    "MaBenh": "THOA002",
+    "TenBenhTiengViet": "Rối loạn vận động đại tràng"
+  },
+  {
+    "MaPhanLoaiBenh": "TIEUHOA",
+    "MaBenh": "THOA003",
+    "TenBenhTiengViet": "Viêm dạ dày"
+  },
+  {
+    "MaPhanLoaiBenh": "TIEUHOA",
+    "MaBenh": "THOA004",
+    "TenBenhTiengViet": "Viêm đại tràng"
+  },
+  {
+    "MaPhanLoaiBenh": "TUANHOAN",
+    "MaBenh": "THOAN001",
+    "TenBenhTiengViet": "Đau ngực cơ năng"
+  },
+  {
+    "MaPhanLoaiBenh": "TUANHOAN",
+    "MaBenh": "THOAN002",
+    "TenBenhTiengViet": "Tim nhịp nhanh"
+  },
+  {
+    "MaPhanLoaiBenh": "TUANHOAN",
+    "MaBenh": "THOAN003",
+    "TenBenhTiengViet": "Huyết áp thấp"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM001",
+    "TenBenhTiengViet": "Hồng cầu có xu hướng giảm"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM002",
+    "TenBenhTiengViet": "Huyết sắc tố có xu hướng giảm"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM003",
+    "TenBenhTiengViet": "Giảm tiểu cầu"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM004",
+    "TenBenhTiengViet": "Bạch cầu tăng"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM005",
+    "TenBenhTiengViet": "Tăng đường máu"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM006",
+    "TenBenhTiengViet": "Tăng men gan"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM007",
+    "TenBenhTiengViet": "GOT tăng đơn thuần"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM008",
+    "TenBenhTiengViet": "GPT tăng đơn thuần"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM009",
+    "TenBenhTiengViet": "Mỡ máu tăng"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM010",
+    "TenBenhTiengViet": "Cholesterol tăng đơn thuần"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM011",
+    "TenBenhTiengViet": "Tryglycerid tăng đơn thuần"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM012",
+    "TenBenhTiengViet": "HBsAg: dương tính"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM013",
+    "TenBenhTiengViet": "HBsAb: dương tính"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM014",
+    "TenBenhTiengViet": "Heroin: dương tính"
+  },
+  {
+    "MaPhanLoaiBenh": "XNMAU",
+    "MaBenh": "XNM015",
+    "TenBenhTiengViet": "HCG: dương tính"
+  },
+  {
+    "MaPhanLoaiBenh": "XNNUOCTIEU",
+    "MaBenh": "XNNT001",
+    "TenBenhTiengViet": "Hồng cầu niệu"
+  },
+  {
+    "MaPhanLoaiBenh": "XNNUOCTIEU",
+    "MaBenh": "XNNT002",
+    "TenBenhTiengViet": "Bạch cầu niệu"
+  },
+  {
+    "MaPhanLoaiBenh": "XNNUOCTIEU",
+    "MaBenh": "XNNT003",
+    "TenBenhTiengViet": "Protein niệu"
+  },
+  {
+    "MaPhanLoaiBenh": "XNNUOCTIEU",
+    "MaBenh": "XNNT004",
+    "TenBenhTiengViet": "Đường niệu"
+  },
+  {
+    "MaPhanLoaiBenh": "XQUANG",
+    "MaBenh": "XQ001",
+    "TenBenhTiengViet": "Hình ảnh viêm phế quản"
+  },
+  {
+    "MaPhanLoaiBenh": "XQUANG",
+    "MaBenh": "XQ002",
+    "TenBenhTiengViet": "Hình ảnh đám mờ cản tia"
+  },
+  {
+    "MaPhanLoaiBenh": "XQUANG",
+    "MaBenh": "XQ003",
+    "TenBenhTiengViet": "Hình ảnh lệch cột sống"
+  }
+]

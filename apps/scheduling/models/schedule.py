@@ -164,6 +164,14 @@ class ContractScheduleConfig(models.Model):
         related_name="schedule_config",
         verbose_name=_("Hợp đồng"),
     )
+    his_package = models.ForeignKey(
+        "his_integration.HisCorporatePackageSync",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="schedule_configs",
+        verbose_name=_("Gói khám HIS"),
+    )
     quotation = models.OneToOneField(
         "contract.QuotationDraft",
         on_delete=models.CASCADE,
@@ -183,6 +191,40 @@ class ContractScheduleConfig(models.Model):
     planned_employee_count = models.PositiveIntegerField(default=0, verbose_name=_("Số khách hàng đăng ký"))
     am_capacity_limit = models.PositiveIntegerField(default=0, verbose_name=_("Giới hạn slot sáng"))
     pm_capacity_limit = models.PositiveIntegerField(default=0, verbose_name=_("Giới hạn slot chiều"))
+    allowed_weekdays = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_("Các thứ trong tuần được phân slot"),
+        help_text="Danh sách weekday (0=T2,1=T3,2=T4,3=T5,4=T6,5=T7). Rỗng = tất cả ngày làm việc.",
+    )
+    is_confirmed = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name=_("Đã chốt lịch"),
+    )
+    confirmed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="confirmed_schedule_configs",
+        verbose_name=_("Người chốt lịch"),
+    )
+    confirmed_at = models.DateTimeField(blank=True, null=True, verbose_name=_("Thời điểm chốt"))
+    is_ended = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name=_("Đã kết thúc"),
+    )
+    ended_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="ended_schedule_configs",
+        verbose_name=_("Người kết thúc"),
+    )
+    ended_at = models.DateTimeField(blank=True, null=True, verbose_name=_("Thời điểm kết thúc"))
     created_at = models.DateTimeField(blank=True, null=True, verbose_name=_("Ngày tạo"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Cập nhật lúc"))
 

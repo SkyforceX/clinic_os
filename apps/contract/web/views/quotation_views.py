@@ -430,10 +430,6 @@ def save_quotation(request):
 
     # ── Xử lý gói khám ───────────────────────────────────────────────────────
     pkg_count = safe_int(post.get("pkg_count"), 0)
-    if pkg_count == 0:
-        quotation.delete()
-        messages.error(request, "Chưa có gói khám nào. Vui lòng thêm ít nhất 1 gói.")
-        return redirect("contract:create_proposal")
 
     has_any_line = False
 
@@ -589,9 +585,8 @@ def save_quotation(request):
             QuotationLine.objects.bulk_create(lines)
 
     if not has_any_line:
-        quotation.delete()
-        messages.error(request, "Chưa chọn dịch vụ nào cho bất kỳ gói nào.")
-        return redirect("contract:create_proposal")
+        messages.success(request, "Đã lưu báo giá. Hãy thêm gói khám/dịch vụ ở trang chỉnh sửa.")
+        return redirect("contract:edit_quotation", quotation_id=quotation.pk)
 
     messages.success(request, "Đã lưu báo giá thành công.")
     return redirect("contract:quotation_preview", quotation_id=quotation.pk)

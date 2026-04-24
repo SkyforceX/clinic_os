@@ -34,9 +34,19 @@ class Appointment(models.Model):
 
     patient = models.ForeignKey(
         "patients.Patient",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="appointments",
         verbose_name=_("Bệnh nhân"),
+    )
+    his_patient_sync = models.ForeignKey(
+        "his_integration.HisPatientSync",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="appointments",
+        verbose_name=_("Bệnh nhân HIS"),
     )
     schedule_slot = models.ForeignKey(
         "scheduling.ScheduleSlot",
@@ -91,15 +101,25 @@ class Appointment(models.Model):
                 fields=["patient", "schedule_slot"],
                 name="uq_booking_appointment_patient_schedule_slot",
             ),
+            models.UniqueConstraint(
+                fields=["his_patient_sync", "schedule_slot"],
+                name="uq_booking_appointment_his_patient_schedule_slot",
+            ),
         ]
         indexes = [
             models.Index(fields=["status", "booked_at"]),
             models.Index(fields=["schedule_slot", "status"]),
             models.Index(fields=["patient", "status"]),
+            models.Index(fields=["his_patient_sync", "status"]),
+            models.Index(fields=["schedule_slot", "his_patient_sync"]),
         ]
 
     def __str__(self):
-        patient_name = getattr(self.patient, "ho_ten", None) or str(self.patient)
+        patient_name = (
+            getattr(self.his_patient_sync, "full_name", None)
+            or getattr(self.patient, "ho_ten", None)
+            or str(self.patient or self.his_patient_sync)
+        )
         return f"{patient_name} - {self.schedule_slot}"
 
 

@@ -1,66 +1,166 @@
 {% load static %}
+<style>
+  .topbar-account {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .patient-name {
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .account-btn {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(15, 76, 129, 0.12);
+    background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+    box-shadow: 0 6px 18px rgba(15, 76, 129, 0.1);
+  }
+
+  .account-btn::after {
+    content: "";
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    border: 2px solid #fff;
+  }
+
+  .account-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 220px;
+    padding: 8px;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+    backdrop-filter: blur(12px);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+    z-index: 1200;
+  }
+
+  .topbar-account.open .account-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .account-menu::before {
+    content: "";
+    position: absolute;
+    top: -7px;
+    right: 14px;
+    width: 14px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.98);
+    border-left: 1px solid rgba(148, 163, 184, 0.2);
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    transform: rotate(45deg);
+  }
+
+  .account-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    color: #1e293b;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+
+  .account-menu a:hover {
+    background: #eff6ff;
+    color: #0f4c81;
+    transform: translateX(2px);
+  }
+
+  .account-menu a + a {
+    margin-top: 2px;
+  }
+
+  .account-menu .menu-logout {
+    color: #b91c1c;
+  }
+
+  .account-menu .menu-logout:hover {
+    background: #fef2f2;
+    color: #991b1b;
+  }
+
+  @media (max-width: 768px) {
+    .patient-name {
+      max-width: 120px;
+    }
+
+    .account-menu {
+      min-width: 200px;
+      right: -4px;
+    }
+  }
+</style>
+
 <div class="topbar topbar-desktop">
-    <div class="topbar-left">
-      <img src="{% static 'img/logo_vmd_1x1.jpg' %}" alt="Vietmediclinic.com" class="topbar-logo">
-    </div>
+  <div class="topbar-left">
+    <img src="{% static 'img/logo_vmd_1x1.jpg' %}" alt="Vietmediclinic.com" class="topbar-logo">
+  </div>
+
   <div class="topbar-center">
     <div class="title_page">
-    {% if title_page %}
+      {% if title_page %}
         {{ title_page }}
-    {% endif %}
+      {% endif %}
     </div>
   </div>
-    <div class="topbar-right">
-      <div class="topbar-account" id="topbar-account">
-        {% if patient %}
+
+  <div class="topbar-right">
+    <div class="topbar-account" id="topbar-account">
+      {% if patient %}
         <span class="patient-name">{{ patient.ho_ten|default:"" }}</span>
-        {% endif %}
-        <button class="account-btn" id="account-menu-btn" type="button" aria-label="Tài khoản">
-            <i class="fa-solid fa-circle-user"></i>
-        </button>
-        <div class="account-menu" id="account-menu" hidden>
-          <a href="{% url 'authentication:patient_dashboard' %}">
-            Trang chủ
-          </a>
-          {% if patient.ma_bn %}
+      {% endif %}
+
+      <button
+        class="account-btn"
+        id="account-menu-btn"
+        type="button"
+        aria-label="Tai khoan"
+        aria-expanded="false"
+        aria-haspopup="true">
+        <i class="fa-solid fa-circle-user"></i>
+      </button>
+
+      <div class="account-menu" id="account-menu" aria-hidden="true">
+        <a href="{% url 'authentication:patient_dashboard' %}">
+          <i class="fa-solid fa-house"></i>
+          <span>Trang chủ</span>
+        </a>
+        {% if patient.ma_bn %}
           <a href="{% url 'account:patient_profile' %}">
-              Tài khoản
+            <i class="fa-solid fa-id-card"></i>
+            <span>Tài khoản</span>
           </a>
-          {% endif %}
-          <a href="{% url 'authentication:patient_logout' %}">Đăng xuất</a>
-        </div>
+        {% endif %}
+        <a href="{% url 'authentication:patient_logout' %}" class="menu-logout">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span>Đăng xuất</span>
+        </a>
       </div>
+    </div>
   </div>
 </div>
-
-<script>
-(function () {
-  function initTopbarDropdown() {
-    var btn  = document.getElementById('account-menu-btn');
-    var menu = document.getElementById('account-menu');
-    if (!btn || !menu) return;
-
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      menu.hidden = !menu.hidden;
-    });
-
-    document.addEventListener('click', function (e) {
-      var wrapper = document.getElementById('topbar-account');
-      if (wrapper && !wrapper.contains(e.target)) {
-        menu.hidden = true;
-      }
-    });
-
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') menu.hidden = true;
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTopbarDropdown);
-  } else {
-    initTopbarDropdown();
-  }
-})();
-</script>

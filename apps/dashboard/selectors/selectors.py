@@ -310,6 +310,47 @@ def get_executive_stats(user):
     }
 
 
+def get_sales_stats(user):
+    """Sales Team: chỉ đếm quotation/contract do user này tạo."""
+    from apps.contract.models.quotation import QuotationDraft, QuotationStatus
+    from apps.contract.models.contract import Contract, ContractStatus
+    from apps.tasks.models.task import Task, TaskStage
+    from apps.approvals.models.approval_request import ApprovalRequest, ApprovalStatus
+
+    quotation_counts = {
+        "draft":     QuotationDraft.objects.filter(created_by=user, status=QuotationStatus.DRAFT).count(),
+        "submitted": QuotationDraft.objects.filter(created_by=user, status=QuotationStatus.SUBMITTED).count(),
+        "approved":  QuotationDraft.objects.filter(created_by=user, status=QuotationStatus.APPROVED).count(),
+        "total":     QuotationDraft.objects.filter(created_by=user).count(),
+    }
+    contract_counts = {
+        "draft":     Contract.objects.filter(created_by=user, status=ContractStatus.DRAFT).count(),
+        "submitted": Contract.objects.filter(created_by=user, status=ContractStatus.SUBMITTED).count(),
+        "approved":  Contract.objects.filter(created_by=user, status=ContractStatus.APPROVED).count(),
+        "active":    Contract.objects.filter(created_by=user, status=ContractStatus.ACTIVE).count(),
+        "finished":  Contract.objects.filter(created_by=user, status=ContractStatus.FINISHED).count(),
+        "total":     Contract.objects.filter(created_by=user).count(),
+    }
+    task_stage_counts = []
+    for stage in TaskStage.values:
+        cnt = Task.objects.filter(assignee=user, stage=stage).count()
+        task_stage_counts.append({"stage": stage, "label": TaskStage(stage).label, "count": cnt})
+
+    my_approvals = {
+        "pending":  ApprovalRequest.objects.filter(requested_by=user, status=ApprovalStatus.PENDING).count(),
+        "approved": ApprovalRequest.objects.filter(requested_by=user, status=ApprovalStatus.APPROVED).count(),
+        "rejected": ApprovalRequest.objects.filter(requested_by=user, status=ApprovalStatus.REJECTED).count(),
+        "total":    ApprovalRequest.objects.filter(requested_by=user).count(),
+    }
+    return {
+        "quotation_counts":    quotation_counts,
+        "contract_counts":     contract_counts,
+        "task_stage_counts":   task_stage_counts,
+        "tasks_assigned_total": Task.objects.filter(assignee=user).count(),
+        "my_approvals":        my_approvals,
+    }
+
+
 def get_staff_stats(user):
     from apps.tasks.models.task import Task, TaskStage
     from apps.approvals.models.approval_request import ApprovalRequest, ApprovalStatus

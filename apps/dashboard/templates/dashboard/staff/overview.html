@@ -255,6 +255,7 @@
         {% endif %}
       </div>
 
+      <div style="display: none;">
       <!-- ── Lịch khám doanh nghiệp theo tuần ────────────────────────── -->
       <p class="db-section-title"><i class="fa fa-building"></i> Lịch khách hàng doanh nghiệp — tuần này</p>
       <div class="db-card">
@@ -289,6 +290,7 @@
           </div>
           {% endfor %}
         </div>
+      </div>
       </div>
 
       <!-- ── Lịch làm việc phòng khám hôm nay (MỚI) ─────────────────── -->
@@ -365,7 +367,7 @@
         </div>
         {% endif %}
       </div>
-
+      
     </div><!-- /col-xl-8 -->
 
     <!-- ══════════════════════════════════════════════════════════════════
@@ -374,6 +376,7 @@
     <div class="col-12 col-xl-4">
 
       <!-- ── Lịch cá nhân tuần này ────────────────────────────────────── -->
+      <div style="display: none;">
       {% if my_employee and my_week_schedule %}
       <p class="db-section-title"><i class="fa fa-calendar-user"></i> Lịch của tôi — tuần này</p>
       <div class="db-card">
@@ -409,10 +412,11 @@
         {% endwith %}
       </div>
       {% endif %}
+      </div>
 
-      {% if user_role == "executive" %}
-      <!-- ── Executive: Báo giá ────────────────────────────────────────── -->
-      <p class="db-section-title"><i class="fa fa-chart-pie"></i> Dữ liệu của bạn</p>
+      {% if user_role == "Executives" %}
+      <!-- ── Executive/Admin: Toàn bộ hệ thống ──────────────────────────── -->
+      <p class="db-section-title"><i class="fa fa-chart-pie"></i> Tổng quan hệ thống</p>
 
       <div class="db-card">
         <div class="db-card-title"><i class="fa fa-file-invoice-dollar"></i> Báo giá</div>
@@ -429,7 +433,7 @@
         </div>
       </div>
 
-      <!-- ── Executive: Hợp đồng ─────────────────────────────────────── -->
+      <!-- ── Executives & Sales Team: Hợp đồng ─────────────────────────────────────── -->
       <div class="db-card">
         <div class="db-card-title"><i class="fa fa-file-signature"></i> Hợp đồng</div>
         <div class="kpi-chips">
@@ -490,6 +494,98 @@
              class="btn btn-sm {% if personal_stats.pending_approvals > 0 %}btn-warning{% else %}btn-outline-secondary{% endif %} w-100"
              style="font-size:.78rem">
             Xem inbox phê duyệt →
+          </a>
+        </div>
+      </div>
+
+      {% elif user_role == "Sales Team" %}
+      <!-- ── Sales Team: Số liệu do user này tạo ─────────────────────── -->
+      <p class="db-section-title"><i class="fa fa-chart-pie"></i> Dữ liệu của bạn</p>
+
+      <div class="db-card">
+        <div class="db-card-title"><i class="fa fa-file-invoice-dollar"></i> Báo giá của tôi</div>
+        <div class="kpi-chips">
+          <div class="kpi-chip"><div class="val">{{ personal_stats.quotation_counts.draft }}</div><div class="lbl">Nháp</div></div>
+          <div class="kpi-chip orange"><div class="val">{{ personal_stats.quotation_counts.submitted }}</div><div class="lbl">Chờ duyệt</div></div>
+          <div class="kpi-chip green"><div class="val">{{ personal_stats.quotation_counts.approved }}</div><div class="lbl">Đã duyệt</div></div>
+          <div class="kpi-chip teal"><div class="val">{{ personal_stats.quotation_counts.total }}</div><div class="lbl">Tổng cộng</div></div>
+        </div>
+        <div class="mt-2">
+          <a href="{% url 'contract:quotation_list' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+            Xem danh sách báo giá →
+          </a>
+        </div>
+      </div>
+
+      <div class="db-card">
+        <div class="db-card-title"><i class="fa fa-file-signature"></i> Hợp đồng của tôi</div>
+        <div class="kpi-chips">
+          <div class="kpi-chip"><div class="val">{{ personal_stats.contract_counts.draft }}</div><div class="lbl">Nháp</div></div>
+          <div class="kpi-chip orange"><div class="val">{{ personal_stats.contract_counts.submitted }}</div><div class="lbl">Chờ duyệt</div></div>
+          <div class="kpi-chip green"><div class="val">{{ personal_stats.contract_counts.approved }}</div><div class="lbl">Đã duyệt</div></div>
+          <div class="kpi-chip teal"><div class="val">{{ personal_stats.contract_counts.active }}</div><div class="lbl">Hiệu lực</div></div>
+          <div class="kpi-chip gray"><div class="val">{{ personal_stats.contract_counts.finished }}</div><div class="lbl">Hoàn tất</div></div>
+        </div>
+        <div class="mt-2">
+          <a href="{% url 'contract:corporate_contract_list' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+            Xem danh sách hợp đồng →
+          </a>
+        </div>
+      </div>
+
+      <div class="db-card">
+        <div class="db-card-title">
+          <i class="fa fa-list-check"></i>
+          Công việc được giao
+          <span class="badge bg-secondary ms-auto" style="font-size:.68rem">{{ personal_stats.tasks_assigned_total }}</span>
+        </div>
+        <div class="stage-bar">
+          {% for st in personal_stats.task_stage_counts %}
+          {% if st.count > 0 %}
+          <div class="stage-pill
+            {% if st.stage == 'TODO' %}todo
+            {% elif st.stage == 'IN_PROGRESS' %}in-progress
+            {% elif st.stage == 'IN_REVIEW' %}in-review
+            {% elif st.stage == 'DONE' %}done
+            {% else %}cancelled{% endif %}">
+            <span class="cnt">{{ st.count }}</span>{{ st.label }}
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% if personal_stats.tasks_assigned_total == 0 %}
+        <div class="text-muted" style="font-size:.8rem;padding:8px 0">Chưa có công việc nào được giao.</div>
+        {% endif %}
+        <div class="mt-2">
+          <a href="{% url 'tasks:board' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+            Xem công việc của tôi →
+          </a>
+        </div>
+      </div>
+
+      <div class="db-card">
+        <div class="db-card-title"><i class="fa fa-paper-plane"></i> Yêu cầu phê duyệt của tôi</div>
+        <div class="approval-row">
+          <div class="approval-chip chip-pending">
+            <span class="num">{{ personal_stats.my_approvals.pending }}</span>
+            <div class="lbl">Đang chờ</div>
+          </div>
+          <div class="approval-chip chip-approved">
+            <span class="num">{{ personal_stats.my_approvals.approved }}</span>
+            <div class="lbl">Đã duyệt</div>
+          </div>
+          <div class="approval-chip chip-rejected">
+            <span class="num">{{ personal_stats.my_approvals.rejected }}</span>
+            <div class="lbl">Từ chối</div>
+          </div>
+          <div class="approval-chip chip-total">
+            <span class="num">{{ personal_stats.my_approvals.total }}</span>
+            <div class="lbl">Tổng</div>
+          </div>
+        </div>
+        <div class="mt-2">
+          <a href="{% url 'approvals:my_requests' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+            Xem yêu cầu của tôi →
           </a>
         </div>
       </div>

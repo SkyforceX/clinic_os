@@ -12,9 +12,22 @@ class PatientLoginForm(forms.Form):
             }
         ),
     )
-    password = forms.CharField(
-        label="Mật khẩu",
-        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    date_of_birth = forms.DateField(
+        label="Ngày sinh",
+        input_formats=["%d%m%Y"],
+        widget=forms.PasswordInput(
+            render_value=True,
+            attrs={
+                "placeholder": "ddmmyyyy",
+                "autocomplete": "off",
+                "inputmode": "numeric",
+                "maxlength": "8",
+                "pattern": "[0-9]*",
+            }
+        ),
+        error_messages={
+            "invalid": "Ngày sinh phải nhập theo định dạng ddmmyyyy.",
+        },
     )
 
     def clean_patient_code(self):

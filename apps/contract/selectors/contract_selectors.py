@@ -1,6 +1,7 @@
 from apps.contract.models.quotation import QuotationDraft
 from apps.contract.policies import ContractPolicy
 from apps.scheduling.models import ContractScheduleConfig, SlotType
+from apps.scheduling.policies import SchedulingPolicy
 
 
 def _get_schedule_rows_for_config(config):
@@ -39,15 +40,19 @@ def list_schedule_configs_for_user(user):
     )
 
     if ContractPolicy.is_manager(user):
-        return qs
-
-    configs = list(qs if ContractPolicy.is_manager(user) else qs.filter(quotation__created_by=user))
+        configs = list(qs)
+    else:
+        configs = list(qs.filter(quotation__created_by=user))
 
     for config in configs:
         owner_user_id = getattr(getattr(config, "quotation", None), "created_by_id", None)
-        config.can_delete = (
-            not getattr(config, "contract_id", None)
-            and (ContractPolicy.is_manager(user) or owner_user_id == user.id)
+        is_owner_or_manager = ContractPolicy.is_manager(user) or owner_user_id == user.id
+        config.can_delete = not getattr(config, "contract_id", None) and is_owner_or_manager
+        config.can_confirm = not config.is_confirmed and is_owner_or_manager
+        config.can_end = (
+            config.is_confirmed
+            and not config.is_ended
+            and SchedulingPolicy.can_end_schedule(user, owner_user_id)
         )
 
     return configs

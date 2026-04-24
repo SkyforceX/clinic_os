@@ -15,6 +15,7 @@ urlpatterns = [
     path("dashboard/", include("apps.dashboard.urls", namespace="dashboard")),
     path("approvals/", include("apps.approvals.urls", namespace="approvals")),
     path("org/", include("apps.organizations.urls", namespace="organizations")),
+    path("his-integration/", include("apps.his_integration.urls", namespace="his_integration")),
     path("patients/", include("apps.patients.urls", namespace="patients")),
     path("patients-api/", include("apps.patients.api.urls")),
     path("catalogs/", include("apps.catalogs.urls", namespace="catalogs")),

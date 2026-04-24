@@ -35,18 +35,28 @@ def get_active_company_progress(reference_date=None):
     configs = (
         ContractScheduleConfig.objects
         .filter(exam_end_date__gte=ref)
-        .select_related("quotation", "quotation__company")
+        .select_related("quotation", "quotation__company", "his_package", "his_package__organization")
         .order_by("exam_start_date")
     )
 
     result = []
     for cfg in configs:
         q = cfg.quotation
+        his_package = getattr(cfg, "his_package", None)
         company_name = ""
-        if q:
+        if his_package:
+            company_name = (
+                his_package.company_name
+                or getattr(getattr(his_package, "organization", None), "name", "")
+            )
+        if not company_name and q:
             company_name = getattr(q, "company_name", "") or (q.company.name if q.company else "")
 
-        planned = cfg.planned_employee_count or 0
+        planned = (
+            getattr(his_package, "total_patients", 0)
+            or cfg.planned_employee_count
+            or 0
+        )
 
         # ── Query records: dùng OR(FK match | tên+khoảng ngày) ──────────
         # Bug cũ: chỉ filter schedule_config=cfg → nếu lookup_patient đã
@@ -377,7 +387,7 @@ def get_patient_checkin_list(company_name, date_from, date_to):
 
     Nguồn dữ liệu:
     1. CheckInRecord (snapshot)       → bệnh nhân đã đến (CHECKED_IN / CHECKED_OUT / DEFERRED)
-    2. Patient.company FK + scheduling → bệnh nhân đăng ký nhưng chưa đến (NOT_ARRIVED)
+    2. HisExamRecordSync + scheduling → bệnh nhân đăng ký nhưng chưa đến (NOT_ARRIVED)
 
     Returns list[dict] sorted: Chưa đến → Quay lại sau → Đang khám → Hoàn thành
     """
@@ -419,13 +429,12 @@ def get_patient_checkin_list(company_name, date_from, date_to):
             "exam_date":      rec.exam_date.strftime("%d/%m/%Y"),
         })
 
-    # ── 2. Bệnh nhân chưa check-in (từ Patient.company FK) ──────────
-    # Tìm bệnh nhân thuộc công ty có schedule config đang trong kỳ
+    # ── 2. Bệnh nhân chưa check-in (từ HIS exam records) ────────────
+    # Tìm bệnh nhân thuộc gói HIS có schedule config đang trong kỳ
     try:
-        from apps.patients.models import Patient
+        from apps.his_integration.models import HisExamRecordSync
         from apps.scheduling.models import ContractScheduleConfig
 
-        # Tìm schedule configs của công ty đang overlap với kỳ lọc
         configs = (
             ContractScheduleConfig.objects
             .filter(
@@ -433,21 +442,31 @@ def get_patient_checkin_list(company_name, date_from, date_to):
                 exam_end_date__gte=date_from,
             )
             .filter(
-                Q(quotation__company__name=company_name)
+                Q(his_package__company_name=company_name)
+                | Q(his_package__organization__name=company_name)
+                | Q(quotation__company__name=company_name)
                 | Q(quotation__company_name=company_name)
             )
-            .values_list("id", flat=True)
+            .values_list("his_package_id", flat=True)
         )
+        package_ids = [package_id for package_id in configs if package_id]
 
-        if configs:
-            # Bệnh nhân thuộc công ty, exclude những người đã có CheckInRecord
+        if package_ids:
             not_arrived_qs = (
-                Patient.objects
-                .filter(company__name=company_name)
-                .exclude(ma_bn__in=seen_mabn)
-                .only("ma_bn", "ho_ten", "ngay_sinh", "gioi_tinh")
+                HisExamRecordSync.objects
+                .filter(
+                    package_sync_id__in=package_ids,
+                    is_active=True,
+                    patient_sync__is_active=True,
+                )
+                .exclude(patient_sync__his_patient_code__in=seen_mabn)
+                .select_related("patient_sync")
+                .order_by("patient_sync__his_patient_code")
             )
-            for p in not_arrived_qs:
+            for record in not_arrived_qs:
+                p = record.patient_sync
+                if p.his_patient_code in seen_mabn:
+                    continue
                 result.append({
                     "ma_bn":          p.ma_bn,
                     "ho_ten":         p.ho_ten,

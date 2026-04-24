@@ -4,8 +4,8 @@ apps/record_completion/selectors/completion_selectors.py
 
 from datetime import date, timedelta
 
+from apps.his_integration.selectors import count_active_his_patients_for_organization
 from apps.organizations.models import Company
-from apps.patients.models import Patient
 from apps.reception.models import CheckInRecord, CheckInStatus
 from apps.record_completion.models import (
     COMPLETED_STAGE,
@@ -39,7 +39,7 @@ def get_checkin_stats_for_company(company: Company) -> dict:
     """
     total_patients, checked_in_count, deferred_count, not_checked_count
     """
-    total_patients = Patient.objects.filter(company=company).count()
+    total_patients = count_active_his_patients_for_organization(organization_id=company.id)
 
     ci_qs = CheckInRecord.objects.filter(company=company)
 

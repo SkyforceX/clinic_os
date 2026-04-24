@@ -5,7 +5,8 @@ from django.contrib.auth import get_user_model
 from django.db.models import Prefetch
 
 from apps.booking.models import Appointment
-from apps.core.models import SystemGeneralSetting
+from apps.core.models import PublicHoliday, SystemGeneralSetting
+from apps.his_integration.models import HisExamRecordSync
 from apps.scheduling.models import ContractScheduleConfig, ScheduleSlot, SlotType, TimeShift
 from apps.scheduling.policies import SchedulingPolicy
 
@@ -50,6 +51,10 @@ def _get_company_name_from_config(config):
     if company:
         return company.name
 
+    his_package = getattr(config, "his_package", None)
+    if his_package:
+        return his_package.company_name or ""
+
     quotation = getattr(config, "quotation", None)
     if quotation:
         return quotation.company_name or ""
@@ -69,6 +74,19 @@ def _get_salesperson_from_config(config):
     contract_profile = getattr(config, "contract", None)
     contract_obj = getattr(contract_profile, "contract", None) if contract_profile else None
     return getattr(contract_obj, "created_by", None)
+
+
+def _display_user_name(user):
+    if not user:
+        return ""
+    return user.get_full_name() or getattr(user, "username", "") or ""
+
+
+def _get_schedule_creator_from_config(config):
+    creator = getattr(config, "registered_by", None)
+    if creator:
+        return creator
+    return _get_salesperson_from_config(config)
 
 
 def _get_slots_for_config(config):
@@ -101,10 +119,40 @@ def _get_blood_rows_for_config(config):
 
 
 def _get_all_patients_for_config(config):
+    his_package = getattr(config, "his_package", None)
+    if his_package:
+        records = getattr(his_package, "prefetched_exam_records", None)
+        if records is None:
+            records = (
+                his_package.exam_records
+                .filter(is_active=True, patient_sync__is_active=True)
+                .select_related("patient_sync")
+                .order_by("id")
+            )
+        return [record.patient_sync for record in records if record.patient_sync]
+
     company = _get_company_from_config(config)
     if company:
         return list(company.patients.all())
     return []
+
+
+def _appointment_patient(appointment):
+    return getattr(appointment, "his_patient_sync", None) or getattr(appointment, "patient", None)
+
+
+def _patient_identity_key(patient):
+    if getattr(patient, "his_patient_code", None):
+        return ("his", patient.id)
+    return ("legacy", patient.id)
+
+
+def _patient_payload(patient):
+    return {
+        "patient_code": patient.ma_bn,
+        "name": patient.ho_ten,
+        "dob": patient.ngay_sinh.strftime("%d/%m/%Y") if patient.ngay_sinh else "",
+    }
 
 
 def build_contract_schedule_matrix(*, actor, start_of_year=None):
@@ -126,10 +174,22 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
             "contract__contract__company",
             "contract__contract__created_by",
             "registered_by",
+            "his_package",
+            "his_package__organization",
         )
         .prefetch_related(
             "quotation__company__patients",
             "contract__contract__company__patients",
+            Prefetch(
+                "his_package__exam_records",
+                queryset=(
+                    HisExamRecordSync.objects
+                    .filter(is_active=True, patient_sync__is_active=True)
+                    .select_related("patient_sync")
+                    .order_by("id")
+                ),
+                to_attr="prefetched_exam_records",
+            ),
             Prefetch(
                 "blood_collection_rows",
                 queryset=(
@@ -146,7 +206,10 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
                     .prefetch_related(
                         Prefetch(
                             "appointments",
-                            queryset=Appointment.objects.select_related("patient").order_by("id"),
+                            queryset=Appointment.objects.select_related(
+                                "patient",
+                                "his_patient_sync",
+                            ).order_by("id"),
                         )
                     )
                 ),
@@ -160,7 +223,10 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
                     .prefetch_related(
                         Prefetch(
                             "appointments",
-                            queryset=Appointment.objects.select_related("patient").order_by("id"),
+                            queryset=Appointment.objects.select_related(
+                                "patient",
+                                "his_patient_sync",
+                            ).order_by("id"),
                         )
                     )
                 ),
@@ -170,16 +236,28 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
         .order_by("-updated_at", "-id")
     )
 
-    all_configs = list(config_qs)
+    # Lọc bỏ lịch đã kết thúc
+    all_configs = [c for c in config_qs if not c.is_ended]
 
-    if SchedulingPolicy.is_manager(actor):
+    if SchedulingPolicy.is_executive(actor) or SchedulingPolicy.is_manager(actor):
+        # Executives / Managers thấy tất cả với tên đầy đủ, giữ order mặc định (mới nhất trước)
         visible_configs = all_configs
+        masked_config_ids = set()
     else:
-        visible_configs = [
+        # Sales Team: own trước (order -updated_at), sau đó lịch chưa chốt của sale khác (masked)
+        own_configs = [
             config
             for config in all_configs
             if getattr(config.quotation, "created_by_id", None) == actor.id
         ]
+        own_ids = {config.id for config in own_configs}
+        other_unconfirmed = [
+            config
+            for config in all_configs
+            if config.id not in own_ids and not config.is_confirmed
+        ]
+        visible_configs = own_configs + other_unconfirmed
+        masked_config_ids = {config.id for config in other_unconfirmed}
 
     day_totals = defaultdict(
         lambda: {
@@ -225,9 +303,17 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
         contract_profile = getattr(config, "contract", None)
         contract_obj = getattr(contract_profile, "contract", None) if contract_profile else None
 
-        company_name = _get_company_name_from_config(config)
+        is_masked = config.id in masked_config_ids
+        company_name = "Lịch khám dự kiến" if is_masked else _get_company_name_from_config(config)
         salesperson = _get_salesperson_from_config(config)
         schedule_creator = getattr(config, "registered_by", None)
+        if not schedule_creator:
+            schedule_creator = _get_schedule_creator_from_config(config)
+        creator_name = _display_user_name(schedule_creator)
+        if is_masked:
+            company_name = creator_name or "Lich kham du kien"
+        elif not company_name:
+            company_name = creator_name or company_name
 
         blood_collection_list = _get_blood_rows_for_config(config)
         blood_dates = [bc.collection_date.strftime("%Y-%m-%d") for bc in blood_collection_list]
@@ -237,9 +323,11 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
 
         all_patients = _get_all_patients_for_config(config)
         registered_patient_ids = {
-            ap.patient_id
+            _patient_identity_key(patient)
             for slot in slots
             for ap in slot.appointments.all()
+            for patient in [_appointment_patient(ap)]
+            if patient
         }
 
         # ── Kế hoạch triển khai ───────────────────────────────────────────────
@@ -269,14 +357,26 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
             )
         )
 
+        owner_id = getattr(quotation, "created_by_id", None) if quotation else None
+        can_end = (
+            config.is_confirmed
+            and not config.is_ended
+            and SchedulingPolicy.can_end_schedule(actor, owner_id)
+        )
+
         row = {
+            "planned_employee_count": config.planned_employee_count,
+            "can_edit_slots": (
+                not is_masked
+                and SchedulingPolicy.can_manage_quote_schedule(actor, owner_id)
+            ),
             "schedule_config_id": config.id,
             "contract_id": contract_obj.id if contract_obj else None,
             "contract_number": getattr(contract_obj, "contract_number", "") if contract_obj else "",
             "company_name": company_name,
-            "salesperson_name": salesperson.get_full_name() if salesperson else "",
+            "salesperson_name": _display_user_name(salesperson),
             "salesperson_id": salesperson.id if salesperson else "",
-            "schedule_creator_name": schedule_creator.get_full_name() if schedule_creator else "",
+            "schedule_creator_name": creator_name,
             "can_delete_schedule": (
                 (not contract_profile)
                 and SchedulingPolicy.can_manage_quote_schedule(
@@ -284,18 +384,17 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
                     getattr(quotation, "created_by_id", None),
                 )
             ),
+            "can_end_schedule": can_end,
+            "is_confirmed": config.is_confirmed,
+            "is_masked_company": is_masked,
             "can_create_impl_plan": can_create_impl_plan,
             "impl_plan_id": impl_plan_id,
             "impl_plan_is_published": impl_plan_is_published,
             "blood_dates": blood_dates,
             "unregistered_patients": [
-                {
-                    "patient_code": patient.ma_bn,
-                    "name": patient.ho_ten,
-                    "dob": patient.ngay_sinh.strftime("%d/%m/%Y") if patient.ngay_sinh else "",
-                }
+                _patient_payload(patient)
                 for patient in all_patients
-                if patient.id not in registered_patient_ids
+                if _patient_identity_key(patient) not in registered_patient_ids
             ],
             "schedule": [],
         }
@@ -331,12 +430,10 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
                 cell["am"] = f"{reg_am}/{lim_am}"
                 cell["is_full_am"] = lim_am > 0 and reg_am >= lim_am
                 cell["am_patients"] = [
-                    {
-                        "patient_code": ap.patient.ma_bn,
-                        "name": ap.patient.ho_ten,
-                        "dob": ap.patient.ngay_sinh.strftime("%d/%m/%Y") if ap.patient.ngay_sinh else "",
-                    }
+                    _patient_payload(patient)
                     for ap in slot_am.appointments.all()
+                    for patient in [_appointment_patient(ap)]
+                    if patient
                 ]
 
             if slot_pm:
@@ -345,12 +442,10 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
                 cell["pm"] = f"{reg_pm}/{lim_pm}"
                 cell["is_full_pm"] = lim_pm > 0 and reg_pm >= lim_pm
                 cell["pm_patients"] = [
-                    {
-                        "patient_code": ap.patient.ma_bn,
-                        "name": ap.patient.ho_ten,
-                        "dob": ap.patient.ngay_sinh.strftime("%d/%m/%Y") if ap.patient.ngay_sinh else "",
-                    }
+                    _patient_payload(patient)
                     for ap in slot_pm.appointments.all()
+                    for patient in [_appointment_patient(ap)]
+                    if patient
                 ]
 
             row["schedule"].append(cell)
@@ -361,6 +456,9 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
     blood_totals_per_day = [daily_blood_totals[day] for day in days]
     sunday_indexes = [index for index, day in enumerate(days) if day.weekday() == 6]
 
+    holiday_date_set = set(PublicHoliday.objects.values_list("date", flat=True))
+    holiday_indexes = {index for index, day in enumerate(days) if day in holiday_date_set}
+
     return {
         "days": days,
         "schedule_rows": rows,
@@ -368,9 +466,11 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
         "daily_pm_totals": daily_pm_totals,
         "blood_totals_per_day": blood_totals_per_day,
         "sunday_indexes": sunday_indexes,
+        "holiday_indexes": holiday_indexes,
         "sale_team_users": sale_team_users,
         "show_staff_filter": SchedulingPolicy.is_manager(actor),
         "current_staff_id": str(actor.id) if getattr(actor, "id", None) else "",
         "system_am_limit": default_am_limit,
         "system_pm_limit": default_pm_limit,
     }
+

@@ -1,0 +1,268 @@
+{% extends "base_admin.html" %}
+{% load static %}
+
+{% block title %}Đồng bộ dữ liệu HIS{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-sync-alt me-2"></i>Đồng bộ dữ liệu HIS
+        </h2>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-users fa-2x text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Bệnh nhân</div>
+                            <div class="h4 mb-0">{{ stats.patients|default:0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-box fa-2x text-success"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Gói khám đoàn</div>
+                            <div class="h4 mb-0">{{ stats.packages|default:0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-file-medical fa-2x text-info"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Hồ sơ khám</div>
+                            <div class="h4 mb-0">{{ stats.exam_records|default:0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-tags fa-2x text-warning"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Đối tượng BN</div>
+                            <div class="h4 mb-0">{{ stats.patient_types|default:0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Actions -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">Thực hiện đồng bộ</h5>
+        </div>
+        <div class="card-body">
+            
+            <div class="row g-3">
+                <div style="display: none;">
+                <div class="col-md-6 col-lg-4">
+                    <button type="button" class="btn btn-outline-primary w-100 py-3 sync-btn" data-sync-type="patient_types">
+                        <i class="fas fa-tags fa-2x d-block mb-2"></i>
+                        <div class="fw-bold">Đối tượng bệnh nhân</div>
+                        <small class="text-muted">Đồng bộ danh mục đối tượng</small>
+                    </button>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <button type="button" class="btn btn-outline-primary w-100 py-3 sync-btn" data-sync-type="patients">
+                        <i class="fas fa-users fa-2x d-block mb-2"></i>
+                        <div class="fw-bold">Bệnh nhân</div>
+                        <small class="text-muted">Đồng bộ danh sách bệnh nhân</small>
+                    </button>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <button type="button" class="btn btn-outline-primary w-100 py-3 sync-btn" data-sync-type="packages">
+                        <i class="fas fa-box fa-2x d-block mb-2"></i>
+                        <div class="fw-bold">Gói khám đoàn</div>
+                        <small class="text-muted">Đồng bộ gói khám theo đoàn</small>
+                    </button>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <button type="button" class="btn btn-outline-primary w-100 py-3 sync-btn" data-sync-type="exam_records">
+                        <i class="fas fa-file-medical fa-2x d-block mb-2"></i>
+                        <div class="fw-bold">Hồ sơ khám</div>
+                        <small class="text-muted">Đồng bộ hồ sơ khám bệnh</small>
+                    </button>
+                </div>
+                </div>
+                <div class="col-md-12 col-lg-4">
+                    <button type="button" class="btn btn-primary w-100 py-3 sync-btn" data-sync-type="all">
+                        <i class="fas fa-sync-alt fa-2x d-block mb-2"></i>
+                        <div class="fw-bold">Đồng bộ toàn bộ</div>
+                        <small class="text-white">Chỉ lấy dữ liệu mới</small>
+                    </button>
+                </div>
+                <div class="col-md-12 col-lg-4">
+                    <button type="button" class="btn btn-outline-danger w-100 py-3 sync-btn" data-sync-type="all" data-reset-cursor="true">
+                        <i class="fas fa-rotate fa-2x d-block mb-2"></i>
+                        <div class="fw-bold">Rà lại toàn bộ</div>
+                        <small class="text-muted">Cập nhật cả dữ liệu đã đồng bộ</small>
+                    </button>
+                </div>
+                {% if local_sync_enabled %}
+                <div class="col-md-12 col-lg-4">
+                    <button type="button" class="btn btn-warning w-100 py-3 sync-btn" data-sync-type="all" data-source="local_pg">
+                        <i class="fas fa-database fa-2x d-block mb-2"></i>
+                        <div class="fw-bold">Sync mới (test local)</div>
+                        <small class="text-dark">Chỉ lấy dữ liệu mới – PK_HCM local</small>
+                    </button>
+                </div>
+                <div class="col-md-12 col-lg-4">
+                    <button type="button" class="btn btn-outline-warning w-100 py-3 sync-btn" data-sync-type="all" data-source="local_pg" data-reset-cursor="true">
+                        <i class="fas fa-rotate fa-2x d-block mb-2"></i>
+                        <div class="fw-bold">Rà lại toàn bộ (test local)</div>
+                        <small class="text-muted">Cập nhật cả dữ liệu đã sync – PK_HCM local</small>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Jobs -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Lịch sử đồng bộ gần đây</h5>
+            <a href="{% url 'his_integration:job_list' %}" class="btn btn-sm btn-outline-secondary">
+                Xem tất cả
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Loại</th>
+                            <th>Trạng thái</th>
+                            <th>Tổng số</th>
+                            <th>Thành công</th>
+                            <th>Lỗi</th>
+                            <th>Thời gian</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in recent_jobs %}
+                        <tr>
+                            <td>{{ job.get_entity_type_display }}</td>
+                            <td>
+                                {% if job.status == 'SUCCESS' %}
+                                <span class="badge bg-success">Thành công</span>
+                                {% elif job.status == 'FAILED' %}
+                                <span class="badge bg-danger">Lỗi</span>
+                                {% elif job.status == 'RUNNING' %}
+                                <span class="badge bg-primary">Đang chạy</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Chờ</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ job.total_records }}</td>
+                            <td class="text-success">{{ job.synced_records }}</td>
+                            <td class="text-danger">{{ job.failed_records }}</td>
+                            <td>{{ job.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'his_integration:job_detail' job.pk %}" class="btn btn-sm btn-outline-secondary">
+                                    Chi tiết
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                Chưa có lịch sử đồng bộ
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const syncButtons = document.querySelectorAll('.sync-btn');
+    const csrfToken = '{{ csrf_token }}';
+    
+    syncButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const syncType = this.dataset.syncType;
+            const source = this.dataset.source || 'his_mssql';
+            const resetCursor = this.dataset.resetCursor || 'false';
+            
+            if (!confirm(`Bạn có chắc muốn đồng bộ ${this.querySelector('.fw-bold').textContent}?`)) {
+                return;
+            }
+            
+            this.disabled = true;
+            const originalHTML = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+            
+            fetch('{% url "his_integration:trigger_sync" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: new URLSearchParams({
+                    sync_type: syncType,
+                    source: source,
+                    reset_cursor: resetCursor
+                }).toString()
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.inline) {
+                        alert(data.message + '\n\nLocal sync da chay xong. Vui long kiem tra lich su dong bo.');
+                        setTimeout(() => location.reload(), 2000);
+                        return;
+                    }
+                    alert(data.message + '\n\nJob đang chạy trong background. Vui lòng kiểm tra lịch sử đồng bộ.');
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    alert('Lỗi: ' + (data.error || 'Unknown error'));
+                    this.disabled = false;
+                    this.innerHTML = originalHTML;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Có lỗi xảy ra khi kết nối đến server');
+                this.disabled = false;
+                this.innerHTML = originalHTML;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -7,6 +7,11 @@ class SystemGeneralSetting(models.Model):
 
     default_am_slot_limit = models.PositiveIntegerField(default=100, verbose_name="Giới hạn slot mặc định buổi sáng")
     default_pm_slot_limit = models.PositiveIntegerField(default=100, verbose_name="Giới hạn slot mặc định buổi chiều")
+    max_blood_location_per_day = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Số địa điểm lấy máu tối đa trong 1 ngày",
+        help_text="Nhập 0 để không giới hạn.",
+    )
 
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -32,6 +37,22 @@ class SystemGeneralSetting(models.Model):
             defaults={
                 "default_am_slot_limit": 100,
                 "default_pm_slot_limit": 100,
+                "max_blood_location_per_day": 0,
             },
         )
         return obj
+
+
+class PublicHoliday(models.Model):
+    date = models.DateField(unique=True, verbose_name="Ngày nghỉ")
+    name = models.CharField(max_length=100, blank=True, verbose_name="Tên ngày nghỉ")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "core_public_holiday"
+        ordering = ["date"]
+        verbose_name = "Ngày nghỉ lễ"
+        verbose_name_plural = "Ngày nghỉ lễ"
+
+    def __str__(self):
+        return f"{self.date.strftime('%d/%m/%Y')} – {self.name or 'Ngày nghỉ'}"

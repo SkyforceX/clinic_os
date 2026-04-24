@@ -1,3 +1,4 @@
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -29,6 +30,7 @@ class RegisterContractScheduleCommand:
     am_capacity_limit: int
     pm_capacity_limit: int
     blood_collection_rows: list = field(default_factory=list)
+    allowed_weekdays: list = field(default_factory=list)
     actor: object = None
 
 
@@ -58,6 +60,27 @@ def _parse_int(value, default=0):
 
 def _normalize_text(value):
     return str(value or "").strip()
+
+
+def _validate_blood_location_limit(blood_rows, current_config_id, max_limit):
+    """Kiểm tra số địa điểm lấy máu trong ngày không vượt quá giới hạn hệ thống."""
+    if not max_limit or not blood_rows:
+        return
+
+    new_counts = Counter(row.collection_date for row in blood_rows)
+
+    for blood_date, new_count in new_counts.items():
+        existing_qs = ScheduleBloodCollectionRow.objects.filter(collection_date=blood_date)
+        if current_config_id:
+            existing_qs = existing_qs.exclude(schedule_config_id=current_config_id)
+        existing_count = existing_qs.count()
+
+        total = existing_count + new_count
+        if total > max_limit:
+            raise ValidationError(
+                f"Ngày {blood_date.strftime('%d/%m/%Y')}: tổng số địa điểm lấy máu ({total}) "
+                f"vượt quá giới hạn hệ thống ({max_limit} địa điểm/ngày)."
+            )
 
 
 def _normalize_blood_rows(rows):
@@ -116,8 +139,21 @@ def execute(cmd: RegisterContractScheduleCommand):
 
     am_capacity_limit = _parse_int(cmd.am_capacity_limit, 0)
     pm_capacity_limit = _parse_int(cmd.pm_capacity_limit, 0)
-    if am_capacity_limit <= 0 or pm_capacity_limit <= 0:
-        raise ValidationError("Giới hạn slot buổi sáng và chiều phải lớn hơn 0.")
+    if am_capacity_limit < 0 or pm_capacity_limit < 0:
+        raise ValidationError("Giới hạn slot buổi sáng và chiều không được âm.")
+    if am_capacity_limit == 0 and pm_capacity_limit == 0:
+        raise ValidationError("Cần ít nhất một buổi có slot lớn hơn 0 (sáng hoặc chiều).")
+
+    allowed_weekdays = []
+    for raw in (cmd.allowed_weekdays or []):
+        try:
+            wd = int(raw)
+        except (TypeError, ValueError):
+            raise ValidationError("Ngày trong tuần không hợp lệ.")
+        if wd < 0 or wd > 5:
+            raise ValidationError("Ngày trong tuần không hợp lệ (chỉ T2–T7).")
+        allowed_weekdays.append(wd)
+    allowed_weekdays = sorted(set(allowed_weekdays))
 
     settings = SystemGeneralSetting.get_solo()
     if am_capacity_limit > settings.default_am_slot_limit:
@@ -130,7 +166,16 @@ def execute(cmd: RegisterContractScheduleCommand):
         )
 
     blood_rows = _normalize_blood_rows(cmd.blood_collection_rows or [])
-    
+
+    # Validate giới hạn địa điểm lấy máu/ngày (không tính lại rows của config hiện tại)
+    if settings.max_blood_location_per_day > 0:
+        existing_config = ContractScheduleConfig.objects.filter(quotation=quotation).first()
+        _validate_blood_location_limit(
+            blood_rows,
+            existing_config.id if existing_config else None,
+            settings.max_blood_location_per_day,
+        )
+
     config, _ = ContractScheduleConfig.objects.get_or_create(
         quotation=quotation,
         defaults={
@@ -150,6 +195,7 @@ def execute(cmd: RegisterContractScheduleCommand):
     config.planned_employee_count = planned_employee_count
     config.am_capacity_limit = am_capacity_limit
     config.pm_capacity_limit = pm_capacity_limit
+    config.allowed_weekdays = allowed_weekdays
     config.registered_by = cmd.actor if getattr(cmd.actor, "is_authenticated", False) else None
     config.save()
     
@@ -195,6 +241,7 @@ def execute(cmd: RegisterContractScheduleCommand):
         employee_count=planned_employee_count,
         am_capacity_limit=am_capacity_limit,
         pm_capacity_limit=pm_capacity_limit,
+        allowed_weekdays=allowed_weekdays or None,
     )
 
     return config

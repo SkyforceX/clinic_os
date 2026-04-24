@@ -13,7 +13,10 @@ def build_patient_profile_context(*, patient):
         "gioi_tinh": _norm_gender(getattr(patient, "gioi_tinh", "")),
         "phone": getattr(patient, "phone", None),
         "email": getattr(patient, "email", None),
-        "dia_chi": getattr(patient, "dia_chi", None),
-        "so_cmnd": getattr(patient, "so_cmnd", None),
-        "company_name": getattr(getattr(patient, "company", None), "name", None),
+        "dia_chi": getattr(patient, "dia_chi", None) or getattr(patient, "address", None),
+        "so_cmnd": getattr(patient, "so_cmnd", None) or getattr(patient, "national_id", None),
+        "company_name": (
+            getattr(getattr(patient, "company", None), "name", None)
+            or getattr(patient, "work_place", None)
+        ),
     }

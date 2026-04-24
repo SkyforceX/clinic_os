@@ -67,6 +67,16 @@ def _is_it_admin(user) -> bool:
     ).exists()
 
 
+def _is_operations(user) -> bool:
+    return user.groups.filter(
+        name__in=["Operations Team", "Operations", "VH", "Vận hành", "Van hanh"]
+    ).exists()
+
+
+def _is_medical_director(user) -> bool:
+    return user.groups.filter(name__in=["Medical Director"]).exists()
+
+
 def _is_care(user) -> bool:
     return (
         getattr(user, "is_superuser", False)
@@ -142,9 +152,12 @@ def _item(
 
     current_url_name, current_app_name = _current_route_state(request)
     target_url_name = url_name.split(":")[-1]
+    target_app_name = url_name.split(":")[0] if ":" in url_name else ""
 
     match_score = 0
-    if current_url_name == target_url_name:
+    if current_url_name == target_url_name and current_app_name == target_app_name:
+        match_score = 500
+    elif current_url_name == target_url_name:
         match_score = 400
     elif current_url_name in active_url_names:
         match_score = 300
@@ -251,11 +264,17 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
     is_doctor = _is_doctor(user)
     is_hr_admin = _is_hr_admin(user)
     is_executive = _is_executive(user)
-    can_view_record_completion = _can_view_record_completion(user)
     is_it_admin = _is_it_admin(user)
     is_care = _is_care(user)
+    is_operations = _is_operations(user)
+    is_medical_director = _is_medical_director(user)
 
-    # ── Dashboard tổng quan ──────────────────────────────────────────────────
+    # Executive / IT / Superuser → toàn bộ sidebar
+    is_full_access = is_executive or is_it_admin or is_supperuser
+    # Manager không phải Medical Director (Manager thường)
+    is_regular_manager = is_manager and not is_medical_director
+
+    # ── Tổng quan ───────────────────────────────────────────────────────────
     items = [
         _item(
             request=request,
@@ -266,8 +285,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
             active_url_names=["overview"],
         ),
     ]
-
-    if is_sales or is_executive:
+    if is_sales or is_full_access:
         items += [
             _item(
                 request=request,
@@ -294,11 +312,10 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["index", "media", "library"],
             ),
         ]
-
     _append_section(sections, _section("Tổng quan", "🏠", items))
 
     # ── Kinh doanh ──────────────────────────────────────────────────────────
-    if is_sales or is_executive:
+    if is_sales or is_full_access:
         _append_section(
             sections,
             _section(
@@ -344,113 +361,106 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
             ),
         )
 
-    if is_sales or is_executive or is_manager:
-        _append_section(
-            sections,
-            _section(
-                "Lịch khám Doanh nghiệp",
-                "📅",
-                [
-                    _item(
-                        request=request,
-                        label="Đăng ký lịch khám",
-                        url_name="contract:create_contract",
-                        icon="fa-solid fa-calendar-plus",
-                        active_url_names=["create_contract", "edit_contract"],
-                    ),
-                    _item(
-                        request=request,
-                        label="Danh sách lịch khám",
-                        url_name="contract:contract_list",
-                        icon="fa-regular fa-calendar-days",
-                        active_url_names=["contract_list", "contract_detail"],
-                        active_url_name_contains=["contract_list", "contract_detail"],
-                    ),
-                    _item(
-                        request=request,
-                        label="Lịch khám chi tiết",
-                        url_name="scheduling:schedule_table",
-                        icon="fa-solid fa-table-cells-large",
-                        active_app_names=["scheduling"],
-                        active_url_name_contains=["schedule"],
-                    ),
-                    _item(
-                        request=request,
-                        label="Thống kê lượt khám",
-                        url_name="reception:checkin_stats",
-                        icon="fa-solid fa-chart-column",
-                        active_url_name_contains=["checkin_stats"],
-                    ),
-                ],
-            ),
+    # ── Lịch khám Doanh nghiệp ──────────────────────────────────────────────
+    # Sales: không thấy; Operations: chỉ Lịch khám chi tiết
+    if is_full_access or is_sales or is_operations:
+        schedule_items = []
+        if is_full_access or is_sales:
+            schedule_items += [
+                _item(
+                    request=request,
+                    label="Đăng ký lịch khám",
+                    url_name="contract:create_contract",
+                    icon="fa-solid fa-calendar-plus",
+                    active_url_names=["create_contract", "edit_contract"],
+                ),
+                _item(
+                    request=request,
+                    label="Danh sách lịch khám",
+                    url_name="contract:contract_list",
+                    icon="fa-regular fa-calendar-days",
+                    active_url_names=["contract_list", "contract_detail"],
+                    active_url_name_contains=["contract_list", "contract_detail"],
+                ),
+            ]
+        schedule_items.append(
+            _item(
+                request=request,
+                label="Lịch khám chi tiết",
+                url_name="scheduling:schedule_table",
+                icon="fa-solid fa-table-cells-large",
+                active_app_names=["scheduling"],
+                active_url_name_contains=["schedule"],
+            )
         )
+        if is_full_access or is_sales:
+            schedule_items.append(
+                _item(
+                    request=request,
+                    label="Thống kê lượt khám",
+                    url_name="reception:checkin_stats",
+                    icon="fa-solid fa-chart-column",
+                    active_url_name_contains=["checkin_stats"],
+                )
+            )
+        _append_section(sections, _section("Lịch khám Doanh nghiệp", "📅", schedule_items))
 
-        _append_section(
-            sections,
-            _section(
-                "Quản lý Doanh nghiệp",
-                "🏢",
-                [
-                    _item(
-                        request=request,
-                        label="Danh sách triển khai",
-                        url_name="contract:implementation_plan_list",
-                        icon="fa-solid fa-diagram-project",
-                        active_url_names=[
-                            "implementation_plan_list",
-                            "implementation_plan_detail",
-                        ],
-                        active_url_name_contains=["implementation_plan"],
-                    ),
-                    _item(
-                        request=request,
-                        label="Danh sách KH DN",
-                        url_name="organizations:company_list",
-                        icon="fa-regular fa-building",
-                        active_app_names=["organizations"],
-                        active_url_name_contains=["company"],
-                    ),
-                    _item(
-                        request=request,
-                        label="Danh sách KH - HIS",
-                        url_name="patients:his_patient_sync_list",
-                        icon="fa-regular fa-building",
-                        active_app_names=["patients"],
-                        active_url_name_contains=["his_patient_sync_list"],
-                    ),
-                    _item(
-                        request=request,
-                        label="Tiến trình hồ sơ",
-                        url_name="record_completion:company_list",
-                        icon="fa-solid fa-clipboard-check",
-                        active_app_names=["record_completion"],
-                        active_url_name_contains=["completion", "pipeline"],
-                    ),
-                ],
-            ),
+    # ── Quản lý doanh nghiệp ────────────────────────────────────────────────
+    # Sales: chỉ Danh sách triển khai
+    # Operations: toàn bộ (trừ Đồng bộ HIS)
+    # Medical Director: chỉ Danh sách Khách hàng
+    # full_access / regular_manager: toàn bộ
+    qldn_items = []
+    if is_full_access or is_operations or is_sales:
+        qldn_items.append(
+            _item(
+                request=request,
+                label="Danh sách triển khai",
+                url_name="contract:implementation_plan_list",
+                icon="fa-solid fa-diagram-project",
+                active_url_names=["implementation_plan_list", "implementation_plan_detail"],
+                active_url_name_contains=["implementation_plan"],
+            )
         )
-
-    # ── KPI ─────────────────────────────────────────────────────────────────
-    if can_view_record_completion and not (is_sales or is_executive or is_manager):
-        _append_section(
-            sections,
-            _section(
-                "Quản lý Doanh nghiệp",
-                "🏢",
-                [
-                    _item(
-                        request=request,
-                        label="Tiến trình hồ sơ",
-                        url_name="record_completion:company_list",
-                        icon="fa-solid fa-clipboard-check",
-                        active_app_names=["record_completion"],
-                        active_url_name_contains=["completion", "pipeline"],
-                    ),
-                ],
-            ),
+    if is_full_access or is_operations:
+        qldn_items.append(
+            _item(
+                request=request,
+                label="Danh sách gói khám HIS",
+                url_name="his_integration:package_list",
+                icon="fa-regular fa-building",
+                active_app_names=["his_integration"],
+                active_url_names=["package_list", "package_detail"],
+                active_url_name_contains=["package"],
+            )
         )
+    if is_full_access or is_operations or is_medical_director:
+        qldn_items.append(
+            _item(
+                request=request,
+                label="Tiến trình hồ sơ",
+                url_name="record_completion:company_list",
+                icon="fa-solid fa-clipboard-check",
+                active_app_names=["record_completion"],
+                active_url_name_contains=["completion", "pipeline"],
+            )
+        )
+    if is_executive or is_supperuser or is_operations:
+        qldn_items.append(
+            _item(
+                request=request,
+                label="Đồng bộ dữ liệu HIS",
+                url_name="his_integration:dashboard",
+                icon="fa-solid fa-rotate",
+                active_app_names=["his_integration"],
+                active_url_names=["dashboard", "job_list", "job_detail"],
+                active_url_name_contains=["sync", "job"],
+            )
+        )
+    _append_section(sections, _section("Quản lý doanh nghiệp", "🏠", qldn_items))
 
-    if is_sales or is_executive:
+    # ── KPI & Quota ──────────────────────────────────────────────────────────
+    if is_full_access:
         kpi_items = [
             _item(
                 request=request,
@@ -461,7 +471,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["dashboard", "target", "quota"],
             )
         ]
-        if is_executive:
+        if is_full_access:
             kpi_items.append(
                 _item(
                     request=request,
@@ -474,7 +484,8 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
         _append_section(sections, _section("KPI & Quota", "🎯", kpi_items))
 
     # ── Giao việc ────────────────────────────────────────────────────────────
-    if _can_use_tasks(user):
+    # Sales / plain Doctor: không thấy
+    if is_full_access or is_operations or is_medical_director:
         task_items = [
             _item(
                 request=request,
@@ -501,7 +512,6 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
     if _can_use_helpdesk(user):
         hd_count = _get_helpdesk_open_count(user)
         hd_list_label = f"Danh sách ticket ({hd_count})" if hd_count else "Danh sách ticket"
-
         helpdesk_items = [
             _item(
                 request=request,
@@ -512,25 +522,22 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["ticket", "helpdesk", "list", "detail"],
             ),
         ]
-
-        if is_executive or is_manager:
+        if is_full_access:
             helpdesk_items.append(
                 _item(
                     request=request,
-                    label="Gửi yêu cầu IT mới",
+                    label="Gửi ticket mới",
                     url_name="helpdesk:create",
                     icon="fa-solid fa-paper-plane",
                     active_url_names=["create"],
                 )
             )
-
-        _append_section(sections, _section("Yêu cầu IT", "🎫", helpdesk_items))
+        _append_section(sections, _section("IT Helpdesk", "🎫", helpdesk_items))
 
     # ── Chăm sóc khách hàng ──────────────────────────────────────────────────
-    if is_care:
+    if is_full_access or is_care:
         unread = _get_care_unread_count(user)
         inbox_label = f"Inbox ({unread})" if unread else "Inbox Chat"
-
         care_items = [
             _item(
                 request=request,
@@ -549,7 +556,6 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["contact_list", "contact_detail"],
             ),
         ]
-
         if is_manager or user.groups.filter(name__in=["Care Admin", "Care Lead"]).exists():
             care_items.append(
                 _item(
@@ -560,11 +566,10 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                     active_url_names=["settings", "channel_create", "channel_edit"],
                 )
             )
-
         _append_section(sections, _section("Chăm sóc KH", "🎧", care_items))
 
     # ── Lâm sàng ─────────────────────────────────────────────────────────────
-    if is_doctor or is_manager:
+    if is_doctor or is_full_access:
         _append_section(
             sections,
             _section(
@@ -587,12 +592,23 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                         active_app_names=["clinical"],
                         active_url_names=["dental_exam_form"],
                     ),
+                    _item(
+                        request=request,
+                        label="Danh sách hồ sơ khám (HIS)",
+                        url_name="his_integration:exam_record_list",
+                        icon="fa-solid fa-users",
+                        active_app_names=["his_integration"],
+                        active_url_names=["exam_record_list", "exam_record_detail"],
+                        active_url_name_contains=["exam_record"],
+                    ),
                 ],
             ),
         )
 
     # ── Nhân sự ──────────────────────────────────────────────────────────────
-    if is_hr_admin or is_manager:
+    # Medical Director: chỉ Danh sách nhân viên
+    # regular_manager + hr_admin + full_access: toàn bộ
+    if is_hr_admin or is_manager or is_full_access:
         hrm_items = [
             _item(
                 request=request,
@@ -603,7 +619,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["employee"],
             ),
         ]
-        if is_hr_admin or is_manager:
+        if is_hr_admin or is_full_access:
             hrm_items.append(
                 _item(
                     request=request,
@@ -613,7 +629,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                     active_url_name_contains=["doctor_schedule"],
                 )
             )
-        if is_hr_admin:
+        if is_hr_admin or is_full_access:
             hrm_items.extend(
                 [
                     _item(
@@ -642,60 +658,65 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
         _append_section(sections, _section("Nhân sự", "👥", hrm_items))
 
     # ── Phê duyệt ────────────────────────────────────────────────────────────
-    approval_items = []
-    if is_executive:
-        cnt = _get_pending_approval_count()
+    # Plain Doctor: không thấy
+    can_see_approval = (
+        is_full_access or is_sales or is_operations or is_medical_director
+    )
+    if can_see_approval:
+        approval_items = []
+        if is_executive or is_full_access:
+            cnt = _get_pending_approval_count()
+            approval_items.append(
+                _item(
+                    request=request,
+                    label=f"Inbox ({cnt})" if cnt else "Inbox phê duyệt",
+                    url_name="approvals:inbox",
+                    icon="fa-solid fa-inbox",
+                    active_url_names=["inbox", "detail"],
+                    active_app_names=["approvals"],
+                    active_url_name_contains=["approval"],
+                )
+            )
         approval_items.append(
             _item(
                 request=request,
-                label=f"Inbox ({cnt})" if cnt else "Inbox phê duyệt",
-                url_name="approvals:inbox",
-                icon="fa-solid fa-inbox",
-                active_url_names=["inbox", "detail"],
+                label="Yêu cầu của tôi",
+                url_name="approvals:my_requests",
+                icon="fa-regular fa-clipboard",
+                active_url_names=["my_requests"],
                 active_app_names=["approvals"],
-                active_url_name_contains=["approval"],
             )
         )
+        _append_section(sections, _section("Phê duyệt", "✅", approval_items))
 
-    approval_items.append(
-        _item(
-            request=request,
-            label="Yêu cầu của tôi",
-            url_name="approvals:my_requests",
-            icon="fa-regular fa-clipboard",
-            active_url_names=["my_requests"],
-            active_app_names=["approvals"],
-        )
-    )
-
-    _append_section(sections, _section("Phê duyệt", "✅", approval_items))
-
-    # ── Quản lý chất lượng ───────────────────────────────────────────────────
-    quality_items = [
-        _item(
-            request=request,
-            label="Báo cáo sự cố",
-            url_name="quality:incident_report_list",
-            icon="fa-solid fa-triangle-exclamation",
-            active_app_names=["quality"],
-            active_url_name_contains=["incident"],
-        )
-    ]
-    if is_manager:
-        quality_items.append(
+    # ── Quản lý ──────────────────────────────────────────────────────────────
+    # Sales / Operations / plain Doctor: không thấy
+    if is_full_access or is_manager:
+        quality_items = [
             _item(
                 request=request,
-                label="Kiểm HSBA",
-                url_name="quality:medical_record_audit_list",
-                icon="fa-solid fa-notes-medical",
+                label="Báo cáo sự cố",
+                url_name="quality:incident_report_list",
+                icon="fa-solid fa-triangle-exclamation",
                 active_app_names=["quality"],
-                active_url_name_contains=["audit"],
+                active_url_name_contains=["incident"],
             )
-        )
-    _append_section(sections, _section("Quản lý", "📊", quality_items))
+        ]
+        if is_manager or is_full_access:
+            quality_items.append(
+                _item(
+                    request=request,
+                    label="Kiểm HSBA",
+                    url_name="quality:medical_record_audit_list",
+                    icon="fa-solid fa-notes-medical",
+                    active_app_names=["quality"],
+                    active_url_name_contains=["audit"],
+                )
+            )
+        _append_section(sections, _section("Quản lý", "📊", quality_items))
 
-    # ── Analytics / Executive ────────────────────────────────────────────────
-    if is_executive:
+    # ── Thống kê & Báo cáo ───────────────────────────────────────────────────
+    if is_executive or is_full_access:
         _append_section(
             sections,
             _section(
@@ -742,6 +763,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
         )
 
     # ── Quy trình ────────────────────────────────────────────────────────────
+    # Doctor: chỉ Danh sách; Sales / Operations / manager thấy cả Tạo mới
     procedure_items = [
         _item(
             request=request,
@@ -751,7 +773,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
             active_url_name_contains=["list"],
         ),
     ]
-    if is_manager or is_hr_admin or is_executive:
+    if is_manager or is_hr_admin or is_full_access or is_sales or is_operations:
         procedure_items.append(
             _item(
                 request=request,
@@ -764,10 +786,10 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
     _append_section(sections, _section("Quy trình", "📋", procedure_items))
 
     # ── Hệ thống ─────────────────────────────────────────────────────────────
-    if is_manager or is_it_admin:
+    # Medical Director không thấy Hệ thống
+    if is_it_admin or is_full_access:
         sys_items = []
-
-        if is_manager:
+        if is_full_access:
             sys_items += [
                 _item(
                     request=request,
@@ -794,7 +816,6 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                     active_app_names=["ai_assistant"],
                 ),
             ]
-
         _append_section(sections, _section("Hệ thống", "⚙️", sys_items))
 
     return _normalize_active_items(sections)

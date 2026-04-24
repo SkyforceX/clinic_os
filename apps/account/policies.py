@@ -4,7 +4,7 @@ class AccountPolicy:
         if not patient:
             return False
 
-        session_patient_id = request.session.get("patient_id")
+        session_patient_id = request.session.get("his_patient_sync_id")
         return bool(session_patient_id and str(session_patient_id) == str(patient.id))
 
     @classmethod

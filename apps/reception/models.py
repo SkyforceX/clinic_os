@@ -36,6 +36,14 @@ class CheckInRecord(models.Model):
         related_name="checkin_records",
         verbose_name="Bệnh nhân",
     )
+    his_patient_sync = models.ForeignKey(
+        "his_integration.HisPatientSync",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="checkin_records",
+        verbose_name="Bệnh nhân HIS",
+    )
     schedule_config = models.ForeignKey(
         "scheduling.ContractScheduleConfig",
         on_delete=models.SET_NULL,
@@ -101,6 +109,7 @@ class CheckInRecord(models.Model):
         indexes = [
             models.Index(fields=["exam_date", "status"], name="reception_ci_date_status_idx"),
             models.Index(fields=["snapshot_ma_bn", "exam_date"], name="reception_ci_mabn_date_idx"),
+            models.Index(fields=["his_patient_sync", "status"], name="reception_ci_his_status_idx"),
         ]
 
     def __str__(self):

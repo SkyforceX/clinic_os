@@ -1,0 +1,365 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Danh sách gói khám đoàn{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-box me-2"></i>Danh sách gói khám đoàn HIS
+        </h2>
+        <a href="{% url 'his_integration:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã gói</th>
+                            <th>Tên gói</th>
+                            <th>Công ty</th>
+                            <th>Hiệu lực</th>
+                            <th>Số BN</th>
+                            <!-- <th>Đã khám</th> -->
+                            <th>Liên kết HĐ</th>
+                            <th>Liên kết lịch khám</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pkg in packages %}
+                        <tr>
+                            <td><code>{{ pkg.his_package_code }}</code></td>
+                            <td>{{ pkg.package_name }}</td>
+                            <td>{{ pkg.company_name }}</td>
+                            <td>
+                                {% if pkg.valid_from and pkg.valid_to %}
+                                {{ pkg.valid_from|date:"d/m/Y" }} - {{ pkg.valid_to|date:"d/m/Y" }}
+                                {% else %}
+                                <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ pkg.total_patients }}</td>
+                            <!-- <td>
+                                <span class="badge bg-success">{{ pkg.completed_count }}</span> /
+                                <span class="badge bg-secondary">{{ pkg.total_patients }}</span>
+                            </td> -->
+                            <td>
+                                {% if pkg.contract %}
+                                <div class="mb-2">
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-link me-1"></i>{{ pkg.contract.contract_number|default:"Chưa có số HĐ" }}
+                                    </span>
+                                </div>
+                                {% else %}
+                                <div class="text-muted small mb-2">Chưa liên kết HĐ</div>
+                                {% endif %}
+                                {% if can_link_contract %}
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#contractLinkModal{{ pkg.pk }}">
+                                    Liên kết
+                                </button>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% with linked_schedules=pkg.schedule_configs.all %}
+                                {% if linked_schedules %}
+                                <div class="mb-2">
+                                    {% for config in linked_schedules|slice:":2" %}
+                                    <div class="small">
+                                        <span class="badge bg-info text-dark">
+                                            {{ config.exam_start_date|date:"d/m/Y" }} - {{ config.exam_end_date|date:"d/m/Y" }}
+                                        </span>
+                                    </div>
+                                    {% endfor %}
+                                    {% if linked_schedules|length > 2 %}
+                                    <div class="small text-muted">+{{ linked_schedules|length|add:"-2" }} lịch khác</div>
+                                    {% endif %}
+                                </div>
+                                {% if can_link_schedule and is_superuser %}
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-success me-1"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#scheduleLinkModal{{ pkg.pk }}">
+                                    Liên kết
+                                </button>
+                                {% endif %}
+                                {% if can_unlink_schedule %}
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#scheduleUnlinkModal{{ pkg.pk }}">
+                                    Gỡ lịch
+                                </button>
+                                {% endif %}
+                                {% else %}
+                                <div class="text-muted small mb-2">Chưa liên kết lịch</div>
+                                {% if can_link_schedule %}
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-success"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#scheduleLinkModal{{ pkg.pk }}">
+                                    Liên kết
+                                </button>
+                                {% endif %}
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <a href="{% url 'his_integration:package_detail' pkg.pk %}" class="btn btn-sm btn-outline-secondary">
+                                    Chi tiết
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                Chưa có gói khám đoàn nào
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% for pkg in packages %}
+    <div class="modal fade" id="contractLinkModal{{ pkg.pk }}" tabindex="-1" aria-labelledby="contractLinkLabel{{ pkg.pk }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <form method="post" action="{% url 'his_integration:link_package_contract' pkg.pk %}">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="contractLinkLabel{{ pkg.pk }}">
+                            Liên kết HĐ cho {{ pkg.his_package_code }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <div class="fw-semibold">{{ pkg.package_name }}</div>
+                            <div class="text-muted small">{{ pkg.company_name }}</div>
+                        </div>
+
+                        {% if pkg.contract %}
+                        <div class="alert alert-info py-2">
+                            Đang liên kết HĐ:
+                            <strong>{{ pkg.contract.contract_number|default:"Chưa có số HĐ" }}</strong>
+                            {% if pkg.contract.company %}- {{ pkg.contract.company.name }}{% endif %}
+                        </div>
+                        {% endif %}
+
+                        {% if available_contracts_for_link %}
+                        <div class="list-group">
+                            {% for contract in available_contracts_for_link %}
+                            <label class="list-group-item list-group-item-action">
+                                <div class="d-flex gap-2">
+                                    <input class="form-check-input mt-1" type="radio" name="contract_id" value="{{ contract.id }}" required>
+                                    <div>
+                                        <div class="fw-semibold">
+                                            {{ contract.contract_number|default:"Chưa có số HĐ" }}
+                                            {% if contract.company %}- {{ contract.company.name }}{% endif %}
+                                        </div>
+                                        <div class="text-muted small">
+                                            {% if contract.start_date %}Từ {{ contract.start_date|date:"d/m/Y" }}{% endif %}
+                                            {% if contract.end_date %} đến {{ contract.end_date|date:"d/m/Y" }}{% endif %}
+                                            {% if contract.employee_count %} · {{ contract.employee_count }} KH{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-muted py-3">
+                            Không có hợp đồng đã duyệt và chưa liên kết với gói khám nào.
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if executive_view_only %}
+                    <div class="modal-footer flex-column align-items-stretch gap-2">
+                        <div class="alert alert-warning py-2 mb-0 text-center">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Trưởng bộ phận vận hành/kinh doanh sẽ thực hiện chức năng này.
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                    </div>
+                    {% else %}
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                        <button type="submit" class="btn btn-primary" {% if not available_contracts_for_link %}disabled{% endif %}>
+                            Liên kết
+                        </button>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="scheduleLinkModal{{ pkg.pk }}" tabindex="-1" aria-labelledby="scheduleLinkLabel{{ pkg.pk }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <form method="post" action="{% url 'his_integration:link_package_schedule' pkg.pk %}">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="scheduleLinkLabel{{ pkg.pk }}">
+                            Liên kết lịch khám cho gói khám {{ pkg.his_package_code }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <div class="fw-semibold">Gói khám: {{ pkg.package_name }}</div>
+                            <div class="text-muted small">{{ pkg.company_name }}</div>
+                        </div>
+
+                        {% with linked_schedules=pkg.schedule_configs.all %}
+                        {% if linked_schedules %}
+                        <div class="alert alert-info py-2">
+                            <div class="fw-semibold mb-1">Lịch đang liên kết:</div>
+                            {% for config in linked_schedules %}
+                            <div class="small">
+                                {{ config.exam_start_date|date:"d/m/Y" }} - {{ config.exam_end_date|date:"d/m/Y" }}
+                                · {{ config.quotation.company_name|default:"Báo giá" }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% endwith %}
+
+                        {% if available_schedule_configs_for_link %}
+                        <div class="list-group">
+                            <div class="mb-2 text-muted small">
+                                Chọn lịch khám để liên kết với gói HIS này. Chỉ hiển thị các lịch chưa liên kết với gói nào.
+                            </div>
+                            {% for config in available_schedule_configs_for_link %}
+                            <label class="list-group-item list-group-item-action">
+                                <div class="d-flex gap-2">
+                                    <input class="form-check-input mt-1" type="radio" name="schedule_config_id" value="{{ config.id }}" required>
+                                    <div>
+                                        <div class="fw-semibold">
+                                            {{ config.exam_start_date|date:"d/m/Y" }} - {{ config.exam_end_date|date:"d/m/Y" }}
+                                            · {{ config.quotation.company_name|default:"Báo giá" }}
+                                        </div>
+                                        <div class="text-muted small">
+                                            {% if config.contract and config.contract.contract %}
+                                            HĐ {{ config.contract.contract.contract_number|default:"Chưa có số HĐ" }}
+                                            {% else %}
+                                            Báo giá #{{ config.quotation_id }}
+                                            {% endif %}
+                                            {% if config.planned_employee_count %} · {{ config.planned_employee_count }} KH đăng ký{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-muted py-3">
+                            Không có lịch khám đã đăng ký và chưa liên kết gói HIS.
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if executive_view_only %}
+                    <div class="modal-footer flex-column align-items-stretch gap-2">
+                        <div class="alert alert-warning py-2 mb-0 text-center">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Trưởng bộ phận vận hành/kinh doanh sẽ thực hiện chức năng này.
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                    </div>
+                    {% else %}
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                        <button type="submit" class="btn btn-success" {% if not available_schedule_configs_for_link %}disabled{% endif %}>
+                            Liên kết
+                        </button>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+    {% if can_unlink_schedule %}
+    <div class="modal fade" id="scheduleUnlinkModal{{ pkg.pk }}" tabindex="-1" aria-labelledby="scheduleUnlinkLabel{{ pkg.pk }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="scheduleUnlinkLabel{{ pkg.pk }}">
+                        Gỡ lịch khám cho gói {{ pkg.his_package_code }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <div class="fw-semibold">Gói khám: {{ pkg.package_name }}</div>
+                        <div class="text-muted small">{{ pkg.company_name }}</div>
+                    </div>
+                    {% with linked_schedules=pkg.schedule_configs.all %}
+                    {% if linked_schedules %}
+                    <p class="text-muted small mb-2">Chọn lịch cần gỡ:</p>
+                    <div class="list-group">
+                        {% for config in linked_schedules %}
+                        <form method="post" action="{% url 'his_integration:unlink_package_schedule' pkg.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="schedule_config_id" value="{{ config.id }}">
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div class="small">
+                                    <span class="badge bg-info text-dark me-1">
+                                        {{ config.exam_start_date|date:"d/m/Y" }} - {{ config.exam_end_date|date:"d/m/Y" }}
+                                    </span>
+                                    {{ config.quotation.company_name|default:"" }}
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-danger ms-2"
+                                        onclick="return confirm('Xác nhận gỡ lịch này khỏi gói khám?')">
+                                    Gỡ
+                                </button>
+                            </div>
+                        </form>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-muted">Gói khám này chưa có lịch liên kết.</div>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    {% if is_paginated %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Trước</a>
+            </li>
+            {% endif %}
+
+            <li class="page-item disabled">
+                <span class="page-link">Trang {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Sau</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

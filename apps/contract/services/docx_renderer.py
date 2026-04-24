@@ -24,6 +24,30 @@ logger = logging.getLogger(__name__)
 
 CONTRACT_CATALOG_TABLE_MARKER = "{{ CONTRACT_CATALOG_TABLE }}"
 QUOTATION_TABLE_MARKER = "{{ QUOTATION_TABLE }}"
+QUOTATION_EXTRA_CONTENT_GAP_PT = 10
+COMPANY_NAME_PLACEHOLDERS = {
+    "{{ company_name }}",
+    "{{company_name}}",
+    "{{ COMPANY_NAME }}",
+    "{{COMPANY_NAME}}",
+}
+
+
+def _with_placeholder_aliases(replacements: dict) -> dict:
+    aliased = dict(replacements)
+    for placeholder, value in replacements.items():
+        match = re.fullmatch(r"\{\{\s*([A-Za-z0-9_]+)\s*\}\}", placeholder)
+        if not match:
+            continue
+        key = match.group(1)
+        for alias_key in {key, key.upper()}:
+            aliased[f"{{{{ {alias_key} }}}}"] = value
+            aliased[f"{{{{{alias_key}}}}}"] = value
+    return aliased
+
+
+def _uppercase_text(value) -> str:
+    return str(value or "").strip().upper()
 
 
 def _to_int(value) -> int:
@@ -56,31 +80,36 @@ def _iter_all_paragraphs(parent):
                 yield from _iter_all_paragraphs(cell)
 
 
-def _replace_text_in_paragraph(paragraph, replacements: dict):
+def _replace_text_in_paragraph(paragraph, replacements: dict, bold_placeholders: set[str] | None = None):
     full_text = "".join(run.text for run in paragraph.runs) if paragraph.runs else paragraph.text
     if not full_text:
         return
     replaced = full_text
+    should_bold = False
     for key, value in replacements.items():
+        if key in replaced and bold_placeholders and key in bold_placeholders:
+            should_bold = True
         replaced = replaced.replace(key, str(value or ""))
     if replaced == full_text:
         return
     if paragraph.runs:
         paragraph.runs[0].text = replaced
+        if should_bold:
+            paragraph.runs[0].bold = True
         for run in paragraph.runs[1:]:
             run.text = ""
     else:
         paragraph.text = replaced
 
 
-def _replace_text_everywhere(doc: Document, replacements: dict):
+def _replace_text_everywhere(doc: Document, replacements: dict, bold_placeholders: set[str] | None = None):
     for paragraph in _iter_all_paragraphs(doc):
-        _replace_text_in_paragraph(paragraph, replacements)
+        _replace_text_in_paragraph(paragraph, replacements, bold_placeholders=bold_placeholders)
     for section in doc.sections:
         for paragraph in _iter_all_paragraphs(section.header):
-            _replace_text_in_paragraph(paragraph, replacements)
+            _replace_text_in_paragraph(paragraph, replacements, bold_placeholders=bold_placeholders)
         for paragraph in _iter_all_paragraphs(section.footer):
-            _replace_text_in_paragraph(paragraph, replacements)
+            _replace_text_in_paragraph(paragraph, replacements, bold_placeholders=bold_placeholders)
 
 
 def _remove_paragraph(paragraph):
@@ -162,6 +191,15 @@ def _set_paragraph_spacing(paragraph, before=0, after=0, line=1.0):
     pf.space_before = Pt(before)
     pf.space_after = Pt(after)
     pf.line_spacing = line
+
+
+def _insert_spacer_paragraph_after(doc: Document, insert_after_element, *, after=QUOTATION_EXTRA_CONTENT_GAP_PT):
+    paragraph = doc.add_paragraph()
+    run = paragraph.add_run(" ")
+    run.font.size = Pt(1)
+    _set_paragraph_spacing(paragraph, before=0, after=after, line=0.5)
+    insert_after_element.addnext(paragraph._element)
+    return paragraph._element
 
 
 def _write_cell_text(cell, text, *, align=WD_ALIGN_PARAGRAPH.LEFT, bold=False, italic=False,
@@ -284,24 +322,34 @@ def _build_replacements(payload: dict) -> dict:
     quotation = payload["quotation"]
     totals = payload.get("totals", {})
     today = date.today()
-    return {
+    replacements = {
         "{{ issue_day }}": str(today.day),
         "{{ issue_month }}": str(today.month),
         "{{ issue_year }}": str(today.year),
         "{{ issue_date }}": today.strftime("%d/%m/%Y"),
         "{{ quotation_id }}": quotation.get("id", ""),
         "{{ quotation_number }}": quotation.get("id", ""),
-        "{{ company_name }}": quotation.get("company_name", ""),
+        "{{ company_name }}": _uppercase_text(quotation.get("company_name", "")),
         "{{ contact_name }}": quotation.get("contact_name", ""),
         "{{ company_address }}": quotation.get("company_address", ""),
+        "{{ contact_phone }}": quotation.get("contact_phone", ""),
+        "{{ company_phone }}": quotation.get("company_phone", ""),
+        "{{ phone }}": quotation.get("phone", ""),
+        "{{ tax_code }}": quotation.get("tax_code", ""),
+        "{{ company_tax_code }}": quotation.get("company_tax_code", ""),
+        "{{ mst }}": quotation.get("mst", ""),
         "{{ valid_until }}": quotation.get("valid_until_display", ""),
         "{{ pax_from }}": quotation.get("pax_from", ""),
+        "{{ male_count }}": str(quotation.get("male_count", "")),
+        "{{ female_single_count }}": str(quotation.get("female_single_count", "")),
+        "{{ female_family_count }}": str(quotation.get("female_family_count", "")),
         "{{ note }}": quotation.get("note", ""),
         "{{ total_male }}": totals.get("total_male_display", ""),
         "{{ total_female_single }}": totals.get("total_female_single_display", ""),
         "{{ total_female_family }}": totals.get("total_female_family_display", ""),
         "{{ grand_total }}": totals.get("grand_total_display", ""),
     }
+    return _with_placeholder_aliases(replacements)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -972,6 +1020,7 @@ def _inject_packages_at_marker(doc: Document, payload: dict) -> bool:
     # Extra content (HTML từ Quill) sau tất cả bảng
     extra_content = (payload.get("quotation") or {}).get("extra_content") or ""
     if extra_content and extra_content.strip():
+        last_el = _insert_spacer_paragraph_after(doc, last_el)
         last_el = _html_to_docx_paragraphs(doc, extra_content, last_el)
 
     if not paragraph.text.strip():
@@ -997,8 +1046,9 @@ def _inject_table_at_marker(doc: Document, payload: dict) -> bool:
 
         # Extra content
         extra_content = (payload.get("quotation") or {}).get("extra_content") or ""
-        if extra_content:
-            _html_to_docx_paragraphs(doc, extra_content, table._tbl)
+        if extra_content and extra_content.strip():
+            spacer = _insert_spacer_paragraph_after(doc, table._tbl)
+            _html_to_docx_paragraphs(doc, extra_content, spacer)
 
         if not paragraph.text.strip():
             _remove_paragraph(paragraph)
@@ -1104,7 +1154,7 @@ def render_quotation_docx(*, payload: dict, output_path: str, template_path: str
         if template_file.exists() and template_file.is_file():
             doc = Document(str(template_file))
             replacements = _build_replacements(payload)
-            _replace_text_everywhere(doc, replacements)
+            _replace_text_everywhere(doc, replacements, bold_placeholders=COMPANY_NAME_PLACEHOLDERS)
 
             if payload.get("multi_package") and payload.get("packages"):
                 inserted = _inject_packages_at_marker(doc, payload)
@@ -1113,7 +1163,11 @@ def render_quotation_docx(*, payload: dict, output_path: str, template_path: str
 
             if not inserted:
                 doc.add_paragraph("")
-                _append_quotation_table(doc, payload)
+                table = _append_quotation_table(doc, payload)
+                extra_content = (payload.get("quotation") or {}).get("extra_content") or ""
+                if extra_content and extra_content.strip():
+                    spacer = _insert_spacer_paragraph_after(doc, table._tbl)
+                    _html_to_docx_paragraphs(doc, extra_content, spacer)
             doc.save(output_path)
             return output_path
 
@@ -1135,31 +1189,37 @@ def create_default_quotation_docx(payload: dict, output_path: str):
     _style_runs(p, bold=True, size=20, color="2F5AA8")
     _set_paragraph_spacing(p, after=4)
 
-    for line in [
-        f"Kính gửi: {quotation.get('contact_name', '')}",
-        f"Công ty: {quotation.get('company_name', '')}",
-        f"Địa chỉ: {quotation.get('company_address', '')}",
+    company_name = _uppercase_text(quotation.get("company_name", ""))
+    for line, bold in [
+        (f"Kính gửi: {quotation.get('contact_name', '')}", False),
+        (f"Công ty: {company_name}", True),
+        (f"Địa chỉ: {quotation.get('company_address', '')}", False),
+        (f"MST: {quotation.get('company_tax_code') or quotation.get('tax_code', '')}", False),
+        (f"Điện thoại: {quotation.get('company_phone') or quotation.get('contact_phone', '')}", False),
     ]:
         p = doc.add_paragraph(line)
-        _style_runs(p, size=11)
+        _style_runs(p, size=11, bold=bold)
         _set_paragraph_spacing(p, after=2)
 
+    last_el = None
     if payload.get("multi_package") and payload.get("packages"):
         for pkg in payload["packages"]:
             p = doc.add_paragraph(pkg.get("name", "Gói khám"))
             _style_runs(p, bold=True, size=13, color="1A5276")
             _set_paragraph_spacing(p, before=8, after=4)
+            last_el = p._element
             pkg_proxy = type("C", (), {"add_table": lambda self, rows, cols, style=None: doc.add_table(rows, cols)})()
             # Reuse _append_package_table logic simplified
             for dr in pkg.get("display_rows", []):
                 pass  # simplified: just add table via _append_package_table
     else:
-        _append_quotation_table(doc, payload)
+        table = _append_quotation_table(doc, payload)
+        last_el = table._tbl
 
     extra = quotation.get("extra_content") or ""
-    if extra:
-        p = doc.add_paragraph("")
-        _html_to_docx_paragraphs(doc, extra, p._element)
+    if extra and extra.strip():
+        spacer = _insert_spacer_paragraph_after(doc, last_el or doc.paragraphs[-1]._element)
+        _html_to_docx_paragraphs(doc, extra, spacer)
 
     doc.save(output_path)
     return output_path
@@ -1170,7 +1230,7 @@ def create_default_quotation_docx(payload: dict, output_path: str):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _build_contract_replacements(payload: dict) -> dict:
-    return {
+    replacements = {
         "{{ contract_number }}":       payload.get("contract_number", ""),
         "{{ contract_number_full }}":  payload.get("contract_number_full", ""),
         "{{ issue_day }}":             payload.get("issue_day", ""),
@@ -1210,6 +1270,7 @@ def _build_contract_replacements(payload: dict) -> dict:
         "{{ contract_note }}":         payload.get("contract_note", ""),
         "{{ note }}":                  payload.get("note", ""),
     }
+    return _with_placeholder_aliases(replacements)
 
 
 def _append_contract_catalog_section(insert_after_element, doc: Document, section: dict):

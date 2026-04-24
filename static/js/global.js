@@ -1,29 +1,40 @@
 document.addEventListener("DOMContentLoaded", function () {
   const topbarAccount = document.getElementById("topbar-account");
   const accountBtn    = document.getElementById("account-menu-btn");
+  const accountMenu   = document.getElementById("account-menu");
 
-  if (!topbarAccount || !accountBtn) return;
+  if (!topbarAccount || !accountBtn || !accountMenu) return;
 
-  // Toggle khi click vào nút tài khoản
+  function setAccountMenuState(isOpen) {
+    topbarAccount.classList.toggle("open", isOpen);
+    accountBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    accountMenu.setAttribute("aria-hidden", isOpen ? "false" : "true");
+  }
+
   accountBtn.addEventListener("click", function (e) {
-    e.stopPropagation(); // không lan ra document
-    topbarAccount.classList.toggle("open");
+    e.stopPropagation();
+    setAccountMenuState(!topbarAccount.classList.contains("open"));
   });
 
-  // Click ra ngoài -> đóng menu
   document.addEventListener("click", function (e) {
     if (!topbarAccount.contains(e.target)) {
-      topbarAccount.classList.remove("open");
+      setAccountMenuState(false);
     }
   });
 
-  // Nhấn ESC -> đóng menu
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") {
-      topbarAccount.classList.remove("open");
+      setAccountMenuState(false);
     }
   });
+
+  accountMenu.querySelectorAll("a").forEach(function (link) {
+    link.addEventListener("click", function () {
+      setAccountMenuState(false);
+    });
+  });
 });
+
 
 
 function emitLayoutChanged(detail = {}) {

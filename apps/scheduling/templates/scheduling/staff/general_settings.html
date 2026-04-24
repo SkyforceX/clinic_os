@@ -6,7 +6,7 @@
 {% block content %}
 <style>
 .settings-shell{
-  max-width:760px;
+  max-width:800px;
   margin:0 auto;
 }
 .settings-card{
@@ -30,16 +30,25 @@
   color:#64748b;
   font-size:.92rem;
 }
+.section-divider{
+  border-top:2px solid #e2e8f0;
+  margin:28px 0 20px;
+}
+.holiday-row:hover{
+  background:#f8fafc;
+}
 </style>
 
 <div class="settings-shell">
   <div class="settings-hero">
     <h4 class="mb-1">⚙️ Thiết lập chung</h4>
-    <div>Thiết lập giới hạn slot khám mặc định toàn hệ thống cho từng buổi sáng và chiều.</div>
+    <div>Quản lý giới hạn slot khám, số địa điểm lấy máu và lịch nghỉ lễ toàn hệ thống.</div>
   </div>
 
-  <div class="settings-card">
+  <!-- ── PHẦN 1: Thiết lập slot ─────────────────────────────── -->
+  <div class="settings-card mb-4">
     <div class="card-body p-4">
+      <h6 class="fw-bold text-primary mb-3">📋 Giới hạn slot khám & lấy máu</h6>
       <form method="post">
         {% csrf_token %}
 
@@ -65,6 +74,17 @@
           </div>
         </div>
 
+        <div class="mb-3">
+          <label class="settings-label">Số địa điểm lấy máu tối đa trong 1 ngày</label>
+          {{ form.max_blood_location_per_day }}
+          {% if form.max_blood_location_per_day.errors %}
+            <div class="text-danger mt-1">{{ form.max_blood_location_per_day.errors|join:", " }}</div>
+          {% endif %}
+          <div class="settings-help mt-1">
+            Giới hạn số lượng địa điểm lấy máu có thể đăng ký trong cùng một ngày. Nhập <strong>0</strong> để không giới hạn.
+          </div>
+        </div>
+
         <div class="text-muted small mb-3">
           Cập nhật lần cuối:
           {{ setting.updated_at|date:"d/m/Y H:i" }}
@@ -81,5 +101,85 @@
       </form>
     </div>
   </div>
+
+  <!-- ── PHẦN 2: Lịch nghỉ lễ ──────────────────────────────── -->
+  <div class="settings-card mb-4">
+    <div class="card-body p-4">
+      <h6 class="fw-bold text-primary mb-3">🗓️ Lịch nghỉ lễ trong năm</h6>
+
+      <!-- Form thêm ngày nghỉ -->
+      <form method="post" action="{% url 'scheduling:add_holiday' %}" class="mb-4">
+        {% csrf_token %}
+        <div class="row g-2 align-items-end">
+          <div class="col-sm-4">
+            <label class="settings-label">Ngày nghỉ</label>
+            {{ holiday_form.date }}
+            {% if holiday_form.date.errors %}
+              <div class="text-danger small mt-1">{{ holiday_form.date.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+          <div class="col-sm-5">
+            <label class="settings-label">Tên ngày nghỉ</label>
+            {{ holiday_form.name }}
+            {% if holiday_form.name.errors %}
+              <div class="text-danger small mt-1">{{ holiday_form.name.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+          <div class="col-sm-3">
+            <button type="submit" class="btn btn-success w-100">
+              <i class="fa fa-plus"></i> Thêm
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Danh sách ngày nghỉ -->
+      {% if holidays %}
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle">
+            <thead class="table-light">
+              <tr>
+                <th style="width:130px;">Ngày</th>
+                <th>Tên ngày nghỉ</th>
+                <th style="width:80px;" class="text-center">Xóa</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for h in holidays %}
+                <tr class="holiday-row">
+                  <td class="fw-semibold">{{ h.date|date:"d/m/Y" }}</td>
+                  <td>{{ h.name|default:"—" }}</td>
+                  <td class="text-center">
+                    <form method="post"
+                          action="{% url 'scheduling:delete_holiday' h.id %}"
+                          class="js-confirm-delete"
+                          data-confirm="Xóa ngày nghỉ {{ h.date|date:'d/m/Y' }}?">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="fa fa-trash"></i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="text-muted small">Tổng: {{ holidays|length }} ngày nghỉ</div>
+      {% else %}
+        <div class="text-muted text-center py-3">Chưa có ngày nghỉ lễ nào được thiết lập.</div>
+      {% endif %}
+    </div>
+  </div>
+
 </div>
+
+<script>
+document.querySelectorAll('.js-confirm-delete').forEach(function(form) {
+  form.addEventListener('submit', function(e) {
+    var msg = form.dataset.confirm || 'Bạn chắc chắn muốn xóa?';
+    if (!confirm(msg)) e.preventDefault();
+  });
+});
+</script>
 {% endblock %}

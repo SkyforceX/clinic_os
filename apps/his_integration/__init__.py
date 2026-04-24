@@ -1,0 +1,1 @@
+default_app_config = 'apps.his_integration.apps.HisIntegrationConfig'

@@ -1,5 +1,6 @@
 class SchedulingPolicy:
     MANAGER_GROUP_NAMES = {"Managers", "Manager"}
+    EXECUTIVE_GROUP_NAMES = {"Executives", "Executive"}
 
     @classmethod
     def is_authenticated_actor(cls, user):
@@ -12,6 +13,14 @@ class SchedulingPolicy:
         if user.is_superuser:
             return True
         return user.groups.filter(name__in=cls.MANAGER_GROUP_NAMES).exists()
+
+    @classmethod
+    def is_executive(cls, user):
+        if not cls.is_authenticated_actor(user):
+            return False
+        if user.is_superuser:
+            return True
+        return user.groups.filter(name__in=cls.EXECUTIVE_GROUP_NAMES).exists()
 
     @classmethod
     def can_view_schedule_table(cls, user):
@@ -36,6 +45,14 @@ class SchedulingPolicy:
     @classmethod
     def can_redistribute_slots(cls, user, contract):
         return cls.can_manage_contract_schedule(user, contract)
+
+    @classmethod
+    def can_end_schedule(cls, user, owner_user_id):
+        if not cls.is_authenticated_actor(user):
+            return False
+        if cls.is_manager(user):
+            return True
+        return owner_user_id == user.id
 
     @classmethod
     def can_manage_general_settings(cls, user):

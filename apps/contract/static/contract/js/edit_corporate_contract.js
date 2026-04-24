@@ -249,6 +249,7 @@ function addBloodRow() {
   });
 
   container.appendChild(row);
+  if (window.reinitRowDatePickers) reinitRowDatePickers(row);
 }
 
 // ── Khởi tạo sau khi DOM sẵn sàng ──────────────────────────────────────────

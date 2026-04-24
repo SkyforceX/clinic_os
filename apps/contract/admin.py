@@ -1,6 +1,7 @@
 
 from django.contrib import admin, messages
 from django.shortcuts import redirect
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from apps.contract.models.document import DocumentTemplate, IssuedDocument
@@ -43,6 +44,8 @@ class DocumentTemplateAdmin(admin.ModelAdmin):
                     "<p><strong>Quotation template</strong>: đặt marker <code>{{ QUOTATION_TABLE }}</code> trên một dòng riêng.</p>"
                     "<p>Quotation keys chuẩn: <code>{{ company_name }}</code>, <code>{{ contact_name }}</code>, "
                     "<code>{{ company_address }}</code>, <code>{{ valid_until }}</code>, <code>{{ pax_from }}</code>, "
+                    "<code>{{ company_phone }}</code>, <code>{{ contact_phone }}</code>, "
+                    "<code>{{ company_tax_code }}</code>, <code>{{ tax_code }}</code>, <code>{{ mst }}</code>, "
                     "<code>{{ male_count }}</code>, <code>{{ female_single_count }}</code>, <code>{{ female_family_count }}</code>, "
                     "<code>{{ note }}</code>, <code>{{ total_male }}</code>, <code>{{ total_female_single }}</code>, "
                     "<code>{{ total_female_family }}</code>, <code>{{ grand_total }}</code>.</p>"

@@ -259,7 +259,7 @@ function updateDepositCalc() {
     document.getElementById('pct_display').textContent = pct;
     document.getElementById('deposit_auto_display').textContent = fmtVnd(autoDeposit);
 
-    if (amountInput && !depositAmountManual && !parseMoneyInput(amountInput.value)) {
+    if (amountInput && !depositAmountManual) {
       amountInput.value = autoDeposit ? autoDeposit.toLocaleString('vi-VN') : '';
       syncDepositWordsFromAmount();
     }
@@ -282,6 +282,7 @@ function addBloodRow() {
   });
 
   container.appendChild(row);
+  if (window.reinitRowDatePickers) reinitRowDatePickers(row);
 }
 
 document.addEventListener('DOMContentLoaded', function () {

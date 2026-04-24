@@ -41,16 +41,20 @@
 <div class="container">
   <div class="schedule-hero">
     <h3 class="mb-1">
-      {% if is_edit_mode %}Cập nhật đăng ký lịch khám{% else %}Đăng ký lịch khám{% endif %}
+      {% if is_view_mode %}Xem lịch khám (đã chốt){% elif is_edit_mode %}Cập nhật đăng ký lịch khám{% else %}Đăng ký lịch khám{% endif %}
     </h3>
     <div class="sub">
-      Chọn báo giá doanh nghiệp để đăng ký kế hoạch lịch khám. Slot khám sẽ được đồng bộ theo hợp đồng khi hợp đồng được tạo.
+      {% if is_view_mode %}
+        Lịch khám này đã được chốt. Mọi thông tin chỉ để xem, không thể chỉnh sửa.
+      {% else %}
+        Chọn báo giá doanh nghiệp để đăng ký kế hoạch lịch khám. Slot khám sẽ được đồng bộ theo hợp đồng khi hợp đồng được tạo.
+      {% endif %}
     </div>
   </div>
 
   <div class="schedule-form-card">
     <div class="card-body p-4">
-      <form method="post" action="{% if is_edit_mode %}{% url 'contract:edit_contract' selected_config.id %}{% else %}{% url 'contract:save_contract' %}{% endif %}">
+      <form method="{% if is_view_mode %}get{% else %}post{% endif %}" action="{% if is_edit_mode %}{% url 'contract:edit_contract' selected_config.id %}{% else %}{% url 'contract:save_contract' %}{% endif %}">
         {% csrf_token %}
 
         <div class="row g-3">
@@ -88,7 +92,8 @@
               type="date"
               name="start_date"
               class="form-control"
-              required
+              {% if not is_view_mode %}required{% endif %}
+              {% if is_view_mode %}disabled{% endif %}
               value="{% if old_post.start_date %}{{ old_post.start_date }}{% elif schedule_config.exam_start_date %}{{ schedule_config.exam_start_date|date:'Y-m-d' }}{% endif %}"
             >
           </div>
@@ -99,7 +104,8 @@
               type="date"
               name="end_date"
               class="form-control"
-              required
+              {% if not is_view_mode %}required{% endif %}
+              {% if is_view_mode %}disabled{% endif %}
               value="{% if old_post.end_date %}{{ old_post.end_date }}{% elif schedule_config.exam_end_date %}{{ schedule_config.exam_end_date|date:'Y-m-d' }}{% endif %}"
             >
           </div>
@@ -111,46 +117,117 @@
               name="employee_count"
               class="form-control"
               min="1"
-              required
+              {% if not is_view_mode %}required{% endif %}
+              {% if is_view_mode %}disabled{% endif %}
               value="{% if old_post.employee_count %}{{ old_post.employee_count }}{% elif schedule_config.planned_employee_count %}{{ schedule_config.planned_employee_count }}{% elif selected_contract.employee_count %}{{ selected_contract.employee_count }}{% endif %}"
             >
           </div>
 
           <div class="col-md-4">
-            <label class="form-label fw-bold">Giới hạn slot sáng cho hợp đồng</label>
+            <label class="form-label fw-bold">Giới hạn slot khám buổi sáng</label>
             <input
               type="number"
               name="am_capacity_limit"
               class="form-control"
-              min="1"
+              min="0"
               max="{{ system_setting.default_am_slot_limit }}"
-              required
+              {% if not is_view_mode %}required{% endif %}
+              {% if is_view_mode %}disabled{% endif %}
               value="{% if old_post.am_capacity_limit %}{{ old_post.am_capacity_limit }}{% elif schedule_config.am_capacity_limit %}{{ schedule_config.am_capacity_limit }}{% else %}{{ default_am_limit }}{% endif %}"
             >
-            <div class="schedule-note mt-1">Tối đa theo hệ thống: {{ system_setting.default_am_slot_limit }}</div>
+            <div class="schedule-note mt-1">Tối đa theo hệ thống: {{ system_setting.default_am_slot_limit }}. Nhập 0 để không chia slot buổi sáng.</div>
           </div>
 
           <div class="col-md-4">
-            <label class="form-label fw-bold">Giới hạn slot chiều cho hợp đồng</label>
+            <label class="form-label fw-bold">Giới hạn slot khám buổi chiều</label>
             <input
               type="number"
               name="pm_capacity_limit"
               class="form-control"
-              min="1"
+              min="0"
               max="{{ system_setting.default_pm_slot_limit }}"
-              required
+              {% if not is_view_mode %}required{% endif %}
+              {% if is_view_mode %}disabled{% endif %}
               value="{% if old_post.pm_capacity_limit %}{{ old_post.pm_capacity_limit }}{% elif schedule_config.pm_capacity_limit %}{{ schedule_config.pm_capacity_limit }}{% else %}{{ default_pm_limit }}{% endif %}"
             >
-            <div class="schedule-note mt-1">Tối đa theo hệ thống: {{ system_setting.default_pm_slot_limit }}</div>
+            <div class="schedule-note mt-1">Tối đa theo hệ thống: {{ system_setting.default_pm_slot_limit }}. Nhập 0 để không chia slot buổi chiều.</div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-bold">Các thứ trong tuần được chia slot</label>
+            <div class="d-flex flex-wrap gap-2 mt-1" id="weekday-checkboxes">
+              {% for wd_val, wd_label in weekday_choices %}
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="allowed_weekday"
+                  value="{{ wd_val }}" id="wd_{{ wd_val }}"
+                  {% if not preselected_weekdays or wd_val in preselected_weekdays %}checked{% endif %}
+                  {% if is_view_mode %}disabled{% endif %}>
+                <label class="form-check-label" for="wd_{{ wd_val }}">{{ wd_label }}</label>
+              </div>
+              {% endfor %}
+            </div>
+            {% if not is_view_mode %}
+            <div class="schedule-note mt-1">Bỏ chọn các thứ không muốn chia slot. Mặc định chọn tất cả (T2–T7).</div>
+            {% endif %}
           </div>
         </div>
 
         <hr class="my-4">
 
-        <div class="schedule-section-title">2. Chọn ngày lấy máu</div>
+        <div class="schedule-section-title">2. Gán gói khám HIS</div>
+        <div class="schedule-note mb-2">
+          Chọn gói khám tương ứng trong dữ liệu đồng bộ từ HIS để liên kết dữ liệu bệnh nhân.
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-md-8">
+            <select name="his_package_id" class="form-select" id="his-package-select"
+              {% if not can_assign_his_package or is_view_mode %}disabled{% endif %}>
+              <option value="">-- Không gán gói HIS --</option>
+              {% for pkg in available_his_packages %}
+              <option value="{{ pkg.id }}"
+                data-company="{{ pkg.company_name|lower }}"
+                {% if linked_his_package and linked_his_package.id == pkg.id %}selected
+                {% elif old_post.his_package_id == pkg.id|stringformat:"s" %}selected{% endif %}>
+                {{ pkg.package_name }} — {{ pkg.company_name }}
+                {% if pkg.exam_year %}({{ pkg.exam_year }}){% endif %}
+                {% if pkg.valid_to %} — HHL: {{ pkg.valid_to|date:"d/m/Y" }}{% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <input type="text" id="his-package-search" class="form-control" placeholder="Lọc theo tên công ty..."
+              {% if not can_assign_his_package or is_view_mode %}disabled{% endif %}>
+          </div>
+        </div>
+        {% if not can_assign_his_package %}
+        <div class="alert alert-warning py-2 mb-2">
+          <i class="fas fa-lock me-1"></i>
+          Liên hệ bộ phận vận hành để gán gói khám HIS cho lịch khám.
+        </div>
+        {% endif %}
+        {% if linked_his_package %}
+        <div class="alert alert-info py-2 mb-0">
+          <i class="fas fa-link me-1"></i>
+          Đang gán: <strong>{{ linked_his_package.package_name }}</strong> — {{ linked_his_package.company_name }}
+          {% if linked_his_package.exam_year %}({{ linked_his_package.exam_year }}){% endif %}
+        </div>
+        {% endif %}
+
+        <hr class="my-4">
+
+        <div class="schedule-section-title">3. Chọn ngày lấy máu</div>
         <div class="schedule-note mb-2">
           Có thể tạo nhiều đợt lấy máu bằng cách thêm dòng.
+          {% if max_blood_per_day %}
+            <span class="badge bg-warning text-dark ms-1">Tối đa {{ max_blood_per_day }} địa điểm/ngày</span>
+          {% endif %}
         </div>
+
+        <span id="blood-limit-meta"
+              data-max="{{ max_blood_per_day|default:0 }}"
+              data-counts="{{ blood_date_counts_json|escapejs }}"
+              hidden></span>
 
         <div class="table-responsive">
           <table class="table table-bordered blood-table align-middle" id="blood-collection-table">
@@ -172,13 +249,14 @@
                       type="date"
                       class="form-control"
                       name="blood_collection_date[]"
+                      {% if is_view_mode %}disabled{% endif %}
                       value="{% if row.collection_date %}{{ row.collection_date|date:'Y-m-d' }}{% else %}{{ row.collection_date|default:'' }}{% endif %}"
                     >
                   </td>
-                  <td><input type="text" class="form-control" name="blood_location[]" value="{{ row.location|default:'' }}"></td>
-                  <td><input type="number" class="form-control" min="0" name="blood_people_count[]" value="{{ row.people_count|default:'' }}"></td>
-                  <td><input type="number" class="form-control" min="0" name="blood_staff_count[]" value="{{ row.staff_count|default:'' }}"></td>
-                  <td><button type="button" class="btn btn-danger btn-sm remove-row">🗑️</button></td>
+                  <td><input type="text" class="form-control" name="blood_location[]" {% if is_view_mode %}disabled{% endif %} value="{{ row.location|default:'' }}"></td>
+                  <td><input type="number" class="form-control" min="0" name="blood_people_count[]" {% if is_view_mode %}disabled{% endif %} value="{{ row.people_count|default:'' }}"></td>
+                  <td><input type="number" class="form-control" min="0" name="blood_staff_count[]" {% if is_view_mode %}disabled{% endif %} value="{{ row.staff_count|default:'' }}"></td>
+                  <td>{% if not is_view_mode %}<button type="button" class="btn btn-danger btn-sm remove-row">🗑️</button>{% endif %}</td>
                 </tr>
                 {% endfor %}
               {% else %}
@@ -194,12 +272,14 @@
           </table>
         </div>
 
+        {% if not is_view_mode %}
         <button type="button" class="btn btn-outline-secondary btn-sm" id="add-blood-row">
           + Thêm dòng lấy máu
         </button>
+        {% endif %}
 
         <div class="d-flex justify-content-end mt-4 gap-2 flex-wrap">
-          {% if is_edit_mode and can_delete_config %}
+          {% if not is_view_mode and is_edit_mode and can_delete_config %}
             <form method="post" action="{% url 'contract:delete_contract' selected_config.id %}" onsubmit="return confirm('Bạn chắc chắn muốn xóa lịch đăng ký khám này?');">
               {% csrf_token %}
               <button type="submit" class="btn btn-outline-danger">
@@ -208,12 +288,25 @@
             </form>
           {% endif %}
 
+          {% if is_ended %}
+            <button type="button" class="btn btn-secondary" disabled>Đã kết thúc</button>
+          {% elif can_end_schedule %}
+            <form method="post" action="{% url 'scheduling:end_schedule' selected_config.id %}" onsubmit="return confirm('Kết thúc lịch khám này? Hành động này không thể hoàn tác.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-secondary">
+                Kết thúc lịch khám
+              </button>
+            </form>
+          {% endif %}
+
           <a href="{% url 'contract:contract_list' %}" class="btn btn-outline-secondary">
             Quay lại
           </a>
+          {% if not is_view_mode %}
           <button type="submit" class="btn btn-primary">
             {% if is_edit_mode %}Cập nhật đăng ký{% else %}Đăng ký lịch khám{% endif %}
           </button>
+          {% endif %}
         </div>
       </form>
     </div>
@@ -223,6 +316,23 @@
 
 {% block extra_scripts %}
 <script>
+/* ── Lọc gói HIS theo tên công ty ── */
+(function () {
+  var searchInput = document.getElementById('his-package-search');
+  var packageSelect = document.getElementById('his-package-select');
+  if (!searchInput || !packageSelect) return;
+
+  var allOptions = Array.from(packageSelect.options);
+
+  searchInput.addEventListener('input', function () {
+    var term = this.value.trim().toLowerCase();
+    allOptions.forEach(function (opt) {
+      if (!opt.value) { opt.hidden = false; return; }
+      opt.hidden = term && !opt.dataset.company.includes(term);
+    });
+  });
+})();
+
 document.getElementById('add-blood-row').addEventListener('click', function () {
   const tbody = document.getElementById('blood-collection-tbody');
   const newRow = document.createElement('tr');
@@ -235,6 +345,7 @@ document.getElementById('add-blood-row').addEventListener('click', function () {
     <td><button type="button" class="btn btn-danger btn-sm remove-row">🗑️</button></td>
   `;
   tbody.appendChild(newRow);
+  if (window.reinitRowDatePickers) reinitRowDatePickers(newRow);
 });
 
 document.getElementById('blood-collection-tbody').addEventListener('click', function (e) {
@@ -242,8 +353,57 @@ document.getElementById('blood-collection-tbody').addEventListener('click', func
     const rows = document.querySelectorAll('#blood-collection-tbody tr');
     if (rows.length > 1) {
       e.target.closest('tr').remove();
+      validateBloodDates();
     }
   }
 });
+
+/* ── Validate giới hạn địa điểm lấy máu/ngày ── */
+(function () {
+  var bloodMeta = document.getElementById('blood-limit-meta');
+  var maxPerDay = bloodMeta ? parseInt(bloodMeta.dataset.max, 10) || 0 : 0;
+  var otherCounts = bloodMeta ? JSON.parse(bloodMeta.dataset.counts || '{}') : {};
+
+  window.validateBloodDates = function () {
+    if (!maxPerDay) return;
+
+    var inputs = document.querySelectorAll('[name="blood_collection_date[]"]');
+    var formCounts = {};
+    inputs.forEach(function (inp) {
+      if (inp.value) formCounts[inp.value] = (formCounts[inp.value] || 0) + 1;
+    });
+
+    inputs.forEach(function (inp) {
+      var td = inp.closest('td');
+      var errEl = td.querySelector('.blood-date-err');
+      if (!errEl) {
+        errEl = document.createElement('div');
+        errEl.className = 'blood-date-err text-danger small mt-1';
+        td.appendChild(errEl);
+      }
+
+      var val = inp.value;
+      if (!val) { errEl.textContent = ''; inp.classList.remove('is-invalid'); return; }
+
+      var existing = otherCounts[val] || 0;
+      var inForm = formCounts[val] || 0;
+      var total = existing + inForm;
+
+      if (total > maxPerDay) {
+        errEl.textContent = 'Ngày này đã có ' + total + '/' + maxPerDay + ' địa điểm lấy máu.';
+        inp.classList.add('is-invalid');
+      } else {
+        errEl.textContent = '';
+        inp.classList.remove('is-invalid');
+      }
+    });
+  };
+
+  document.getElementById('blood-collection-tbody').addEventListener('change', function (e) {
+    if (e.target.name === 'blood_collection_date[]') validateBloodDates();
+  });
+
+  validateBloodDates();
+})();
 </script>
 {% endblock %}

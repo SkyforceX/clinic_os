@@ -4,6 +4,8 @@ from apps.clinical.web.views.dental_views import (
     dental_exam_form,
     dental_exam_history,
     get_dental_data,
+    get_his_all_patients,
+    get_his_patients_by_company,
 )
 from apps.clinical.web.views.pathology_views import (
     get_pathology_data,
@@ -18,6 +20,8 @@ __all__ = [
     "dental_exam_form",
     "dental_exam_history",
     "get_dental_data",
+    "get_his_all_patients",
+    "get_his_patients_by_company",
     "get_pathology_data",
     "load_fixture_data",
     "pathology",

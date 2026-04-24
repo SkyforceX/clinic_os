@@ -5,6 +5,7 @@ from apps.contract.web.views import (
     approve_contract,
     checkupcategory_create,
     checkupcategory_edit,
+    confirm_contract,
     contract_list,
     corporate_contract_list,
     corporate_contract_print,
@@ -53,6 +54,7 @@ urlpatterns = [
     path("save/", save_contract, name="save_contract"),
     path("<int:contract_id>/edit/", edit_contract, name="edit_contract"),
     path("<int:contract_id>/approve/", approve_contract, name="approve_contract"),
+    path("<int:contract_id>/confirm/", confirm_contract, name="confirm_contract"),
     path("<int:contract_id>/delete/", delete_contract, name="delete_contract"),
 
     path("ajax/checkup-overview/", ajax_checkup_overview, name="ajax_checkup_overview"),

@@ -1,10 +1,11 @@
 from apps.clinical.models import DentalExamination, ToothNotation
 from apps.organizations.selectors.company_selectors import list_companies_for_actor
-from apps.patients.models import Patient
 import re as _re
 import base64
 import mimetypes
 from pathlib import Path
+
+from apps.his_integration.selectors import get_active_his_patient_by_id
 
 SIGNATURE_DIR = Path(__file__).resolve().parents[1] / "data" / "signature"
 
@@ -50,11 +51,6 @@ def _build_doctor_signature_context(actor):
 
 
 def _notation_sort_key(item):
-    """
-    Sort ký hiệu răng theo thứ tự số thực:
-    0 → √1 → 1 → 2 → 3 → 3.1 → ... → 10 → 11 → 11.1 → 11.2 ...
-    √X được xếp ngay trước X (√1 trước 1).
-    """
     raw = item.code.strip()
     has_sqrt = "√" in raw
     clean = raw.replace("√", "").strip()
@@ -62,9 +58,9 @@ def _notation_sort_key(item):
     if m:
         major = int(m.group(1))
         minor = int(m.group(2)) if m.group(2) else 0
-        sqrt_offset = -1 if has_sqrt else 0   # √X ngay trước X
+        sqrt_offset = -1 if has_sqrt else 0
         return (major, sqrt_offset, minor)
-    return (999, 0, 0)  # fallback cho code không phải số
+    return (999, 0, 0)
 
 
 def _split_note_columns(notations, num_columns=3):
@@ -96,36 +92,70 @@ def build_dental_exam_page_context(*, actor):
     }
 
 
+def _patient_info_from_exam(dental_exam):
+    """
+    Trả về dict thông tin hành chính bệnh nhân từ exam.
+    Ưu tiên his_patient → snapshot → patient legacy.
+    """
+    if dental_exam.his_patient_id:
+        his_p = dental_exam.his_patient
+        return {
+            "patient_id": his_p.id,
+            "full_name": his_p.full_name,
+            "dob": his_p.birth_date_display,
+            "gender": his_p.gioi_tinh,
+            "patient_code": his_p.his_patient_code,
+        }
+
+    snapshot = dental_exam.patient_snapshot or {}
+    p = dental_exam.patient
+    return {
+        "patient_id": p.id if p else None,
+        "full_name": snapshot.get("ho_ten") or (p.ho_ten if p else ""),
+        "dob": snapshot.get("ngay_sinh") or (
+            p.ngay_sinh.strftime("%d/%m/%Y") if p and p.ngay_sinh else ""
+        ),
+        "gender": snapshot.get("gioi_tinh") or (p.gioi_tinh if p else ""),
+        "patient_code": snapshot.get("ma_bn") or (p.ma_bn if p else ""),
+    }
+
+
 def build_dental_result_payload(*, patient_id=None, exam_id=None):
     """
     Trả về dữ liệu để prefill form.
-    Ưu tiên exam_id (load bản ghi cụ thể), fallback sang patient_id (load bản ghi mới nhất).
+    - exam_id: load bản ghi cụ thể
+    - patient_id: HisPatientSync.id — load bản ghi mới nhất của BN HIS đó
     """
     if exam_id:
-        dental_exam = DentalExamination.objects.select_related("patient").get(id=exam_id)
-        patient = dental_exam.patient
+        dental_exam = DentalExamination.objects.select_related(
+            "his_patient", "patient"
+        ).get(id=exam_id)
+        info = _patient_info_from_exam(dental_exam)
+
     elif patient_id:
-        patient = Patient.objects.select_related("company").get(id=patient_id)
+        his_p = get_active_his_patient_by_id(patient_id=patient_id)
+        if not his_p:
+            raise ValueError("Không tìm thấy bệnh nhân HIS trong hệ thống.")
+
         dental_exam = (
-            DentalExamination.objects.filter(patient=patient)
+            DentalExamination.objects.filter(his_patient=his_p)
             .order_by("-created_at", "-id")
             .first()
         )
+        info = {
+            "patient_id": his_p.id,
+            "full_name": his_p.full_name,
+            "dob": his_p.birth_date_display,
+            "gender": his_p.gioi_tinh,
+            "patient_code": his_p.his_patient_code,
+        }
+
     else:
         raise ValueError("Cần cung cấp exam_id hoặc patient_id.")
 
-    # Ưu tiên snapshot nếu có, fallback sang patient model
-    snapshot = dental_exam.patient_snapshot if dental_exam and dental_exam.patient_snapshot else {}
-
     data = {
-        "patient_id": patient.id,
+        **info,
         "dental_exam_id": dental_exam.id if dental_exam else "",
-        "full_name": snapshot.get("ho_ten") or patient.ho_ten,
-        "dob": snapshot.get("ngay_sinh") or (
-            patient.ngay_sinh.strftime("%d/%m/%Y") if patient.ngay_sinh else ""
-        ),
-        "gender": snapshot.get("gioi_tinh") or patient.gioi_tinh,
-        "patient_code": snapshot.get("ma_bn") or patient.ma_bn,
         "additional_notes": dental_exam.additional_notes if dental_exam else "",
         "loss_classification": dental_exam.tooth_loss_classification if dental_exam else "",
         "other_oral_conditions": dental_exam.other_oral_conditions if dental_exam else "",
@@ -136,7 +166,6 @@ def build_dental_result_payload(*, patient_id=None, exam_id=None):
         ),
         "health_classification": dental_exam.health_classification if dental_exam else "",
         "conclusion": dental_exam.conclusion if dental_exam else "",
-        # Ngày khám dùng để prefill printDate khi xem lịch sử
         "exam_date": (
             dental_exam.created_at.strftime("%Y-%m-%d")
             if dental_exam and dental_exam.created_at
@@ -159,11 +188,15 @@ def build_dental_result_payload(*, patient_id=None, exam_id=None):
 
 def get_exam_history_for_patient(*, patient_id):
     """
-    Trả về danh sách lịch sử khám của bệnh nhân, mới nhất trước.
+    Trả về danh sách lịch sử khám của bệnh nhân HIS, mới nhất trước.
+    patient_id = HisPatientSync.id
     """
-    patient = Patient.objects.get(id=patient_id)
+    his_patient = get_active_his_patient_by_id(patient_id=patient_id)
+    if not his_patient:
+        raise ValueError("Không tìm thấy bệnh nhân HIS trong hệ thống.")
+
     exams = (
-        DentalExamination.objects.filter(patient=patient)
+        DentalExamination.objects.filter(his_patient=his_patient)
         .order_by("-created_at", "-id")
         .only(
             "id", "created_at", "conclusion", "health_classification",
@@ -173,7 +206,6 @@ def get_exam_history_for_patient(*, patient_id):
 
     result = []
     for exam in exams:
-        snapshot = exam.patient_snapshot or {}
         result.append({
             "id": exam.id,
             "created_at_display": (
@@ -182,8 +214,8 @@ def get_exam_history_for_patient(*, patient_id):
             "exam_date": (
                 exam.created_at.strftime("%Y-%m-%d") if exam.created_at else ""
             ),
-            "patient_name": snapshot.get("ho_ten") or patient.ho_ten,
-            "patient_code": snapshot.get("ma_bn") or patient.ma_bn,
+            "patient_name": his_patient.full_name,
+            "patient_code": his_patient.his_patient_code,
             "health_classification": exam.health_classification or "",
             "tooth_loss_classification": exam.tooth_loss_classification or "",
             "chewing_ability": str(exam.chewing_ability) if exam.chewing_ability is not None else "",

@@ -13,7 +13,6 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="{% static 'authentication/css/customer_login.css' %}">
-  <link rel="stylesheet" href="{% static 'css/flatpickr.min.css' %}">
 </head>
 
 <body class="patient-login-page">
@@ -84,9 +83,9 @@
             </div>
           {% endif %}
 
-          <!-- Date of birth (used as password) -->
-          <div class="plf-field {% if form.password.errors %}plf-field-error{% endif %}">
-            <label class="plf-label" for="id_password">
+          <!-- Date of birth -->
+          <div class="plf-field {% if form.date_of_birth.errors %}plf-field-error{% endif %}">
+            <label class="plf-label" for="id_date_of_birth">
               Ngày tháng năm sinh
               <span class="plf-required" aria-hidden="true">*</span>
             </label>
@@ -94,24 +93,25 @@
               <span class="plf-input-icon">
                 <i class="fa-regular fa-calendar"></i>
               </span>
-              {{ form.password }}
-              <button type="button"
-                      class="plf-toggle-btn"
-                      id="apTogglePass"
-                      aria-label="Hiện/ẩn ngày sinh"
-                      aria-pressed="false"
-                      tabindex="-1">
-                <i class="fa-regular fa-eye" id="apTogglePassIcon" aria-hidden="true"></i>
+              {{ form.date_of_birth }}
+              <button
+                type="button"
+                class="plf-toggle-btn"
+                id="toggleDateOfBirth"
+                aria-label="Hiển thị ngày sinh"
+                aria-pressed="false"
+              >
+                <i class="fa-regular fa-eye"></i>
               </button>
             </div>
-            <p class="plf-hint">
+            <p class="plf-hint" id="dateOfBirthHint">
               <i class="fa-regular fa-circle-question"></i>
-              Nhập theo định dạng <strong>ngày tháng năm</strong>, ví dụ: <strong>15081990</strong>
+              Nhập theo định dạng <strong>ddmmyyyy</strong>, ví dụ: <strong>15081990</strong>
             </p>
-            {% if form.password.errors %}
+            {% if form.date_of_birth.errors %}
               <p class="plf-error-msg">
                 <i class="fa-solid fa-triangle-exclamation"></i>
-                {{ form.password.errors.0 }}
+                {{ form.date_of_birth.errors.0 }}
               </p>
             {% endif %}
           </div>
@@ -185,7 +185,6 @@
   </div><!-- end .pl-wrapper -->
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="{% static 'plugins/flatpickr/flatpickr.js' %}"></script>
   <script src="{% static 'js/global.js' %}"></script>
   <script src="{% static 'authentication/js/scripts.js' %}"></script>
 
@@ -200,36 +199,37 @@
 
   <script>
     (function () {
-      /* ── Toggle hiện/ẩn ngày sinh ────────────────────── */
-      var input = document.getElementById("id_password");
-      var btn   = document.getElementById("apTogglePass");
-      var icon  = document.getElementById("apTogglePassIcon");
+      var dobInput = document.getElementById("id_date_of_birth");
+      var dobToggle = document.getElementById("toggleDateOfBirth");
 
-      if (!input || !btn || !icon) return;
-
-      function setIcon(isShown) {
-        icon.className = isShown ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
-        btn.setAttribute("aria-pressed", String(isShown));
-        btn.title = isShown ? "Ẩn ngày sinh" : "Hiện ngày sinh";
-        btn.classList.toggle("active", isShown);
+      if (dobInput) {
+        dobInput.setAttribute("aria-describedby", "dateOfBirthHint");
+        dobInput.addEventListener("input", function () {
+          dobInput.value = dobInput.value.replace(/\D/g, "").slice(0, 8);
+        });
       }
 
-      btn.addEventListener("click", function () {
-        var isPassword = input.type === "password";
-        input.type = isPassword ? "text" : "password";
-        setIcon(isPassword);
-        try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
-        var len = input.value ? input.value.length : 0;
-        try { input.setSelectionRange(len, len); } catch (e) {}
-      });
+      if (dobInput && dobToggle) {
+        dobToggle.addEventListener("click", function () {
+          var hidden = dobInput.type === "password";
+          dobInput.type = hidden ? "text" : "password";
+          dobToggle.classList.toggle("active", hidden);
+          dobToggle.setAttribute("aria-pressed", hidden ? "true" : "false");
+          dobToggle.setAttribute("aria-label", hidden ? "Ẩn ngày sinh" : "Hiển thị ngày sinh");
 
-      setIcon(false);
+          var icon = dobToggle.querySelector("i");
+          if (icon) {
+            icon.classList.toggle("fa-eye", !hidden);
+            icon.classList.toggle("fa-eye-slash", hidden);
+          }
+        });
+      }
 
       /* ── Loading state khi submit ─────────────────────── */
-      var form    = document.getElementById("bookingForm");
+      var form      = document.getElementById("bookingForm");
       var submitBtn = document.getElementById("btnBookingSubmit");
-      var textEl  = submitBtn ? submitBtn.querySelector(".plf-submit-text")   : null;
-      var loadEl  = submitBtn ? submitBtn.querySelector(".plf-submit-loading") : null;
+      var textEl    = submitBtn ? submitBtn.querySelector(".plf-submit-text")   : null;
+      var loadEl    = submitBtn ? submitBtn.querySelector(".plf-submit-loading") : null;
 
       if (form && submitBtn) {
         form.addEventListener("submit", function () {
@@ -241,16 +241,6 @@
             if (textEl) textEl.hidden = false;
             if (loadEl) loadEl.hidden = true;
           }, 8000);
-        });
-      }
-
-      /* ── Chỉ cho phép nhập số trong field ngày sinh ───── */
-      if (input) {
-        input.addEventListener("input", function () {
-          var val = input.value.replace(/\D/g, "").slice(0, 8);
-          if (input.value !== val) {
-            input.value = val;
-          }
         });
       }
     })();

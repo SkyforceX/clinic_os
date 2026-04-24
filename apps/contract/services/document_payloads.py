@@ -45,6 +45,28 @@ def fmt_vnd(value: Any) -> str:
     return f"{_to_int(value):,}".replace(",", ".")
 
 
+def _safe_text(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def _build_quotation_company_payload(quotation: QuotationDraft) -> dict:
+    company = getattr(quotation, "company", None)
+    company_name = _safe_text(getattr(quotation, "company_name", "")) or _safe_text(getattr(company, "name", ""))
+    company_address = _safe_text(getattr(quotation, "company_address", "")) or _safe_text(getattr(company, "address", ""))
+    company_phone = _safe_text(getattr(quotation, "contact_phone", "")) or _safe_text(getattr(company, "phone", ""))
+    company_tax_code = _safe_text(getattr(quotation, "tax_code", "")) or _safe_text(getattr(company, "tax_code", ""))
+    return {
+        "company_name": company_name,
+        "company_address": company_address,
+        "contact_phone": company_phone,
+        "company_phone": company_phone,
+        "phone": company_phone,
+        "tax_code": company_tax_code,
+        "company_tax_code": company_tax_code,
+        "mst": company_tax_code,
+    }
+
+
 def _price_label_for_line(line_dict: dict) -> str:
     price_type = (line_dict.get("price_type") or "standard").strip().lower()
     note = (line_dict.get("note") or "").strip()
@@ -330,8 +352,7 @@ def build_quotation_document_payload(quotation: QuotationDraft) -> dict:
             "quotation": {
                 "id": quotation.id,
                 "contact_name": quotation.contact_name or "",
-                "company_name": quotation.company_name or "",
-                "company_address": quotation.company_address or "",
+                **_build_quotation_company_payload(quotation),
                 "valid_until": quotation.valid_until.isoformat() if quotation.valid_until else "",
                 "valid_until_display": quotation.valid_until.strftime("%d/%m/%Y") if quotation.valid_until else "",
                 "pax_from": quotation.pax_from or "",
@@ -418,8 +439,7 @@ def build_quotation_document_payload(quotation: QuotationDraft) -> dict:
         "quotation": {
             "id": quotation.id,
             "contact_name": quotation.contact_name or "",
-            "company_name": quotation.company_name or "",
-            "company_address": quotation.company_address or "",
+            **_build_quotation_company_payload(quotation),
             "valid_until": quotation.valid_until.isoformat() if quotation.valid_until else "",
             "valid_until_display": quotation.valid_until.strftime("%d/%m/%Y") if quotation.valid_until else "",
             "pax_from": quotation.pax_from or "",

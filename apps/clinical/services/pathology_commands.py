@@ -3,25 +3,24 @@ from datetime import datetime
 
 from django.conf import settings
 from django.db import connection, transaction
-from django.shortcuts import get_object_or_404
 
 from apps.clinical.models import PathologyResult
 from apps.clinical.services.pathology_ocr import extract_text_from_image_pdf
-from apps.patients.models import Patient
+from apps.his_integration.selectors import get_active_his_patient_by_id
 
 
 SERVER2_UPLOAD_URL = getattr(settings, "PATHOLOGY_SERVER2_UPLOAD_URL", "http://172.39.39.106/api/upload/")
 SERVER2_EXISTS_URL = getattr(settings, "PATHOLOGY_SERVER2_EXISTS_URL", "http://172.39.39.106/api/file_exists/")
 
 
-def _insert_pathology_result(*, patient, location, result_date, manual_conclusion, file_field_name):
+def _insert_pathology_result(*, his_patient, location, result_date, manual_conclusion, file_field_name):
     with connection.cursor() as cursor:
         table = PathologyResult._meta.db_table
         cursor.execute(
             f"""
             INSERT INTO {table}
             (
-                patient_id,
+                his_patient_id,
                 location,
                 file_url,
                 result_date,
@@ -36,7 +35,7 @@ def _insert_pathology_result(*, patient, location, result_date, manual_conclusio
             RETURNING id
             """,
             [
-                patient.id,
+                his_patient.id,
                 location,
                 file_field_name,
                 result_date,
@@ -53,7 +52,9 @@ def _insert_pathology_result(*, patient, location, result_date, manual_conclusio
 def save_pathology_result(*, patient_id, uploaded_file, location, result_date, manual_conclusion):
     import requests
 
-    patient = get_object_or_404(Patient, id=patient_id)
+    his_patient = get_active_his_patient_by_id(patient_id=patient_id)
+    if not his_patient:
+        raise ValueError("Không tìm thấy bệnh nhân HIS trong hệ thống.")
 
     if isinstance(result_date, str):
         result_date = datetime.strptime(result_date, "%Y-%m-%d").date()
@@ -89,14 +90,14 @@ def save_pathology_result(*, patient_id, uploaded_file, location, result_date, m
         raise ValueError("File không được lưu thực sự trên Server 2.")
 
     staging = PathologyResult(
-        patient=patient,
+        his_patient=his_patient,
         location=location,
         result_date=result_date,
     )
     relative_field_name = staging.file_url.field.generate_filename(staging, original_name)
 
     created_id = _insert_pathology_result(
-        patient=patient,
+        his_patient=his_patient,
         location=location,
         result_date=result_date,
         manual_conclusion=manual_conclusion,

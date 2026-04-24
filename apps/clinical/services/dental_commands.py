@@ -4,12 +4,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.clinical.models import DentalExamination
+from apps.his_integration.selectors import get_active_his_patient_by_id
 from apps.organizations.models import Company
-from apps.patients.models import Patient
-from apps.patients.services.patient_commands import (
-    PatientValidationError,
-    get_or_create_walkin_patient,
-)
 
 
 def _normalize_decimal(value):
@@ -23,37 +19,47 @@ def _normalize_decimal(value):
 
 
 @transaction.atomic
-def save_dental_examination(*, patient_id=None, payload):
+def save_dental_examination(*, his_patient_id=None, patient_id=None, payload):
     """
-    Luôn tạo bản ghi mới (không upsert) để giữ lịch sử khám đầy đủ.
-    - patient_id có giá trị  → bệnh nhân đã tồn tại (chọn từ danh sách)
-    - patient_id là None     → khách lẻ, tìm/tạo Patient từ thông tin form
-    Lưu kèm snapshot thông tin hành chính tại thời điểm khám.
+    Luôn tạo bản ghi mới để giữ lịch sử khám đầy đủ.
+    - his_patient_id: HisPatientSync.id
+    - patient_id: giữ tham số để tương thích chữ ký cũ, không dùng local Patient nữa
+    - không có HIS id: lưu snapshot khách lẻ trực tiếp, không tạo patients.Patient
     """
-    if patient_id:
-        patient = Patient.objects.select_related("company").get(id=int(patient_id))
+    his_patient = None
+    patient = None
+    company = None
+
+    if his_patient_id:
+        his_patient = get_active_his_patient_by_id(patient_id=int(his_patient_id))
+        if not his_patient:
+            raise ValueError("Không tìm thấy bệnh nhân HIS trong hệ thống.")
+
+        patient_snapshot = {
+            "ho_ten": his_patient.full_name,
+            "ngay_sinh": his_patient.birth_date_display,
+            "gioi_tinh": his_patient.gioi_tinh,
+            "ma_bn": his_patient.his_patient_code,
+        }
+        if payload.get("company_id"):
+            company = Company.objects.filter(id=payload.get("company_id")).first()
+
     else:
-        # Khách lẻ: tìm hoặc tạo mới patient từ dữ liệu form
-        patient = get_or_create_walkin_patient(payload=payload)
-
-    # company có thể là None (khách lẻ)
-    company = patient.company
-    if company is None and payload.get("company_id"):
-        company = Company.objects.filter(id=payload.get("company_id")).first()
-
-    # Snapshot thông tin hành chính tại thời điểm lưu
-    patient_snapshot = {
-        "ho_ten": patient.ho_ten,
-        "ngay_sinh": patient.ngay_sinh.strftime("%d/%m/%Y") if patient.ngay_sinh else "",
-        "gioi_tinh": patient.gioi_tinh,
-        "ma_bn": patient.ma_bn,
-    }
+        patient_snapshot = {
+            "ho_ten": payload.get("full_name", ""),
+            "ngay_sinh": payload.get("dob", ""),
+            "gioi_tinh": payload.get("gender", ""),
+            "ma_bn": payload.get("patient_code", ""),
+        }
+        if payload.get("company_id"):
+            company = Company.objects.filter(id=payload.get("company_id")).first()
 
     now = timezone.now()
 
     exam = DentalExamination.objects.create(
         patient=patient,
-        company=company,                          # None nếu khách lẻ
+        his_patient=his_patient,
+        company=company,
         patient_snapshot=patient_snapshot,
         additional_notes=payload.get("additional_notes", ""),
         tooth_data=payload.get("tooth_data") or {},
