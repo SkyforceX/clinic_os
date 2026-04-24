@@ -287,7 +287,9 @@ TESSERACT_BIN=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 POPPLER_BIN=r"C:\path\to\poppler\bin"
 
 
-CELERY_BROKER_URL = "redis://localhost:6379/0"
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", f"{REDIS_URL}/0" if REDIS_URL == "redis://localhost:6379" else REDIS_URL)
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
 CELERY_BEAT_SCHEDULE = {
     "auto-terminate-contracts-daily": {
         "task": "booking.tasks.auto_terminate_contracts",
@@ -297,7 +299,6 @@ CELERY_BEAT_SCHEDULE = {
 CELERY_TIMEZONE = "Asia/Ho_Chi_Minh"
 
 # =====================================
-REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
 CHANNEL_LAYERS = { "default": { "BACKEND": "channels_redis.core.RedisChannelLayer", "CONFIG": {"hosts": [REDIS_URL]} } }
 # =====================================
 
