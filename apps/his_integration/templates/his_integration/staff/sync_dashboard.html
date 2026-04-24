@@ -213,6 +213,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const syncButtons = document.querySelectorAll('.sync-btn');
     const csrfToken = '{{ csrf_token }}';
     
+    async function parseSyncResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+            return response.json();
+        }
+
+        const text = await response.text();
+        const trimmed = text.trim();
+        const compact = trimmed.replace(/\s+/g, ' ').slice(0, 300);
+
+        return {
+            success: false,
+            error: compact || `Server trả về HTTP ${response.status}`,
+        };
+    }
+    
     syncButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             const syncType = this.dataset.syncType;
@@ -239,25 +256,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     reset_cursor: resetCursor
                 }).toString()
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    if (data.inline) {
-                        alert(data.message + '\n\nLocal sync da chay xong. Vui long kiem tra lich su dong bo.');
+            .then(async res => {
+                const data = await parseSyncResponse(res);
+                return { ok: res.ok, status: res.status, data };
+            })
+            .then(result => {
+                if (result.ok && result.data.success) {
+                    if (result.data.inline) {
+                        alert(result.data.message + '\n\nLocal sync da chay xong. Vui long kiem tra lich su dong bo.');
                         setTimeout(() => location.reload(), 2000);
                         return;
                     }
-                    alert(data.message + '\n\nJob đang chạy trong background. Vui lòng kiểm tra lịch sử đồng bộ.');
+                    alert(result.data.message + '\n\nJob đang chạy trong background. Vui lòng kiểm tra lịch sử đồng bộ.');
                     setTimeout(() => location.reload(), 2000);
                 } else {
-                    alert('Lỗi: ' + (data.error || 'Unknown error'));
+                    const detail = result.data && result.data.error ? result.data.error : `HTTP ${result.status}`;
+                    alert('Lỗi: ' + detail);
                     this.disabled = false;
                     this.innerHTML = originalHTML;
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert('Có lỗi xảy ra khi kết nối đến server');
+                alert('Có lỗi xảy ra khi kết nối đến server: ' + (err && err.message ? err.message : 'Unknown error'));
                 this.disabled = false;
                 this.innerHTML = originalHTML;
             });

@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -37,6 +39,27 @@ from apps.his_integration.services import (
     link_schedule_config_to_his_package,
     unlink_schedule_config_from_his_package,
 )
+
+
+logger = logging.getLogger(__name__)
+
+
+def _classify_sync_exception(exc: Exception) -> tuple[str, str]:
+    message = str(exc).strip() or exc.__class__.__name__
+    exc_name = exc.__class__.__name__.lower()
+    exc_module = exc.__class__.__module__.lower()
+    normalized = f"{exc_module}.{exc_name} {message.lower()}"
+
+    if any(token in normalized for token in ("redis", "kombu", "amqp", "broker")):
+        return "redis_celery", f"Lỗi Redis/Celery broker: {message}"
+
+    if any(token in normalized for token in ("pyodbc", "sql server", "odbc driver", "his mssql", "hissourceerror")):
+        return "his_mssql", f"Lỗi kết nối HIS MSSQL: {message}"
+
+    if any(token in normalized for token in ("connection refused", "timed out", "timeout", "network")):
+        return "network", f"Lỗi mạng/kết nối: {message}"
+
+    return "unexpected", message
 
 
 def _is_operations(user) -> bool:
@@ -212,11 +235,40 @@ def trigger_sync(request):
         )
     except InvalidHisSyncType:
         return JsonResponse({'error': 'Invalid sync_type'}, status=400)
-
-    if not sync_result.get('success', True):
+    except Exception as exc:
+        error_type, user_message = _classify_sync_exception(exc)
+        logger.exception(
+            "HIS sync trigger failed",
+            extra={
+                "sync_type": sync_type,
+                "source": source,
+                "user_id": getattr(request.user, "id", None),
+                "username": getattr(request.user, "username", None),
+                "error_type": error_type,
+            },
+        )
         return JsonResponse({
             'success': False,
-            'error': sync_result.get('error') or 'Sync failed',
+            'error': user_message,
+            'error_type': error_type,
+        }, status=500)
+
+    if not sync_result.get('success', True):
+        error_message = sync_result.get('error') or 'Sync failed'
+        logger.warning(
+            "HIS sync trigger returned unsuccessful result",
+            extra={
+                "sync_type": sync_type,
+                "source": source,
+                "user_id": getattr(request.user, "id", None),
+                "username": getattr(request.user, "username", None),
+                "error": error_message,
+            },
+        )
+        return JsonResponse({
+            'success': False,
+            'error': error_message,
+            'error_type': 'sync_result_failed',
         }, status=500)
     
     return JsonResponse({
