@@ -220,7 +220,8 @@ def trigger_sync(request):
     run_inline = request.POST.get('run_inline') == 'true'
     source = request.POST.get('source')
     if not source:
-        source = SOURCE_LOCAL_PG if (run_inline and settings.HIS_LOCAL_SYNC_ENABLED) else SOURCE_HIS_MSSQL
+        use_local_sync = run_inline and settings.DEBUG and settings.HIS_LOCAL_SYNC_ENABLED
+        source = SOURCE_LOCAL_PG if use_local_sync else SOURCE_HIS_MSSQL
 
     if source not in {SOURCE_HIS_MSSQL, SOURCE_LOCAL_PG}:
         return JsonResponse({'error': 'Invalid sync source'}, status=400)

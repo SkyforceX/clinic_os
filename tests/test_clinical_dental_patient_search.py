@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from unittest.mock import patch
 
@@ -101,6 +101,7 @@ class ClinicalDentalPatientSearchTests(TestCase):
         patients = response.json()["patients"]
         self.assertEqual([item["id"] for item in patients], [target.id])
 
+    @override_settings(DEBUG=True, HIS_LOCAL_SYNC_ENABLED=True)
     @patch("apps.his_integration.web.views.staff.dispatch_his_sync")
     def test_trigger_sync_allows_inline_patient_sync(self, dispatch_his_sync):
         dispatch_his_sync.return_value = {
@@ -125,3 +126,25 @@ class ClinicalDentalPatientSearchTests(TestCase):
         dispatch_his_sync.assert_called_once()
         self.assertTrue(dispatch_his_sync.call_args.kwargs["run_inline"])
         self.assertEqual(dispatch_his_sync.call_args.kwargs["source"], "local_pg")
+
+    @override_settings(DEBUG=False, HIS_LOCAL_SYNC_ENABLED=False)
+    @patch("apps.his_integration.web.views.staff.dispatch_his_sync")
+    def test_trigger_sync_defaults_to_mssql_outside_local_debug(self, dispatch_his_sync):
+        dispatch_his_sync.return_value = {
+            "success": True,
+            "task_id": "job-456",
+            "inline": True,
+        }
+
+        response = self.client.post(
+            reverse("his_integration:trigger_sync"),
+            {
+                "sync_type": "patients",
+                "run_inline": "true",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        dispatch_his_sync.assert_called_once()
+        self.assertEqual(dispatch_his_sync.call_args.kwargs["source"], "his_mssql")
