@@ -4,6 +4,10 @@ from apps.scheduling.models import ContractScheduleConfig, SlotType
 from apps.scheduling.policies import SchedulingPolicy
 
 
+def _can_view_all_contract_data(user):
+    return ContractPolicy.is_manager(user) or ContractPolicy.is_executive(user)
+
+
 def _get_schedule_rows_for_config(config):
     contract_profile = getattr(config, "contract", None)
     contract_obj = getattr(contract_profile, "contract", None) if contract_profile else None
@@ -39,14 +43,14 @@ def list_schedule_configs_for_user(user):
         .order_by("-updated_at", "-id")
     )
 
-    if ContractPolicy.is_manager(user):
+    if _can_view_all_contract_data(user):
         configs = list(qs)
     else:
         configs = list(qs.filter(quotation__created_by=user))
 
     for config in configs:
         owner_user_id = getattr(getattr(config, "quotation", None), "created_by_id", None)
-        is_owner_or_manager = ContractPolicy.is_manager(user) or owner_user_id == user.id
+        is_owner_or_manager = _can_view_all_contract_data(user) or owner_user_id == user.id
         config.can_delete = not getattr(config, "contract_id", None) and is_owner_or_manager
         config.can_confirm = not config.is_confirmed and is_owner_or_manager
         config.can_end = (
@@ -65,7 +69,7 @@ def list_quotations_for_schedule_user(user):
         .order_by("-created_at", "-id")
     )
 
-    if ContractPolicy.is_manager(user):
+    if _can_view_all_contract_data(user):
         return qs
 
     return qs.filter(created_by=user)
@@ -85,7 +89,7 @@ def get_schedule_config_detail_for_user(*, user, config_id):
         .filter(pk=config_id)
     )
 
-    if not ContractPolicy.is_manager(user):
+    if not _can_view_all_contract_data(user):
         qs = qs.filter(quotation__created_by=user)
 
     config = qs.first()

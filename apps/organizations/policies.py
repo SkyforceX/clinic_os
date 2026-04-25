@@ -1,5 +1,6 @@
 class OrganizationPolicy:
     MANAGER_GROUP_NAMES = {"Managers", "Manager"}
+    EXECUTIVE_GROUP_NAMES = {"Executives", "Executive"}
 
     @classmethod
     def is_manager(cls, user):
@@ -8,6 +9,14 @@ class OrganizationPolicy:
         if user.is_superuser:
             return True
         return user.groups.filter(name__in=cls.MANAGER_GROUP_NAMES).exists()
+
+    @classmethod
+    def is_executive(cls, user):
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        return user.groups.filter(name__in=cls.EXECUTIVE_GROUP_NAMES).exists()
 
     @classmethod
     def can_view_list(cls, user):
@@ -21,7 +30,7 @@ class OrganizationPolicy:
     def can_view_company(cls, user, company):
         if not user or not user.is_authenticated:
             return False
-        if cls.is_manager(user):
+        if cls.is_manager(user) or cls.is_executive(user):
             return True
         return company.created_by_id == user.id
 

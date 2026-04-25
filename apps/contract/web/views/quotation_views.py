@@ -82,7 +82,7 @@ def group_catalog(catalog):
 
 def quotation_queryset_for_user(user):
     qs = QuotationDraft.objects.select_related("created_by", "company", "corporate_contract_profile__contract")
-    if ContractPolicy.is_manager(user):
+    if ContractPolicy.is_manager(user) or ContractPolicy.is_executive(user):
         return qs
     return qs.filter(created_by=user)
 

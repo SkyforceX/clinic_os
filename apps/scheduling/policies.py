@@ -30,7 +30,7 @@ class SchedulingPolicy:
     def can_manage_quote_schedule(cls, user, owner_user_id):
         if not cls.is_authenticated_actor(user):
             return False
-        if cls.is_manager(user):
+        if cls.is_manager(user) or cls.is_executive(user):
             return True
         return owner_user_id == user.id
 
@@ -38,7 +38,7 @@ class SchedulingPolicy:
     def can_manage_contract_schedule(cls, user, contract):
         if not cls.is_authenticated_actor(user):
             return False
-        if cls.is_manager(user):
+        if cls.is_manager(user) or cls.is_executive(user):
             return True
         return getattr(contract, "created_by_id", None) == user.id
 
@@ -50,10 +50,10 @@ class SchedulingPolicy:
     def can_end_schedule(cls, user, owner_user_id):
         if not cls.is_authenticated_actor(user):
             return False
-        if cls.is_manager(user):
+        if cls.is_manager(user) or cls.is_executive(user):
             return True
         return owner_user_id == user.id
 
     @classmethod
     def can_manage_general_settings(cls, user):
-        return cls.is_manager(user)
+        return cls.is_manager(user) or cls.is_executive(user)

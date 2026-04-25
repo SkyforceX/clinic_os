@@ -59,7 +59,11 @@ def doctor_schedule_list(request):
         .order_by("doctor__full_name")
     )
 
-    can_manage = HRMPolicy.is_hr_admin(request.user) or HRMPolicy.is_manager(request.user)
+    can_manage = (
+        HRMPolicy.is_hr_admin(request.user)
+        or HRMPolicy.is_manager(request.user)
+        or HRMPolicy.is_executive(request.user)
+    )
 
     week_days = [base_week + timedelta(days=i) for i in range(7)]
 
@@ -86,7 +90,11 @@ def doctor_schedule_edit(request, week_start_str=None, doctor_id=None):
     GET  → Form nhập lịch tuần cho bác sĩ
     POST → Lưu lịch
     """
-    if not (HRMPolicy.is_hr_admin(request.user) or HRMPolicy.is_manager(request.user)):
+    if not (
+        HRMPolicy.is_hr_admin(request.user)
+        or HRMPolicy.is_manager(request.user)
+        or HRMPolicy.is_executive(request.user)
+    ):
         raise Http404("Bạn không có quyền quản lý lịch bác sĩ.")
 
     try:

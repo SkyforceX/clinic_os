@@ -9,6 +9,7 @@ class HRMPolicy:
 
     HR_ADMIN_GROUP_NAMES  = {"HR Admins", "HR Admin", "HR"}
     MANAGER_GROUP_NAMES   = {"Managers", "Manager"}
+    EXECUTIVE_GROUP_NAMES = {"Executives", "Executive"}
 
     @classmethod
     def is_authenticated_actor(cls, user) -> bool:
@@ -30,28 +31,36 @@ class HRMPolicy:
             return True
         return user.groups.filter(name__in=cls.MANAGER_GROUP_NAMES).exists()
 
+    @classmethod
+    def is_executive(cls, user) -> bool:
+        if not cls.is_authenticated_actor(user):
+            return False
+        if user.is_superuser:
+            return True
+        return user.groups.filter(name__in=cls.EXECUTIVE_GROUP_NAMES).exists()
+
     # ── Nhân viên ─────────────────────────────────────────────────────────────
 
     @classmethod
     def can_view_employee_list(cls, user) -> bool:
-        return cls.is_hr_admin(user) or cls.is_manager(user)
+        return cls.is_hr_admin(user) or cls.is_manager(user) or cls.is_executive(user)
 
     @classmethod
     def can_view_employee(cls, user, employee) -> bool:
         """HR Admin / Manager xem tất cả; nhân viên xem hồ sơ của chính mình."""
         if not cls.is_authenticated_actor(user):
             return False
-        if cls.is_hr_admin(user) or cls.is_manager(user):
+        if cls.is_hr_admin(user) or cls.is_manager(user) or cls.is_executive(user):
             return True
         return getattr(employee, "user_id", None) == user.pk
 
     @classmethod
     def can_create_employee(cls, user) -> bool:
-        return cls.is_hr_admin(user)
+        return cls.is_hr_admin(user) or cls.is_executive(user)
 
     @classmethod
     def can_update_employee(cls, user) -> bool:
-        return cls.is_hr_admin(user)
+        return cls.is_hr_admin(user) or cls.is_executive(user)
 
     @classmethod
     def can_delete_employee(cls, user) -> bool:
@@ -65,21 +74,21 @@ class HRMPolicy:
 
     @classmethod
     def can_offboard(cls, user) -> bool:
-        return cls.is_hr_admin(user)
+        return cls.is_hr_admin(user) or cls.is_executive(user)
 
     @classmethod
     def can_transfer(cls, user) -> bool:
-        return cls.is_hr_admin(user)
+        return cls.is_hr_admin(user) or cls.is_executive(user)
 
     # ── Phòng ban / Chức vụ ───────────────────────────────────────────────────
 
     @classmethod
     def can_manage_departments(cls, user) -> bool:
-        return cls.is_hr_admin(user)
+        return cls.is_hr_admin(user) or cls.is_executive(user)
 
     @classmethod
     def can_manage_positions(cls, user) -> bool:
-        return cls.is_hr_admin(user)
+        return cls.is_hr_admin(user) or cls.is_executive(user)
 
     # ── Phân quyền ────────────────────────────────────────────────────────────
 
@@ -89,4 +98,4 @@ class HRMPolicy:
 
     @classmethod
     def can_view_access_log(cls, user) -> bool:
-        return cls.is_hr_admin(user) or cls.is_manager(user)
+        return cls.is_hr_admin(user) or cls.is_manager(user) or cls.is_executive(user)

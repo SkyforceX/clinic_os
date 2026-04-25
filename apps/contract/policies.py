@@ -132,7 +132,7 @@ class ContractPolicy:
             return False
         if getattr(user, "is_superuser", False):
             return True
-        return cls.is_sales(user) or cls.is_manager(user)
+        return cls.is_sales(user) or cls.is_manager(user) or cls.is_executive(user)
 
     @classmethod
     def can_create(cls, user):

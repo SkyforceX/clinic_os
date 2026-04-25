@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
+from django.db.models import F, OuterRef, Subquery
 from django.forms import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import JsonResponse
@@ -59,18 +60,35 @@ def _normalize_form_error(exc):
 
 
 def _decorate_quotation_states(quotations):
-    latest_ids_by_company = {
-        q.company_id: q.id
-        for q in (
+    company_ids = {q.company_id for q in quotations if q.company_id}
+    latest_ids_by_company = {}
+
+    if company_ids:
+        latest_company_quote_id = (
             QuotationDraft.objects
             .filter(
+                company_id=OuterRef("company_id"),
                 company__isnull=False,
                 status=QuotationStatus.APPROVED,
             )
-            .order_by("company_id", "-created_at", "-id")
-            .distinct("company_id")
+            .order_by("-created_at", "-id")
+            .values("id")[:1]
         )
-    }
+
+        latest_ids_by_company = {
+            company_id: quotation_id
+            for company_id, quotation_id in (
+                QuotationDraft.objects
+                .filter(
+                    company_id__in=company_ids,
+                    company__isnull=False,
+                    status=QuotationStatus.APPROVED,
+                )
+                .annotate(latest_quote_id=Subquery(latest_company_quote_id))
+                .filter(id=F("latest_quote_id"))
+                .values_list("company_id", "id")
+            )
+        }
 
     for q in quotations:
         linked_profile = getattr(q, "corporate_contract_profile", None)

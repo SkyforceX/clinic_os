@@ -787,9 +787,9 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
 
     # ── Hệ thống ─────────────────────────────────────────────────────────────
     # Medical Director không thấy Hệ thống
-    if is_it_admin or is_full_access:
+    if is_it_admin or is_executive or is_full_access:
         sys_items = []
-        if is_full_access:
+        if is_full_access or is_executive:
             sys_items += [
                 _item(
                     request=request,
