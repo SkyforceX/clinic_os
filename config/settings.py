@@ -77,7 +77,7 @@ HIS_LOCAL_PG = {
     "PASSWORD": os.getenv("HIS_LOCAL_PG_PASSWORD", os.getenv("PGPASSWORD", "postgres")),
     "SCHEMA": os.getenv("HIS_LOCAL_PG_SCHEMA", "dbo"),
 }
-HIS_LOCAL_SYNC_ENABLED = DEBUG and env.bool("HIS_LOCAL_SYNC_ENABLED", default=True)
+HIS_LOCAL_SYNC_ENABLED = DEBUG and env.bool("HIS_LOCAL_SYNC_ENABLED", default=False)
 
 # ==== HIS AUTOMATION ==== #
 # HIS_AUTOMATION = {
