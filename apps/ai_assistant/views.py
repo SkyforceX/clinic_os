@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView
 
+from .knowledge_services import build_knowledge_context
 from .models import Conversation, Message
 from .services import get_ollama_base_url
 from .permissions import AiAssistantAccessMixin
@@ -113,7 +114,11 @@ class MessageStreamView(AiAssistantAccessMixin, View):
         all_msgs = conversation.messages.exclude(role=Message.ROLE_SYSTEM).order_by(
             "created_at"
         )
-        messages_payload = build_messages_payload(all_msgs)
+        knowledge_context = build_knowledge_context(user_content, user=request.user)
+        messages_payload = build_messages_payload(
+            all_msgs,
+            knowledge_context=knowledge_context,
+        )
 
         def event_stream():
             full_response_parts = []

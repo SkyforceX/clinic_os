@@ -15,7 +15,8 @@
     getAllPatientsUrl:        "{% url 'clinical:get_his_all_patients' %}",
     getPatientsByCompanyUrl: "{% url 'clinical:get_his_patients_by_company' 0 %}",
     getPathologyDataUrl:     "{% url 'clinical:get_pathology_data' 0 %}",
-    updatePathologyEvaluationUrl: "{% url 'clinical:update_pathology_evaluation' %}"
+    updatePathologyEvaluationUrl: "{% url 'clinical:update_pathology_evaluation' %}",
+    triggerHisSyncUrl: "{% url 'his_integration:trigger_sync' %}"
   };
 </script>
 

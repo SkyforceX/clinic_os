@@ -7,6 +7,13 @@
     <span class="pl-count-badge" id="patientCount"></span>
   </div>
 
+  <div style="padding: 0 16px 12px;">
+    <button type="button" class="btn btn-sm btn-outline-primary w-100" id="syncPatientsNowBtn">
+      <i class="fa-solid fa-rotate"></i> Sync Now
+    </button>
+    <div id="syncPatientsNowStatus" class="small text-muted mt-2"></div>
+  </div>
+
   <div class="pl-sidebar-filters">
     <div class="pl-filter-row" style="display:none">
       <i class="fa-solid fa-building pl-fi"></i>
@@ -27,6 +34,6 @@
     </div>
   </div>
 
-  <div class="pl-sidebar-list" id="patientContainer"></div>
+  <div class="pl-sidebar-list hidden" id="patientContainer"></div>
 
 </aside>

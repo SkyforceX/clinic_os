@@ -32,6 +32,55 @@ def list_active_his_patients():
     return HisPatientSync.objects.filter(is_active=True).order_by("full_name")
 
 
+def search_active_his_patients(
+    *,
+    query: str = "",
+    name_query: str = "",
+    code_query: str = "",
+    organization_id=None,
+    limit: int = 50,
+):
+    qs = HisPatientSync.objects.filter(is_active=True)
+
+    if organization_id:
+        qs = qs.filter(
+            exam_records__package_sync__organization_id=organization_id,
+            exam_records__is_active=True,
+        ).distinct()
+
+    normalized_name_query = (name_query or "").strip()
+    normalized_code_query = (code_query or "").strip()
+    normalized_query = (query or "").strip()
+
+    if normalized_name_query:
+        name_filter = Q(full_name__icontains=normalized_name_query)
+        for token in normalized_name_query.split():
+            name_filter &= Q(full_name__icontains=token)
+        qs = qs.filter(name_filter)
+
+    if normalized_code_query:
+        code_filter = Q(his_patient_code__icontains=normalized_code_query)
+        for token in normalized_code_query.split():
+            code_filter &= Q(his_patient_code__icontains=token)
+        qs = qs.filter(code_filter)
+    elif normalized_query:
+        name_filter = Q(full_name__icontains=normalized_query)
+        for token in normalized_query.split():
+            name_filter &= Q(full_name__icontains=token)
+
+        search_filter = name_filter | Q(
+            his_patient_code__icontains=normalized_query
+        ) | Q(
+            phone__icontains=normalized_query
+        ) | Q(
+            national_id__icontains=normalized_query
+        )
+
+        qs = qs.filter(search_filter)
+
+    return qs.order_by("full_name", "his_patient_code")[:limit]
+
+
 def list_active_his_patients_for_organization(*, organization_id):
     return (
         HisPatientSync.objects

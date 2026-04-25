@@ -28,6 +28,21 @@ HIS_AUTOMATION = {
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="unsafe-dev-secret")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
+
+def _get_default_ai_base_url():
+    local_default = env("LOCAL_AI_BASE_URL", default="http://127.0.0.1:11434")
+    internal_default = env("INTERNAL_AI_BASE_URL", default="http://172.39.39.103:11434")
+    return local_default if DEBUG else internal_default
+
+
+def _normalize_ai_base_url(value, *, local_default, internal_default):
+    normalized_value = (value or "").strip()
+    if DEBUG and normalized_value in {"", internal_default}:
+        return local_default
+    if not DEBUG and normalized_value in {"", local_default}:
+        return internal_default
+    return normalized_value
+
 ALLOWED_HOSTS = [
     x.strip()
     for x in env("DJANGO_ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
@@ -243,9 +258,17 @@ CSRF_FAILURE_VIEW = "apps.core.views.custom_csrf_failure"
 
 # ─── Cấu hình Ollama ───────────────────────────────────────────────
 # URL tới Ollama server (dùng env variable để dễ đổi giữa môi trường)
-OLLAMA_BASE_URL = env(
-    "OLLAMA_BASE_URL",
-    default=env("AI_BASE_URL", default="http://127.0.0.1:11434"),
+DEFAULT_AI_BASE_URL = _get_default_ai_base_url()
+LOCAL_AI_BASE_URL = env("LOCAL_AI_BASE_URL", default="http://127.0.0.1:11434")
+INTERNAL_AI_BASE_URL = env("INTERNAL_AI_BASE_URL", default="http://172.39.39.103:11434")
+
+OLLAMA_BASE_URL = _normalize_ai_base_url(
+    env(
+        "OLLAMA_BASE_URL",
+        default=env("AI_BASE_URL", default=DEFAULT_AI_BASE_URL),
+    ),
+    local_default=LOCAL_AI_BASE_URL,
+    internal_default=INTERNAL_AI_BASE_URL,
 )
 OLLAMA_MODEL    = env("OLLAMA_MODEL",    default="qwen2.5:3b")
 OLLAMA_TIMEOUT  = int(env("OLLAMA_TIMEOUT", default="120"))
@@ -262,10 +285,22 @@ OLLAMA_SYSTEM_PROMPT = (
 # Tên group phải khớp đúng với Group.name trong database
 AI_ASSISTANT_ALLOWED_GROUPS = ["Executives"]
 
-AI_BASE_URL = env("AI_BASE_URL", default=OLLAMA_BASE_URL)
+AI_BASE_URL = _normalize_ai_base_url(
+    env("AI_BASE_URL", default=OLLAMA_BASE_URL),
+    local_default=LOCAL_AI_BASE_URL,
+    internal_default=INTERNAL_AI_BASE_URL,
+)
 AI_MODEL = env("AI_MODEL", default="Qwen/Qwen2.5-3B-Instruct")
 AI_API_KEY = env("AI_API_KEY", default="")
 AI_TIMEOUT = env.int("AI_TIMEOUT", default=120)
+AI_KNOWLEDGE_ENABLED = env.bool("AI_KNOWLEDGE_ENABLED", default=True)
+AI_KNOWLEDGE_TOP_K = env.int("AI_KNOWLEDGE_TOP_K", default=5)
+AI_EMBED_BASE_URL = _normalize_ai_base_url(
+    env("AI_EMBED_BASE_URL", default=OLLAMA_BASE_URL),
+    local_default=LOCAL_AI_BASE_URL,
+    internal_default=INTERNAL_AI_BASE_URL,
+)
+AI_EMBED_MODEL = env("AI_EMBED_MODEL", default="nomic-embed-text")
 
 AI_SYSTEM_PROMPT = env(
     "AI_SYSTEM_PROMPT",

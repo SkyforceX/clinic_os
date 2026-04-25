@@ -217,7 +217,10 @@ def trigger_sync(request):
         return JsonResponse({'error': 'Unauthorized'}, status=401)
     
     sync_type = request.POST.get('sync_type')
-    source = request.POST.get('source') or SOURCE_HIS_MSSQL
+    run_inline = request.POST.get('run_inline') == 'true'
+    source = request.POST.get('source')
+    if not source:
+        source = SOURCE_LOCAL_PG if (run_inline and settings.HIS_LOCAL_SYNC_ENABLED) else SOURCE_HIS_MSSQL
 
     if source not in {SOURCE_HIS_MSSQL, SOURCE_LOCAL_PG}:
         return JsonResponse({'error': 'Invalid sync source'}, status=400)
@@ -225,13 +228,16 @@ def trigger_sync(request):
     if source == SOURCE_LOCAL_PG and not settings.HIS_LOCAL_SYNC_ENABLED:
         return JsonResponse({'error': 'Local HIS sync is disabled'}, status=403)
 
+    if run_inline and sync_type != 'patients':
+        return JsonResponse({'error': 'Inline sync is only supported for patients'}, status=400)
+
     try:
         sync_result = dispatch_his_sync(
             sync_type=sync_type,
             actor=request.user,
             reset_cursor=request.POST.get('reset_cursor') == 'true',
             source=source,
-            run_inline=(source == SOURCE_LOCAL_PG),
+            run_inline=(source == SOURCE_LOCAL_PG) or run_inline,
         )
     except InvalidHisSyncType:
         return JsonResponse({'error': 'Invalid sync_type'}, status=400)

@@ -3,6 +3,8 @@ const companyFilter = document.getElementById("companyFilter");
 const nameFilter = document.getElementById("nameFilter");
 const codeFilter = document.getElementById("codeFilter");
 const patientContainer = document.getElementById("patientContainer");
+const syncPatientsNowBtn = document.getElementById("syncPatientsNowBtn");
+const syncPatientsNowStatus = document.getElementById("syncPatientsNowStatus");
 
 // helper active state khi chọn bệnh nhân trong danh sách
 function setActivePatient(id) {
@@ -12,6 +14,8 @@ function setActivePatient(id) {
 }
 
 let loadedPatients = [];
+let currentPatientFetchController = null;
+let patientSearchTimer = null;
 
 // Tự động xác định form đang dùng dựa trên URL
 let currentFormType = "dental";
@@ -36,6 +40,7 @@ function removeVietnameseTones(str) {
 
 function setPatientContainerMessage(msg, type) {
   if (!patientContainer) return;
+  patientContainer.classList.remove("hidden");
   const icon = type === "danger"
     ? "fa-triangle-exclamation"
     : msg.includes("Đang tải")
@@ -50,6 +55,29 @@ function setPatientContainerMessage(msg, type) {
   if (countEl) countEl.textContent = "";
 }
 
+function setSyncPatientsStatus(message, tone) {
+  if (!syncPatientsNowStatus) return;
+  syncPatientsNowStatus.textContent = message || "";
+  syncPatientsNowStatus.className = "small mt-2";
+  if (tone === "success") {
+    syncPatientsNowStatus.classList.add("text-success");
+    return;
+  }
+  if (tone === "danger") {
+    syncPatientsNowStatus.classList.add("text-danger");
+    return;
+  }
+  syncPatientsNowStatus.classList.add("text-muted");
+}
+
+function hidePatientContainer() {
+  if (!patientContainer) return;
+  patientContainer.innerHTML = "";
+  patientContainer.classList.add("hidden");
+  const countEl = document.getElementById("patientCount");
+  if (countEl) countEl.textContent = "";
+}
+
 function clearPatientList() {
   loadedPatients = [];
   if (patientContainer) {
@@ -60,16 +88,9 @@ function clearPatientList() {
 function renderPatients() {
   if (!patientContainer) return;
 
+  patientContainer.classList.remove("hidden");
   patientContainer.innerHTML = "";
-
-  const nameSearch = removeVietnameseTones(nameFilter?.value || "");
-  const codeSearch = (codeFilter?.value || "").toLowerCase();
-
-  const filtered = loadedPatients.filter((p) => {
-    const name = removeVietnameseTones(p.ho_ten || "");
-    const code = (p.ma_bn || "").toLowerCase();
-    return name.includes(nameSearch) && code.includes(codeSearch);
-  });
+  const filtered = loadedPatients;
 
   if (!filtered.length) {
     setPatientContainerMessage("Không có bệnh nhân phù hợp.");
@@ -113,7 +134,20 @@ function renderPatients() {
 function fetchPatients() {
   if (!patientContainer || !window.CLINIC_PATIENT_AJAX) return;
 
+  const nameQuery = (nameFilter?.value || "").trim();
+  const codeQuery = (codeFilter?.value || "").trim();
   const companyId = (companyFilter?.value || "").trim();
+  const combinedQuery = [nameQuery, codeQuery].filter(Boolean).join(" ").trim();
+
+  if (!combinedQuery) {
+    if (currentPatientFetchController) {
+      currentPatientFetchController.abort();
+      currentPatientFetchController = null;
+    }
+    clearPatientList();
+    hidePatientContainer();
+    return;
+  }
 
   clearPatientList();
 
@@ -132,12 +166,24 @@ function fetchPatients() {
     return;
   }
 
+  const params = new URLSearchParams();
+  if (nameQuery) params.set("name", nameQuery);
+  if (codeQuery) params.set("code", codeQuery);
+  params.set("q", combinedQuery);
+  url += (url.includes("?") ? "&" : "?") + params.toString();
+
+  if (currentPatientFetchController) {
+    currentPatientFetchController.abort();
+  }
+  currentPatientFetchController = new AbortController();
+
   setPatientContainerMessage("Đang tải danh sách bệnh nhân...");
 
   fetch(url, {
     headers: {
       "X-Requested-With": "XMLHttpRequest",
     },
+    signal: currentPatientFetchController.signal,
   })
     .then((res) => {
       if (!res.ok) {
@@ -146,40 +192,97 @@ function fetchPatients() {
       return res.json();
     })
     .then((data) => {
+      currentPatientFetchController = null;
       loadedPatients = data.patients || [];
       renderPatients();
     })
     .catch((error) => {
+      currentPatientFetchController = null;
+      if (error.name === "AbortError") {
+        return;
+      }
       console.error("fetchPatients error:", error);
       setPatientContainerMessage("Không tải được danh sách bệnh nhân.", "danger");
+    });
+}
+
+function scheduleFetchPatients() {
+  if (patientSearchTimer) {
+    clearTimeout(patientSearchTimer);
+  }
+  patientSearchTimer = setTimeout(fetchPatients, 250);
+}
+
+function hasPatientSearchQuery() {
+  return Boolean((nameFilter?.value || "").trim() || (codeFilter?.value || "").trim());
+}
+
+function syncPatientsNow() {
+  const syncUrl = window.CLINIC_PATIENT_AJAX?.triggerHisSyncUrl || "";
+  if (!syncUrl) {
+    setSyncPatientsStatus("Không tìm thấy endpoint đồng bộ BN.", "danger");
+    return;
+  }
+
+  const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]')?.value || "";
+  if (syncPatientsNowBtn) {
+    syncPatientsNowBtn.disabled = true;
+  }
+  setSyncPatientsStatus("Đang đồng bộ bệnh nhân mới...", "muted");
+
+  const body = new URLSearchParams();
+  body.set("sync_type", "patients");
+  body.set("run_inline", "true");
+
+  fetch(syncUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "X-Requested-With": "XMLHttpRequest",
+      "X-CSRFToken": csrfToken,
+    },
+    body: body.toString(),
+  })
+    .then(async (response) => {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        throw new Error(data.error || data.message || "Không thể đồng bộ bệnh nhân.");
+      }
+      return data;
+    })
+    .then((data) => {
+      setSyncPatientsStatus(data.message || "Đã đồng bộ bệnh nhân mới.", "success");
+      if (hasPatientSearchQuery()) {
+        fetchPatients();
+      }
+    })
+    .catch((error) => {
+      console.error("syncPatientsNow error:", error);
+      setSyncPatientsStatus(error.message || "Đồng bộ bệnh nhân thất bại.", "danger");
+    })
+    .finally(() => {
+      if (syncPatientsNowBtn) {
+        syncPatientsNowBtn.disabled = false;
+      }
     });
 }
 
 // Chọn công ty mới cho hiển thị danh sách
 if (companyFilter) {
   companyFilter.addEventListener("change", () => {
-    fetchPatients();
+    scheduleFetchPatients();
   });
 }
 
-// Lọc theo tên / mã chỉ khi đã chọn công ty
 if (nameFilter) {
   nameFilter.addEventListener("input", () => {
-    if (!loadedPatients.length) {
-      fetchPatients();
-      return;
-    }
-    renderPatients();
+    scheduleFetchPatients();
   });
 }
 
 if (codeFilter) {
   codeFilter.addEventListener("input", () => {
-    if (!loadedPatients.length) {
-      fetchPatients();
-      return;
-    }
-    renderPatients();
+    scheduleFetchPatients();
   });
 }
 
@@ -419,8 +522,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 4000);
   });
 
-  if (patientContainer) {
-    setPatientContainerMessage("Nhập họ tên hoặc mã BN để tìm bệnh nhân.");
+  hidePatientContainer();
+  setSyncPatientsStatus("Chỉ lấy dữ liệu BN mới nhất từ HIS.", "muted");
+
+  if (syncPatientsNowBtn) {
+    syncPatientsNowBtn.addEventListener("click", function () {
+      syncPatientsNow();
+    });
   }
 
   const btnSaveAndPrint = document.getElementById("btnSaveAndPrint");
@@ -497,10 +605,6 @@ document.addEventListener("DOMContentLoaded", function () {
           console.error(error);
         });
     });
-  }
-
-  if (patientContainer && window.CLINIC_PATIENT_AJAX) {
-    fetchPatients();
   }
 
   initListCompanyPatientActions();

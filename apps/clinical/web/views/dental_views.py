@@ -13,8 +13,7 @@ from apps.clinical.selectors.dental_selectors import (
 )
 from apps.clinical.services.dental_commands import save_dental_examination
 from apps.his_integration.selectors import (
-    list_active_his_patients,
-    list_active_his_patients_for_organization,
+    search_active_his_patients,
 )
 
 
@@ -65,53 +64,49 @@ def _build_payload_from_post(request):
 
 @login_required(login_url="authentication:staff_login")
 def get_his_all_patients(request):
-    """AJAX: trả về tất cả HisPatientSync (tối đa 1000)."""
+    """AJAX: tìm kiếm bệnh nhân HIS trong kho đồng bộ."""
     if not _can_access_his_patient_list(request.user):
         return JsonResponse({"status": "error", "message": "Không có quyền truy cập."}, status=403)
 
-    patients = (
-        list_active_his_patients()
-        .only("id", "his_patient_code", "full_name", "birth_date_text", "birth_year", "gender_code")
-        [:1000]
-    )
-
-    data = [
-        {
-            "id": p.id,
-            "ma_bn": p.his_patient_code,
-            "ho_ten": p.full_name,
-            "gioi_tinh": p.gioi_tinh,
-            "ngay_sinh": p.birth_date_display,
-            "company_id": "",
-        }
-        for p in patients
-    ]
-    return JsonResponse({"patients": data})
+    return JsonResponse({"patients": _serialize_his_patients(request=request)})
 
 
 @login_required(login_url="authentication:staff_login")
 def get_his_patients_by_company(request, company_id):
-    """AJAX: trả về HisPatientSync thuộc công ty (qua exam records → package → organization)."""
+    """AJAX: tìm kiếm bệnh nhân HIS thuộc công ty trong kho đồng bộ."""
     if not _can_access_his_patient_list(request.user):
         return JsonResponse({"status": "error", "message": "Không có quyền truy cập."}, status=403)
 
+    return JsonResponse({"patients": _serialize_his_patients(request=request, organization_id=company_id)})
+
+
+def _serialize_his_patients(*, request, organization_id=None):
+    query = (request.GET.get("q") or "").strip()
+    name_query = (request.GET.get("name") or "").strip()
+    code_query = (request.GET.get("code") or "").strip()
+
     patients = (
-        list_active_his_patients_for_organization(organization_id=company_id)
+        search_active_his_patients(
+            query=query,
+            name_query=name_query,
+            code_query=code_query,
+            organization_id=organization_id,
+            limit=50,
+        )
         .only("id", "his_patient_code", "full_name", "birth_date_text", "birth_year", "gender_code")
     )
 
-    data = [
+    return [
         {
             "id": p.id,
             "ma_bn": p.his_patient_code,
             "ho_ten": p.full_name,
             "gioi_tinh": p.gioi_tinh,
             "ngay_sinh": p.birth_date_display,
-            "company_id": company_id,
+            "company_id": str(organization_id or ""),
         }
         for p in patients
     ]
-    return JsonResponse({"patients": data})
 
 
 # ── Form khám răng ────────────────────────────────────────────────
@@ -130,8 +125,8 @@ def dental_exam_form(request):
         payload = _build_payload_from_post(request)
         his_patient_id = payload.get("patient_id") or None  # patient_id field giờ chứa HIS id
 
-        if not his_patient_id and not payload.get("full_name"):
-            messages.error(request, "Vui lòng chọn bệnh nhân từ danh sách hoặc nhập họ tên (khách lẻ).")
+        if not his_patient_id:
+            messages.error(request, "Vui lòng chọn bệnh nhân từ danh sách HIS trước khi lưu.")
             return redirect(reverse("clinical:dental_exam_form"))
 
         try:
@@ -142,7 +137,7 @@ def dental_exam_form(request):
             snapshot = exam.patient_snapshot or {}
             patient_name = (
                 exam.his_patient.full_name if exam.his_patient
-                else snapshot.get("ho_ten") or (exam.patient.ho_ten if exam.patient else "Khách lẻ")
+                else snapshot.get("ho_ten") or (exam.patient.ho_ten if exam.patient else "")
             )
             messages.success(request, f"Đã lưu phiếu khám thành công — BN: {patient_name}.")
             return redirect(f"{reverse('clinical:dental_exam_form')}?exam_id={exam.id}")

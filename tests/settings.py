@@ -35,6 +35,10 @@ CHANNEL_LAYERS = {
 AI_API_KEY = ""
 AI_BASE_URL = "http://127.0.0.1:11434"
 OLLAMA_BASE_URL = "http://127.0.0.1:11434"
+AI_KNOWLEDGE_ENABLED = True
+AI_KNOWLEDGE_TOP_K = 3
+AI_EMBED_BASE_URL = "http://127.0.0.1:11434"
+AI_EMBED_MODEL = "nomic-embed-text"
 
 
 class DisableMigrations(dict):

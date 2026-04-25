@@ -14,6 +14,7 @@
       flex: 1; padding: 20px 24px 40px;
       overflow-y: auto; background: #f8f9fb;
     }
+    .pl-sidebar-list.hidden { display:none; }
 
     /* ── Page header ─────────────────────────────────────────── */
     .de-page-header {
@@ -265,7 +266,8 @@
     getPatientsByCompanyUrl: "{% url 'clinical:get_his_patients_by_company' 0 %}",
     getDentalDataUrl:        "{% url 'clinical:get_dental_data' 0 %}",
     dentalExamHistoryUrl:    "{% url 'clinical:dental_exam_history' 0 %}",
-    dentalExamFormUrl:       "{% url 'clinical:dental_exam_form' %}"
+    dentalExamFormUrl:       "{% url 'clinical:dental_exam_form' %}",
+    triggerHisSyncUrl:       "{% url 'his_integration:trigger_sync' %}"
   };
 
   window.NOTATION_MAP = {
@@ -313,8 +315,8 @@
 
         <div class="patient-mode-bar">
           <span class="mode-badge walkin" id="modeBadge">
-            <i class="fa-solid fa-user-plus"></i>
-            <span id="modeBadgeText">Khách lẻ — tìm theo tên/mã BN hoặc nhập tự do</span>
+            <i class="fa-solid fa-user-check"></i>
+            <span id="modeBadgeText">Chọn BN từ danh sách tìm kiếm</span>
           </span>
           <button type="button" class="btn-deselect" id="btnDeselect" onclick="deselect()">
             <i class="fa-solid fa-xmark"></i> Bỏ chọn bệnh nhân
@@ -325,23 +327,22 @@
           <div class="de-field">
             <label>Họ tên <span style="color:#ef4444;">*</span></label>
             <input type="text" name="full_name" id="full_name"
-                   placeholder="Nhập họ tên bệnh nhân" autocomplete="off">
+                    autocomplete="off" readonly>
           </div>
           <div class="de-field">
             <label>Ngày sinh <span style="color:#ef4444;">*</span></label>
             <input type="text" name="dob" id="dob"
-                   placeholder="dd/mm/yyyy" autocomplete="off">
+                   autocomplete="off" readonly>
           </div>
           <div class="de-field">
             <label>Giới tính</label>
             <input type="text" name="gender" id="gender"
-                   placeholder="Nam / Nữ" autocomplete="off">
+                 autocomplete="off" readonly>
           </div>
           <div class="de-field">
             <label>Mã bệnh nhân</label>
             <input type="text" name="patient_code" id="patient_code"
-                   placeholder="Để trống = tự sinh" autocomplete="off">
-            <div class="field-hint" style="display: none;">Khách lẻ: để trống nếu chưa có mã</div>
+                   autocomplete="off" readonly>
           </div>
         </div>
       </div>
@@ -602,7 +603,7 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
     PATIENT_FIELDS.forEach(function (id) {
       var el = document.getElementById(id);
       if (!el) return;
-      el.removeAttribute("readonly");
+      el.setAttribute("readonly", "readonly");
       el.classList.remove("locked");
     });
 
@@ -611,7 +612,7 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
     var btnDesel  = document.getElementById("btnDeselect");
 
     if (badge)     { badge.className = "mode-badge walkin"; }
-    if (badgeText) { badgeText.textContent = "Khách lẻ — tìm theo tên/mã BN hoặc nhập tự do"; }
+    if (badgeText) { badgeText.textContent = "Chọn BN từ danh sách tìm kiếm"; }
     if (btnDesel)  { btnDesel.classList.remove("visible"); }
   }
 
@@ -738,10 +739,9 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
   if (form && btnSave) {
     form.addEventListener("submit", function (e) {
       var pid  = document.getElementById("patient_id").value;
-      var name = (document.getElementById("full_name").value || "").trim();
-      if (!pid && !name) {
+      if (!pid) {
         e.preventDefault();
-        alert("Vui lòng chọn bệnh nhân từ danh sách hoặc nhập họ tên (khách lẻ) trước khi lưu.");
+        alert("Vui lòng chọn bệnh nhân từ danh sách HIS trước khi lưu.");
         return;
       }
       btnSave.disabled = true;
