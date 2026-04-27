@@ -177,13 +177,6 @@ def _iter_chat_stream(response):
         content = message.get("content", "")
         if content:
             yield content
-            continue
-
-        # Qwen3/Ollama có thể stream pha "thinking" trước khi có content thực.
-        # Yield một khoảng trắng để giữ kết nối SSE sống, tránh upstream/proxy 504.
-        thinking = message.get("thinking", "")
-        if thinking:
-            yield " "
 
 
 def _iter_generate_stream(response):
