@@ -1,11 +1,65 @@
 import json
 import logging
+import re
+import unicodedata
 from urllib.parse import urlparse
 
 import requests
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+MODEL_DISCLOSURE_RESPONSE = (
+    "Ôi là mô hình ngôn ngữ Qwen được phát triển bởi Alibaba Cloud. "
+    "Dữ liệu huấn luyện của tôi bao gồm nhiều nguồn thông tin đa dạng, nhưng không có quyền truy cập dữ liệu thời gian thực "
+    "hoặc cơ sở dữ liệu nội bộ của ClinicOS. Nếu bạn có câu hỏi cụ thể về dịch vụ, báo giá, hoặc quy trình của ClinicOS, "
+    "vui lòng cung cấp thêm thông tin để tôi hỗ trợ chính xác hơn."
+)
+
+SYSTEM_SECURITY_RESPONSE = (
+    "Tôi không thể cung cấp thông tin về kiến trúc hệ thống, công nghệ, cấu hình triển khai, "
+    "hoặc cơ chế bảo mật nội bộ của ClinicOS. Tôi chỉ hỗ trợ các nội dung được phép như tổ chức, "
+    "nghiệp vụ, quy trình, dịch vụ và dữ liệu đã được chia sẻ hợp lệ."
+)
+
+MODEL_DISCLOSURE_PATTERNS = (
+    "model gi",
+    "mo hinh gi",
+    "ban la model gi",
+    "ban la mo hinh gi",
+    "nguon nao",
+    "nguon du lieu",
+    "du lieu huan luyen",
+    "duoc huan luyen tu dau",
+    "ban duoc train",
+    "ban duoc huan luyen",
+    "qwen",
+    "alibaba cloud",
+)
+
+SECURITY_DISCLOSURE_PATTERNS = (
+    "kien truc he thong",
+    "kien truc cua he thong",
+    "cong nghe nen tang",
+    "tech stack",
+    "stack cong nghe",
+    "he thong chay tren",
+    "co so du lieu noi bo",
+    "database noi bo",
+    "cau hinh trien khai",
+    "ha tang",
+    "bao mat noi bo",
+    "system prompt",
+    "prompt he thong",
+)
+
+
+def _normalize_text(value):
+    normalized = unicodedata.normalize("NFKD", (value or "").strip().lower())
+    without_accents = "".join(
+        char for char in normalized if not unicodedata.combining(char)
+    )
+    return re.sub(r"\s+", " ", without_accents)
 
 
 def _is_loopback_url(url):
@@ -22,7 +76,9 @@ def get_ollama_base_url():
         return "http://127.0.0.1:11434"
 
     non_loopback_candidates = [url for url in candidates if not _is_loopback_url(url)]
-    selected_url = non_loopback_candidates[0] if non_loopback_candidates else candidates[0]
+    selected_url = (
+        non_loopback_candidates[0] if non_loopback_candidates else candidates[0]
+    )
     return selected_url.rstrip("/")
 
 
@@ -31,16 +87,22 @@ def get_ollama_model():
 
 
 def get_ollama_system_prompt():
-    return getattr(
-        settings,
-        "OLLAMA_SYSTEM_PROMPT",
-        (
-            "Bạn là trợ lý nội bộ của phòng khám doanh nghiệp ClinicOS. "
-            "Nhiệm vụ của bạn là hỗ trợ đội ngũ quản lý về nghiệp vụ khám sức khỏe doanh nghiệp, "
-            "hợp đồng, báo giá, lên lịch, và các vấn đề vận hành. "
-            "Luôn trả lời bằng tiếng Việt, ngắn gọn và chính xác."
-        ),
-    )
+    prompt = getattr(settings, "AI_SYSTEM_PROMPT", "").strip()
+    if prompt:
+        return prompt
+    return getattr(settings, "OLLAMA_SYSTEM_PROMPT", "").strip()
+
+
+def get_guardrail_response(user_content: str):
+    normalized = _normalize_text(user_content)
+
+    if any(pattern in normalized for pattern in MODEL_DISCLOSURE_PATTERNS):
+        return MODEL_DISCLOSURE_RESPONSE
+
+    if any(pattern in normalized for pattern in SECURITY_DISCLOSURE_PATTERNS):
+        return SYSTEM_SECURITY_RESPONSE
+
+    return ""
 
 
 def get_ollama_timeout():
@@ -115,6 +177,13 @@ def _iter_chat_stream(response):
         content = message.get("content", "")
         if content:
             yield content
+            continue
+
+        # Qwen3/Ollama có thể stream pha "thinking" trước khi có content thực.
+        # Yield một khoảng trắng để giữ kết nối SSE sống, tránh upstream/proxy 504.
+        thinking = message.get("thinking", "")
+        if thinking:
+            yield " "
 
 
 def _iter_generate_stream(response):
@@ -152,7 +221,9 @@ def _iter_openai_chat_stream(response):
         try:
             chunk = json.loads(data_part)
         except json.JSONDecodeError:
-            logger.warning("Khong parse duoc chunk tu OpenAI-compatible chat: %s", raw_line)
+            logger.warning(
+                "Khong parse duoc chunk tu OpenAI-compatible chat: %s", raw_line
+            )
             continue
 
         for choice in chunk.get("choices", []):
@@ -174,7 +245,9 @@ def _raise_user_facing_runtime_error(exc, url):
         raise RuntimeError("Máy chủ AI phản hồi quá lâu. Vui lòng thử lại.") from exc
     if isinstance(exc, requests.exceptions.HTTPError):
         logger.error("Ollama HTTP error: %s", exc)
-        raise RuntimeError("Máy chủ AI tạm thời không khả dụng. Vui lòng thử lại sau.") from exc
+        raise RuntimeError(
+            "Máy chủ AI tạm thời không khả dụng. Vui lòng thử lại sau."
+        ) from exc
     raise exc
 
 

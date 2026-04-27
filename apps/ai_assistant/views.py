@@ -16,6 +16,7 @@ from .permissions import AiAssistantAccessMixin
 from .services import (
     auto_generate_title,
     build_messages_payload,
+    get_guardrail_response,
     stream_completion,
 )
 
@@ -107,6 +108,29 @@ class MessageStreamView(AiAssistantAccessMixin, View):
             content=user_content,
         )
 
+        guardrail_response = get_guardrail_response(user_content)
+        if guardrail_response:
+            Message.objects.create(
+                conversation=conversation,
+                role=Message.ROLE_ASSISTANT,
+                content=guardrail_response,
+            )
+            Conversation.objects.filter(pk=conversation.pk).update(
+                updated_at=timezone.now()
+            )
+            response = StreamingHttpResponse(
+                iter(
+                    [
+                        f"data: {json.dumps(guardrail_response)}\n\n",
+                        "data: [DONE]\n\n",
+                    ]
+                ),
+                content_type="text/event-stream",
+            )
+            response["Cache-Control"] = "no-cache"
+            response["X-Accel-Buffering"] = "no"
+            return response
+
         is_first_message = (
             conversation.messages.filter(role=Message.ROLE_USER).count() == 1
         )
@@ -114,7 +138,12 @@ class MessageStreamView(AiAssistantAccessMixin, View):
         all_msgs = conversation.messages.exclude(role=Message.ROLE_SYSTEM).order_by(
             "created_at"
         )
-        knowledge_context = build_knowledge_context(user_content, user=request.user)
+        knowledge_context = ""
+        try:
+            knowledge_context = build_knowledge_context(user_content, user=request.user)
+        except Exception as exc:
+            logger.exception("AI knowledge context setup failed: %s", exc)
+
         messages_payload = build_messages_payload(
             all_msgs,
             knowledge_context=knowledge_context,

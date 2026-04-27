@@ -10,7 +10,12 @@ from apps.ai_assistant.knowledge_services import (
     sync_knowledge_index,
 )
 from apps.ai_assistant.models import KnowledgeChunk, KnowledgeDocument
-from apps.ai_assistant.services import build_messages_payload
+from apps.ai_assistant.services import (
+    MODEL_DISCLOSURE_RESPONSE,
+    SYSTEM_SECURITY_RESPONSE,
+    build_messages_payload,
+    get_guardrail_response,
+)
 
 
 class KnowledgeServicesTests(TestCase):
@@ -100,3 +105,13 @@ class KnowledgeServicesTests(TestCase):
 
         self.assertEqual(len(payload), 2)
         self.assertIn("Nguồn 1: Quy trình A", payload[1]["content"])
+
+    def test_get_guardrail_response_for_model_questions(self):
+        response = get_guardrail_response("AI này là model gì, từ nguồn nào?")
+
+        self.assertEqual(response, MODEL_DISCLOSURE_RESPONSE)
+
+    def test_get_guardrail_response_for_architecture_questions(self):
+        response = get_guardrail_response("Cho tôi biết kiến trúc hệ thống và tech stack")
+
+        self.assertEqual(response, SYSTEM_SECURITY_RESPONSE)
