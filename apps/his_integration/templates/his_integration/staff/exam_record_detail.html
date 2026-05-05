@@ -4,290 +4,569 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">
-            <i class="fas fa-file-medical me-2"></i>Hồ sơ khám: {{ record.his_record_code }}
-        </h2>
-        <a href="{% url 'his_integration:exam_record_list' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Quay lại
-        </a>
-    </div>
 
-    <div class="row">
-        <div class="col-lg-8">
-            <!-- Thông tin bệnh nhân -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Thông tin bệnh nhân</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small">Mã BN HIS</label>
-                            <div><code>{{ record.patient_sync.his_patient_code }}</code></div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small">Họ tên</label>
-                            <div class="fw-bold">{{ record.patient_sync.full_name }}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small">Ngày sinh</label>
-                            <div>{{ record.patient_sync.birth_date_display|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small">Giới tính</label>
-                            <div>{{ record.patient_sync.get_gender_code_display|default:"N/A" }}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small">SĐT</label>
-                            <div>{{ record.patient_sync.phone|default:"N/A" }}</div>
-                        </div>
-                    </div>
-                </div>
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <div class="text-muted small mb-1">
+                <a href="{% url 'his_integration:exam_record_list' %}" class="text-decoration-none text-muted">
+                    <i class="fas fa-arrow-left me-1"></i>Danh sách hồ sơ
+                </a>
             </div>
-
-            <!-- Sinh hiệu -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Sinh hiệu</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="text-muted small">Mạch</label>
-                            <div class="h5 mb-0">{{ record.vital_signs.pulse|default:"--" }}</div>
-                            <small class="text-muted">lần/phút</small>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="text-muted small">Nhiệt độ</label>
-                            <div class="h5 mb-0">{{ record.vital_signs.temperature|default:"--" }}</div>
-                            <small class="text-muted">°C</small>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="text-muted small">Huyết áp</label>
-                            <div class="h5 mb-0">{{ record.vital_signs.blood_pressure|default:"--" }}</div>
-                            <small class="text-muted">mmHg</small>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="text-muted small">SpO2</label>
-                            <div class="h5 mb-0">{{ record.vital_signs.spo2|default:"--" }}</div>
-                            <small class="text-muted">%</small>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="text-muted small">Chiều cao</label>
-                            <div class="h5 mb-0">{{ record.vital_signs.height|default:"--" }}</div>
-                            <small class="text-muted">cm</small>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="text-muted small">Cân nặng</label>
-                            <div class="h5 mb-0">{{ record.vital_signs.weight|default:"--" }}</div>
-                            <small class="text-muted">kg</small>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="text-muted small">BMI</label>
-                            <div class="h5 mb-0">{{ record.vital_signs.bmi|default:"--" }}</div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="text-muted small">Nhịp thở</label>
-                            <div class="h5 mb-0">{{ record.vital_signs.respiratory_rate|default:"--" }}</div>
-                            <small class="text-muted">lần/phút</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Khám lâm sàng -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Khám lâm sàng</h5>
-                </div>
-                <div class="card-body">
-                    {% if record.clinical_exam.general %}
-                    <div class="mb-3">
-                        <label class="text-muted small fw-bold">Toàn thân</label>
-                        <div>{{ record.clinical_exam.general }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if record.clinical_exam.circulatory %}
-                    <div class="mb-3">
-                        <label class="text-muted small fw-bold">Tuần hoàn</label>
-                        <div>{{ record.clinical_exam.circulatory }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if record.clinical_exam.respiratory %}
-                    <div class="mb-3">
-                        <label class="text-muted small fw-bold">Hô hấp</label>
-                        <div>{{ record.clinical_exam.respiratory }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if record.clinical_exam.digestive %}
-                    <div class="mb-3">
-                        <label class="text-muted small fw-bold">Tiêu hóa</label>
-                        <div>{{ record.clinical_exam.digestive }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if record.clinical_exam.body_parts %}
-                    <div class="mb-3">
-                        <label class="text-muted small fw-bold">Các bộ phận</label>
-                        <div>{{ record.clinical_exam.body_parts }}</div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Chẩn đoán & Kết luận -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Chẩn đoán & Kết luận</h5>
-                </div>
-                <div class="card-body">
-                    {% if record.diagnosis %}
-                    <div class="mb-3">
-                        <label class="text-muted small fw-bold">Chẩn đoán</label>
-                        <div>{{ record.diagnosis }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if record.icd10_code_1 %}
-                    <div class="mb-3">
-                        <label class="text-muted small fw-bold">Mã ICD-10</label>
-                        <div>
-                            <span class="badge bg-info">{{ record.icd10_code_1 }}</span>
-                            {% if record.icd10_desc_1 %}
-                            <div class="mt-1">{{ record.icd10_desc_1 }}</div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if record.conclusion %}
-                    <div class="mb-3">
-                        <label class="text-muted small fw-bold">Kết luận</label>
-                        <div>{{ record.conclusion }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if record.treatment_method %}
-                    <div>
-                        <label class="text-muted small fw-bold">Cách xử lý</label>
-                        <div>{{ record.treatment_method }}</div>
-                    </div>
-                    {% endif %}
-                </div>
+            <h2 class="mb-1">
+                {{ record.patient_sync.full_name }}
+            </h2>
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <span class="text-muted small"><code>{{ record.his_record_code }}</code></span>
+                {% if record.exam_date %}
+                <span class="text-muted small"><i class="fas fa-calendar me-1"></i>{{ record.exam_date|date:"d/m/Y" }}</span>
+                {% endif %}
+                {% if record.is_complete %}
+                <span class="badge bg-success"><i class="fas fa-check me-1"></i>Hoàn thành</span>
+                {% else %}
+                <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Chưa hoàn thành</span>
+                {% endif %}
+                {% if record.health_classification %}
+                <span class="badge bg-info">Loại {{ record.health_classification }}</span>
+                {% endif %}
             </div>
         </div>
+        {% if record.package_sync %}
+        <a href="{% url 'his_integration:package_detail' record.package_sync.pk %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-box me-1"></i>{{ record.package_sync.package_name|truncatewords:5 }}
+        </a>
+        {% endif %}
+    </div>
 
-        <div class="col-lg-4">
-            <!-- Validation Status -->
-            <div class="card border-0 shadow-sm mb-3">
+    <div class="row g-4">
+        <!-- Cột trái -->
+        <div class="col-lg-8">
+
+            <!-- Thông tin bệnh nhân + sinh hiệu -->
+            <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white">
-                    <h6 class="mb-0">Trạng thái hồ sơ</h6>
+                    <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Bệnh nhân</h5>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="text-muted small">Trạng thái</label>
-                        <div>
-                            {% if record.is_complete %}
-                            <span class="badge bg-success">
-                                <i class="fas fa-check me-1"></i>Hoàn thành
-                            </span>
-                            {% else %}
-                            <span class="badge bg-warning">
-                                <i class="fas fa-exclamation-triangle me-1"></i>Chưa hoàn thành
-                            </span>
-                            {% endif %}
+                <div class="card-body pb-2">
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-4">
+                            <div class="text-muted small">Mã BN HIS</div>
+                            <code>{{ record.patient_sync.his_patient_code }}</code>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="text-muted small">Ngày sinh</div>
+                            <div>{{ record.patient_sync.birth_date_display|default:"—" }}</div>
+                        </div>
+                        <div class="col-sm-2">
+                            <div class="text-muted small">Giới tính</div>
+                            <div>{{ record.patient_sync.get_gender_code_display|default:"—" }}</div>
+                        </div>
+                        <div class="col-sm-2">
+                            <div class="text-muted small">SĐT</div>
+                            <div>{{ record.patient_sync.phone|default:"—" }}</div>
                         </div>
                     </div>
-                    
-                    {% if record.missing_fields %}
-                    <div class="mb-3">
-                        <label class="text-muted small">Trường thiếu</label>
-                        <ul class="list-unstyled mb-0">
-                            {% for field in record.missing_fields %}
-                            <li class="text-danger">
-                                <i class="fas fa-times me-1"></i>{{ field }}
-                            </li>
-                            {% endfor %}
-                        </ul>
+                    <hr class="my-2">
+                    <!-- Sinh hiệu inline -->
+                    <div class="row g-2 text-center">
+                        {% with vs=record.vital_signs %}
+                        <div class="col-6 col-sm-3">
+                            <div class="p-2 rounded bg-light">
+                                <div class="text-muted small">Mạch</div>
+                                <div class="fw-bold fs-5">{{ vs.pulse|default:"—" }}</div>
+                                <div class="text-muted" style="font-size:.7rem;">lần/phút</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="p-2 rounded bg-light">
+                                <div class="text-muted small">Huyết áp</div>
+                                <div class="fw-bold fs-5">{{ vs.blood_pressure|default:"—" }}</div>
+                                <div class="text-muted" style="font-size:.7rem;">mmHg</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="p-2 rounded bg-light">
+                                <div class="text-muted small">Nhiệt độ</div>
+                                <div class="fw-bold fs-5">{{ vs.temperature|default:"—" }}</div>
+                                <div class="text-muted" style="font-size:.7rem;">°C</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="p-2 rounded bg-light">
+                                <div class="text-muted small">SpO2</div>
+                                <div class="fw-bold fs-5">{{ vs.spo2|default:"—" }}</div>
+                                <div class="text-muted" style="font-size:.7rem;">%</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="p-2 rounded bg-light">
+                                <div class="text-muted small">Chiều cao</div>
+                                <div class="fw-bold fs-5">{{ vs.height|default:"—" }}</div>
+                                <div class="text-muted" style="font-size:.7rem;">cm</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="p-2 rounded bg-light">
+                                <div class="text-muted small">Cân nặng</div>
+                                <div class="fw-bold fs-5">{{ vs.weight|default:"—" }}</div>
+                                <div class="text-muted" style="font-size:.7rem;">kg</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="p-2 rounded bg-light">
+                                <div class="text-muted small">BMI</div>
+                                <div class="fw-bold fs-5">{{ vs.bmi|default:"—" }}</div>
+                                <div class="text-muted" style="font-size:.7rem;">&nbsp;</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="p-2 rounded bg-light">
+                                <div class="text-muted small">Nhịp thở</div>
+                                <div class="fw-bold fs-5">{{ vs.respiratory_rate|default:"—" }}</div>
+                                <div class="text-muted" style="font-size:.7rem;">lần/phút</div>
+                            </div>
+                        </div>
+                        {% if vs.waist %}
+                        <div class="col-6 col-sm-3">
+                            <div class="p-2 rounded bg-light">
+                                <div class="text-muted small">Vòng bụng</div>
+                                <div class="fw-bold fs-5">{{ vs.waist }}</div>
+                                <div class="text-muted" style="font-size:.7rem;">cm</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endwith %}
                     </div>
-                    {% endif %}
-                    
-                    {% if record.validation_errors %}
-                    <div>
-                        <label class="text-muted small">Lỗi validation</label>
-                        <ul class="list-unstyled mb-0">
-                            {% for error in record.validation_errors %}
-                            <li class="text-warning">
-                                <i class="fas fa-exclamation me-1"></i>{{ error }}
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
+                </div>
+            </div>     
+        </div>
+
+        <!-- Cột phải -->
+        <div class="col-lg-4">
+
+            <!-- Thông tin hồ sơ -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Thông tin hồ sơ</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0" style="font-size:.875rem;">
+                        <dt class="col-5 text-muted fw-normal">Ngày khám</dt>
+                        <dd class="col-7">{{ record.exam_date|date:"d/m/Y"|default:"—" }}</dd>
+                        {% if record.doctor_name %}
+                        <dt class="col-5 text-muted fw-normal">Bác sĩ</dt>
+                        <dd class="col-7">{{ record.doctor_name }}</dd>
+                        {% endif %}
+                        {% if record.department_position %}
+                        <dt class="col-5 text-muted fw-normal">Bộ phận</dt>
+                        <dd class="col-7">{{ record.department_position }}</dd>
+                        {% endif %}
+                        {% if record.job_title %}
+                        <dt class="col-5 text-muted fw-normal">Chức vụ</dt>
+                        <dd class="col-7">{{ record.job_title }}</dd>
+                        {% endif %}
+                        {% if record.patient_type_sync %}
+                        <dt class="col-5 text-muted fw-normal">Đối tượng</dt>
+                        <dd class="col-7">{{ record.patient_type_sync.patient_type_name }}</dd>
+                        {% endif %}
+                        <dt class="col-5 text-muted fw-normal">Đồng bộ</dt>
+                        <dd class="col-7 mb-0">{{ record.last_synced_at|date:"d/m/Y H:i" }}</dd>
+                    </dl>
                 </div>
             </div>
 
-            <!-- Gói khám -->
-            {% if record.package_sync %}
+            <!-- Trạng thái -->
+            {% if record.missing_fields or record.validation_errors %}
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-white">
-                    <h6 class="mb-0">Gói khám đoàn</h6>
+                    <h6 class="mb-0">Cảnh báo hồ sơ</h6>
                 </div>
                 <div class="card-body">
+                    {% if record.missing_fields %}
                     <div class="mb-2">
-                        <label class="text-muted small">Tên gói</label>
-                        <div>{{ record.package_sync.package_name }}</div>
+                        <div class="text-muted small fw-bold mb-1">Trường thiếu</div>
+                        {% for field in record.missing_fields %}
+                        <div class="text-danger small"><i class="fas fa-times me-1"></i>{{ field }}</div>
+                        {% endfor %}
                     </div>
-                    <div class="mb-2">
-                        <label class="text-muted small">Công ty</label>
-                        <div>{{ record.package_sync.company_name }}</div>
-                    </div>
+                    {% endif %}
+                    {% if record.validation_errors %}
                     <div>
-                        <a href="{% url 'his_integration:package_detail' record.package_sync.pk %}" class="btn btn-sm btn-outline-primary w-100">
-                            Xem gói khám
-                        </a>
+                        <div class="text-muted small fw-bold mb-1">Lỗi validation</div>
+                        {% for error in record.validation_errors %}
+                        <div class="text-warning small"><i class="fas fa-exclamation me-1"></i>{{ error }}</div>
+                        {% endfor %}
                     </div>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
 
-            <!-- Metadata -->
-            <div class="card border-0 shadow-sm">
+            <!-- Tiền sử -->
+            {% if record.medical_history or record.family_history or record.reason_for_visit %}
+            <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-white">
-                    <h6 class="mb-0">Thông tin khác</h6>
+                    <h6 class="mb-0">Tiền sử & Lý do khám</h6>
+                </div>
+                <div class="card-body" style="font-size:.875rem;">
+                    {% if record.reason_for_visit %}
+                    <div class="mb-2">
+                        <div class="text-muted small fw-bold">Lý do vào khám</div>
+                        <div>{{ record.reason_for_visit }}</div>
+                    </div>
+                    {% endif %}
+                    {% if record.medical_history %}
+                    <div class="mb-2">
+                        <div class="text-muted small fw-bold">Tiền sử bản thân</div>
+                        <div>{{ record.medical_history }}</div>
+                    </div>
+                    {% endif %}
+                    {% if record.family_history %}
+                    <div>
+                        <div class="text-muted small fw-bold">Tiền sử gia đình</div>
+                        <div>{{ record.family_history }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12">
+            <!-- Khám lâm sàng -->
+            {% with ce=record.clinical_exam %}
+            {% if ce.general or ce.circulatory or ce.respiratory or ce.digestive or ce.kidney_urinary or ce.endocrine or ce.musculoskeletal or ce.nervous or ce.mental or ce.external_eye or ce.intraoral or ce.body_parts or ce.physical_classification %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-stethoscope me-2 text-primary"></i>Khám lâm sàng</h5>
+                    {% if ce.physical_classification %}
+                    <span class="badge bg-secondary">Thể lực: {{ ce.physical_classification }}</span>
+                    {% endif %}
                 </div>
                 <div class="card-body">
-                    <div class="mb-2">
-                        <label class="text-muted small">Ngày khám</label>
-                        <div>{{ record.exam_date|date:"d/m/Y"|default:"N/A" }}</div>
-                    </div>
-                    <div class="mb-2">
-                        <label class="text-muted small">Mã BS</label>
-                        <div>{{ record.doctor_code|default:"N/A" }}</div>
-                    </div>
-                    {% if record.department_position %}
-                    <div class="mb-2">
-                        <label class="text-muted small">Bộ phận</label>
-                        <div>{{ record.department_position }}</div>
-                    </div>
-                    {% endif %}
-                    {% if record.job_title %}
-                    <div class="mb-2">
-                        <label class="text-muted small">Chức vụ</label>
-                        <div>{{ record.job_title }}</div>
-                    </div>
-                    {% endif %}
-                    <div>
-                        <label class="text-muted small">Lần đồng bộ cuối</label>
-                        <div>{{ record.last_synced_at|date:"d/m/Y H:i" }}</div>
+                    <div class="row g-3">
+                        {% if ce.general %}
+                        <div class="col-md-6">
+                            <div class="border-start border-3 border-primary ps-3">
+                                <div class="text-muted small fw-bold mb-1">Toàn thân</div>
+                                <div>{{ ce.general }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if ce.circulatory %}
+                        <div class="col-md-6">
+                            <div class="border-start border-3 border-secondary ps-3">
+                                <div class="text-muted small fw-bold mb-1">Tuần hoàn</div>
+                                <div>{{ ce.circulatory }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if ce.respiratory %}
+                        <div class="col-md-6">
+                            <div class="border-start border-3 border-secondary ps-3">
+                                <div class="text-muted small fw-bold mb-1">Hô hấp</div>
+                                <div>{{ ce.respiratory }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if ce.digestive %}
+                        <div class="col-md-6">
+                            <div class="border-start border-3 border-secondary ps-3">
+                                <div class="text-muted small fw-bold mb-1">Tiêu hóa</div>
+                                <div>{{ ce.digestive }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if ce.kidney_urinary %}
+                        <div class="col-md-6">
+                            <div class="border-start border-3 border-secondary ps-3">
+                                <div class="text-muted small fw-bold mb-1">Thận - Tiết niệu</div>
+                                <div>{{ ce.kidney_urinary }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if ce.endocrine %}
+                        <div class="col-md-6">
+                            <div class="border-start border-3 border-secondary ps-3">
+                                <div class="text-muted small fw-bold mb-1">Nội tiết</div>
+                                <div>{{ ce.endocrine }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if ce.musculoskeletal %}
+                        <div class="col-md-6">
+                            <div class="border-start border-3 border-secondary ps-3">
+                                <div class="text-muted small fw-bold mb-1">Cơ - Xương - Khớp</div>
+                                <div>{{ ce.musculoskeletal }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if ce.nervous %}
+                        <div class="col-md-6">
+                            <div class="border-start border-3 border-secondary ps-3">
+                                <div class="text-muted small fw-bold mb-1">Thần kinh</div>
+                                <div>{{ ce.nervous }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if ce.mental %}
+                        <div class="col-md-6">
+                            <div class="border-start border-3 border-secondary ps-3">
+                                <div class="text-muted small fw-bold mb-1">Tâm thần</div>
+                                <div>{{ ce.mental }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if ce.external_eye %}
+                        <div class="col-md-6">
+                            <div class="border-start border-3 border-secondary ps-3">
+                                <div class="text-muted small fw-bold mb-1">Mắt</div>
+                                <div>{{ ce.external_eye }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if ce.intraoral %}
+                        <div class="col-md-6">
+                            <div class="border-start border-3 border-secondary ps-3">
+                                <div class="text-muted small fw-bold mb-1">Răng hàm mặt</div>
+                                <div>{{ ce.intraoral }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if ce.body_parts %}
+                        <div class="col-md-6">
+                            <div class="border-start border-3 border-secondary ps-3">
+                                <div class="text-muted small fw-bold mb-1">Các bộ phận khác</div>
+                                <div>{{ ce.body_parts }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
+            {% endif %}
+            {% endwith %}
+
+            <!-- Chẩn đoán & Kết luận -->
+            {% if record.diagnosis or record.icd10_code_1 or record.conclusion or record.treatment_method or record.health_prediction or record.consultation_conclusion %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-notes-medical me-2 text-primary"></i>Chẩn đoán & Kết luận</h5>
+                </div>
+                <div class="card-body">
+                    {% if record.diagnosis %}
+                    <div class="mb-3">
+                        <div class="text-muted small fw-bold mb-1">Chẩn đoán</div>
+                        <div>{{ record.diagnosis }}</div>
+                    </div>
+                    {% endif %}
+                    {% if record.icd10_code_1 %}
+                    <div class="mb-3">
+                        <div class="text-muted small fw-bold mb-1">Mã ICD-10</div>
+                        <span class="badge bg-info text-dark me-1">{{ record.icd10_code_1 }}</span>
+                        {% if record.icd10_code_2 %}<span class="badge bg-info text-dark me-1">{{ record.icd10_code_2 }}</span>{% endif %}
+                        {% if record.icd10_code_3 %}<span class="badge bg-info text-dark me-1">{{ record.icd10_code_3 }}</span>{% endif %}
+                        {% if record.icd10_desc_1 %}<div class="text-muted small mt-1">{{ record.icd10_desc_1 }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+                    {% if record.conclusion %}
+                    <div class="mb-3">
+                        <div class="text-muted small fw-bold mb-1">Kết luận</div>
+                        <div>{{ record.conclusion }}</div>
+                    </div>
+                    {% endif %}
+                    {% if record.consultation_conclusion %}
+                    <div class="mb-3">
+                        <div class="text-muted small fw-bold mb-1">Kết luận tư vấn</div>
+                        <div>{{ record.consultation_conclusion }}</div>
+                    </div>
+                    {% endif %}
+                    {% if record.treatment_method %}
+                    <div class="mb-3">
+                        <div class="text-muted small fw-bold mb-1">Cách xử lý</div>
+                        <div>{{ record.treatment_method }}</div>
+                    </div>
+                    {% endif %}
+                    {% if record.health_prediction %}
+                    <div>
+                        <div class="text-muted small fw-bold mb-1">Dự báo sức khỏe</div>
+                        <div>{{ record.health_prediction }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
+
+
+    <!-- Kết quả cận lâm sàng -->
+    {% if diagnostic_imaging_records or functional_test_records or exam_service_items %}
+    <div class="mt-2">
+        <h5 class="mb-3"><i class="fas fa-microscope me-2 text-primary"></i>Kết quả cận lâm sàng</h5>
+        <ul class="nav nav-tabs mb-0" id="clsTabs" role="tablist">
+            {% if diagnostic_imaging_records %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tab-cdha" data-bs-toggle="tab" data-bs-target="#pane-cdha" type="button" role="tab">
+                    <i class="fas fa-x-ray me-1"></i>Chẩn đoán hình ảnh
+                    <span class="badge bg-secondary ms-1">{{ diagnostic_imaging_records|length }}</span>
+                </button>
+            </li>
+            {% endif %}
+            {% if functional_test_records %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if not diagnostic_imaging_records %}active{% endif %}" id="tab-tdcn" data-bs-toggle="tab" data-bs-target="#pane-tdcn" type="button" role="tab">
+                    <i class="fas fa-heartbeat me-1"></i>Thăm dò chức năng
+                    <span class="badge bg-secondary ms-1">{{ functional_test_records|length }}</span>
+                </button>
+            </li>
+            {% endif %}
+            {% if exam_service_items %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if not diagnostic_imaging_records and not functional_test_records %}active{% endif %}" id="tab-dv" data-bs-toggle="tab" data-bs-target="#pane-dv" type="button" role="tab">
+                    <i class="fas fa-list-alt me-1"></i>Dịch vụ khám
+                    <span class="badge bg-secondary ms-1">{{ exam_service_items|length }}</span>
+                </button>
+            </li>
+            {% endif %}
+        </ul>
+
+        <div class="tab-content border border-top-0 rounded-bottom bg-white shadow-sm">
+
+            <!-- Tab CĐHA -->
+            {% if diagnostic_imaging_records %}
+            <div class="tab-pane fade show active" id="pane-cdha" role="tabpanel">
+                <div class="accordion accordion-flush" id="accordionCDHA">
+                    {% for img in diagnostic_imaging_records %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button {% if not forloop.first %}collapsed{% endif %} py-3" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#cdha-{{ forloop.counter }}"
+                                aria-expanded="{{ forloop.first|yesno:'true,false' }}">
+                                <div class="d-flex align-items-center gap-3 w-100 me-3 flex-wrap">
+                                    <span class="fw-semibold">
+                                        {% if img.request_text %}{{ img.request_text|truncatewords:8 }}{% else %}Phiếu CĐHA #{{ forloop.counter }}{% endif %}
+                                    </span>
+                                    {% if img.performed_at %}
+                                    <span class="text-muted small">{{ img.performed_at|date:"d/m/Y" }}</span>
+                                    {% elif img.exam_date %}
+                                    <span class="text-muted small">{{ img.exam_date|date:"d/m/Y H:i" }}</span>
+                                    {% endif %}
+                                    {% if img.conclusion %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle ms-auto">Có kết luận</span>
+                                    {% elif img.result_text %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-auto">Có kết quả</span>
+                                    {% endif %}
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="cdha-{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}">
+                            <div class="accordion-body pt-2">
+                                {% if img.imaging_doctor_code or img.performing_doctor_code or img.performed_at %}
+                                <div class="d-flex gap-4 mb-3 text-muted small flex-wrap">
+                                    {% if img.imaging_doctor_code %}
+                                    <span><i class="fas fa-user-md me-1"></i>BS CĐHA: <code>{{ img.imaging_doctor_code }}</code></span>
+                                    {% endif %}
+                                    {% if img.performing_doctor_code %}
+                                    <span><i class="fas fa-user me-1"></i>BS TH: <code>{{ img.performing_doctor_code }}</code></span>
+                                    {% endif %}
+                                    {% if img.performed_at %}
+                                    <span><i class="fas fa-calendar-check me-1"></i>TH: {{ img.performed_at|date:"d/m/Y H:i" }}</span>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                {% if img.result_text %}
+                                <div class="mb-3">
+                                    <div class="text-muted small fw-bold mb-1">Kết quả</div>
+                                    <div class="bg-light border rounded p-3" style="white-space:pre-wrap;font-size:.9rem;">{{ img.result_text }}</div>
+                                </div>
+                                {% endif %}
+                                {% if img.conclusion %}
+                                <div class="mb-3">
+                                    <div class="text-muted small fw-bold mb-1">Kết luận</div>
+                                    <div class="bg-light border rounded p-3" style="white-space:pre-wrap;font-size:.9rem;">{{ img.conclusion }}</div>
+                                </div>
+                                {% endif %}
+                                
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Tab TDCN -->
+            {% if functional_test_records %}
+            <div class="tab-pane fade {% if not diagnostic_imaging_records %}show active{% endif %}" id="pane-tdcn" role="tabpanel">
+                <div class="accordion accordion-flush" id="accordionTDCN">
+                    {% for ft in functional_test_records %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button {% if not forloop.first %}collapsed{% endif %} py-3" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#tdcn-{{ forloop.counter }}"
+                                aria-expanded="{{ forloop.first|yesno:'true,false' }}">
+                                <div class="d-flex align-items-center gap-3 w-100 me-3 flex-wrap">
+                                    <span class="fw-semibold">
+                                        {% if ft.request_text %}{{ ft.request_text|truncatewords:8 }}{% else %}Phiếu TDCN #{{ forloop.counter }}{% endif %}
+                                    </span>
+                                    {% if ft.performed_at %}
+                                    <span class="text-muted small">{{ ft.performed_at|date:"d/m/Y" }}</span>
+                                    {% elif ft.exam_date %}
+                                    <span class="text-muted small">{{ ft.exam_date|date:"d/m/Y H:i" }}</span>
+                                    {% endif %}
+                                    {% if ft.conclusion %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle ms-auto">Có kết luận</span>
+                                    {% elif ft.result_text %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-auto">Có kết quả</span>
+                                    {% endif %}
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="tdcn-{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}">
+                            <div class="accordion-body pt-2">
+                                {% if ft.ft_doctor_code or ft.performing_doctor_code or ft.performed_at %}
+                                <div class="d-flex gap-4 mb-3 text-muted small flex-wrap">
+                                    {% if ft.ft_doctor_code %}
+                                    <span><i class="fas fa-user-md me-1"></i>BS TDCN: <code>{{ ft.ft_doctor_code }}</code></span>
+                                    {% endif %}
+                                    {% if ft.performing_doctor_code %}
+                                    <span><i class="fas fa-user me-1"></i>BS TH: <code>{{ ft.performing_doctor_code }}</code></span>
+                                    {% endif %}
+                                    {% if ft.performed_at %}
+                                    <span><i class="fas fa-calendar-check me-1"></i>TH: {{ ft.performed_at|date:"d/m/Y H:i" }}</span>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                {% if ft.result_text %}
+                                <div class="mb-3">
+                                    <div class="text-muted small fw-bold mb-1">Kết quả</div>
+                                    <div class="bg-light border rounded p-3" style="white-space:pre-wrap;font-size:.9rem;">{{ ft.result_text }}</div>
+                                </div>
+                                {% endif %}
+                                {% if ft.conclusion %}
+                                <div class="mb-3">
+                                    <div class="text-muted small fw-bold mb-1">Kết luận</div>
+                                    <div class="bg-light border rounded p-3" style="white-space:pre-wrap;font-size:.9rem;">{{ ft.conclusion }}</div>
+                                </div>
+                                {% endif %}
+                                
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            
+
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 {% endblock %}

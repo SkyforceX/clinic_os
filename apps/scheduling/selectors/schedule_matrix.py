@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Prefetch
 
 from apps.booking.models import Appointment
+from apps.contract.models import QuotationLine
 from apps.core.models import PublicHoliday, SystemGeneralSetting
 from apps.his_integration.models import HisExamRecordSync
 from apps.scheduling.models import ContractScheduleConfig, ScheduleSlot, SlotType, TimeShift
@@ -167,6 +168,105 @@ def _patient_payload(patient):
     }
 
 
+def _patient_gender_code(patient):
+    """Return '0' for male, '1' for female, '' for unknown."""
+    if patient is None:
+        return ""
+    gc = getattr(patient, "gender_code", None)
+    if gc is not None:
+        return (gc or "").strip()
+    gt = (getattr(patient, "gioi_tinh", "") or "").strip().lower()
+    if "nam" in gt or gt == "m":
+        return "0"
+    if "nữ" in gt or "nu" in gt or gt == "f":
+        return "1"
+    return ""
+
+
+def _count_us_services(us_lines, gender_code):
+    """Count applicable ultrasound services for a patient based on gender."""
+    if not us_lines:
+        return 0
+    g = gender_code
+    count = 0
+    for line in us_lines:
+        if g == "0":  # male
+            if line.for_male and line.checked_male:
+                count += 1
+        elif g == "1":  # female
+            if (line.for_female_single and line.checked_female_single) or (
+                line.for_female_family and line.checked_female_family
+            ):
+                count += 1
+        else:  # unknown: include anything applicable
+            if (
+                (line.for_male and line.checked_male)
+                or (line.for_female_single and line.checked_female_single)
+                or (line.for_female_family and line.checked_female_family)
+            ):
+                count += 1
+    return count
+
+
+def _count_us_services_for_group(us_lines, group_key):
+    """Count applicable ultrasound services for a quotation gender group."""
+    if not us_lines:
+        return 0
+
+    count = 0
+    for line in us_lines:
+        if group_key == "male":
+            if line.for_male and line.checked_male:
+                count += 1
+        elif group_key == "female_single":
+            if line.for_female_single and line.checked_female_single:
+                count += 1
+        elif group_key == "female_family":
+            if line.for_female_family and line.checked_female_family:
+                count += 1
+    return count
+
+
+def _build_allocated_us_totals(slot_map, us_total):
+    """
+    Distribute estimated ultrasound workload by allocated slot capacity per day.
+
+    Uses largest-remainder rounding so the final daily sum matches `us_total`.
+    """
+    daily_capacities = []
+    total_capacity = 0
+
+    for day, shifts in slot_map.items():
+        day_capacity = sum(_limit_count(slot) for slot in shifts.values())
+        if day_capacity <= 0:
+            continue
+        daily_capacities.append((day, day_capacity))
+        total_capacity += day_capacity
+
+    if us_total <= 0 or total_capacity <= 0:
+        return {}
+
+    allocated = {}
+    remainders = []
+    assigned_total = 0
+
+    for day, day_capacity in daily_capacities:
+        raw_value = (us_total * day_capacity) / total_capacity
+        base_value = int(raw_value)
+        allocated[day] = base_value
+        assigned_total += base_value
+        remainders.append((raw_value - base_value, day))
+
+    remaining = us_total - assigned_total
+    for _, day in sorted(remainders, key=lambda item: (-item[0], item[1])):
+        if remaining <= 0:
+            break
+        allocated[day] += 1
+        remaining -= 1
+
+    return allocated
+
+
 def build_contract_schedule_matrix(*, actor, start_of_year=None):
     start_of_year = start_of_year or date.today().replace(month=1, day=1)
     days = [start_of_year + timedelta(days=i) for i in range(365)]
@@ -244,6 +344,17 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
                 ),
                 to_attr="prefetched_schedule_slots",
             ),
+            Prefetch(
+                "quotation__lines",
+                queryset=QuotationLine.objects.filter(
+                    group_name__icontains="siêu âm"
+                ).only(
+                    "id", "quotation_id", "item_name",
+                    "for_male", "for_female_single", "for_female_family",
+                    "checked_male", "checked_female_single", "checked_female_family",
+                ),
+                to_attr="prefetched_us_lines",
+            ),
         )
         .order_by("-updated_at", "-id")
     )
@@ -308,6 +419,41 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
         pm = day_totals[day]["pm"]
         daily_am_totals.append(f"Sáng: {am['registered']}/{am['limit']}/{default_am_limit}")
         daily_pm_totals.append(f"Chiều: {pm['registered']}/{pm['limit']}/{default_pm_limit}")
+
+    # ─── Tổng siêu âm mỗi ngày ───────────────────────────────────────────────
+    daily_us_counts = defaultdict(int)
+    daily_us_allocated_counts = defaultdict(int)
+    for config in visible_configs:
+        quotation = getattr(config, "quotation", None)
+        us_lines = getattr(quotation, "prefetched_us_lines", []) if quotation else []
+        if not us_lines:
+            continue
+        slots = _get_slots_for_config(config)
+        slot_map_us = defaultdict(dict)
+        for slot in slots:
+            slot_map_us[slot.date][slot.shift] = slot
+        for day in days:
+            for shift in (TimeShift.MORNING, TimeShift.AFTERNOON):
+                slot = slot_map_us.get(day, {}).get(shift)
+                if not slot:
+                    continue
+                for ap in slot.appointments.all():
+                    patient = _appointment_patient(ap)
+                    if not patient:
+                        continue
+                    gc = _patient_gender_code(patient)
+                    daily_us_counts[day] += _count_us_services(us_lines, gc)
+                daily_us_allocated_counts[day] += _limit_count(slot)
+
+    daily_us_data = [
+        {
+            "date": day.strftime("%Y-%m-%d"),
+            "total": daily_us_counts.get(day, 0),
+            "registered_total": daily_us_counts.get(day, 0),
+            "allocated_total": daily_us_allocated_counts.get(day, 0),
+        }
+        for day in days
+    ]
 
     rows = []
     for config in visible_configs:
@@ -488,6 +634,7 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
         "daily_am_totals": daily_am_totals,
         "daily_pm_totals": daily_pm_totals,
         "blood_totals_per_day": blood_totals_per_day,
+        "daily_us_data": daily_us_data,
         "sunday_indexes": sunday_indexes,
         "holiday_indexes": holiday_indexes,
         "sale_team_users": sale_team_users,
@@ -496,4 +643,3 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
         "system_am_limit": default_am_limit,
         "system_pm_limit": default_pm_limit,
     }
-

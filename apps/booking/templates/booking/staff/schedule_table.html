@@ -73,76 +73,65 @@
       color: #263238;
       background: #eceff1;
     }
+    /* ─── Sticky header rows (all 5 thead rows) ─── */
+    .schedule-table thead th,
+    .schedule-table thead td {
+      position: sticky;
+      background-color: #f0f0f0;
+      z-index: 4;
+    }
+    /* Corner cell: sticky both horizontally and vertically */
+    .schedule-table thead tr:first-child th:first-child {
+      left: 0;
+      z-index: 10;
+    }
+    /* ─── Sticky first column (company name in body) ─── */
+    .schedule-table tbody tr.blood-row th[rowspan="3"] {
+      position: sticky;
+      left: 0;
+      z-index: 3;
+    }
+    /* Màu xen kẽ theo hàng công ty */
+    .company-col-even { background-color: #eef6ff; }
+    .company-col-odd  { background-color: #f3f0ff; }
+    /* Border trái theo trạng thái chốt lịch */
+    .company-col-confirmed   { border-left: 4px solid #2e7d32 !important; }
+    .company-col-unconfirmed { border-left: 4px solid #5c6bc0 !important; }
+
+    @media (max-width: 991.98px) {
+      .schedule-table-wrapper {
+        min-height: 70vh;
+        max-height: none !important;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
   </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-  <div class="row justify-content-center">
-    <div class="col-12">
-
-      <div class="text-center mb-4">
-        <h4 class="fw-bold">🗓️ lịch khám sức khỏe công ty</h4>
-      </div>
+<div class="container-fluid px-2 py-0">
+  <div class="d-flex align-items-center justify-content-between mb-1 px-1">
+    <span class="fw-semibold text-secondary" style="font-size:16px; font-weight: 580;">🗓️ Bảng lịch khám doanh nghiệp chi tiết</span>
+    {% if show_staff_filter %}
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-muted" style="font-size:12px; white-space:nowrap;">Người tạo lịch:</span>
+      <select id="staff-filter" class="form-select form-select-sm" style="width:auto; min-width:180px;">
+        <option value="">-- Tất cả --</option>
+        {% for user in sale_team_users %}
+          <option value="{{ user.id }}" {% if current_staff_id == user.id|stringformat:"s" %}selected{% endif %}>
+            {{ user.get_full_name|default:user.username }}
+          </option>
+        {% endfor %}
+      </select>
     </div>
+    {% endif %}
   </div>
-
-<div class="row justify-content-center mb-3">
-  <div class="col-auto">
-    <div class="d-flex flex-wrap align-items-end gap-2">
-      {% if show_staff_filter %}
-      <div>
-        <label for="staff-filter" class="form-label mb-1">Sales Team:</label>
-        <select id="staff-filter" class="form-control form-select form-select-sm">
-          <option value="">-- Tất cả --</option>
-          {% for user in sale_team_users %}
-            <option value="{{ user.id }}" {% if current_staff_id == user.id|stringformat:"s" %}selected{% endif %}>
-              {{ user.get_full_name|default:user.username }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
-      {% endif %}
-      <div>
-        <label for="start-date" class="form-label mb-1">Từ ngày:</label>
-        <input type="date" id="start-date" class="form-control" style="width: 140px;">
-      </div>
-
-      <div>
-        <label for="end-date" class="form-label mb-1">Đến ngày:</label>
-        <input type="date" id="end-date" class="form-control" style="width: 140px;">
-      </div>
-
-      <div class="d-flex flex-column">
-        <label class="form-label invisible">Lọc</label>
-        <button class="btn btn-primary btn-sm" onclick="filterByDate()">Lọc</button>
-      </div>
-
-      <div class="d-flex flex-column">
-        <label class="form-label invisible">Đặt lại</label>
-        <button class="btn btn-secondary btn-sm" onclick="resetFilter()">Đặt lại</button>
-      </div>
-
-      <!-- <button id="btnFilterBloodDays" class="btn btn-outline-danger btn-sm mb-2">
-        <i class="fa fa-filter"></i> Chỉ hiện ngày có lấy máu
-      </button> -->
-
-      <!-- <div class="d-flex flex-column" >
-        <button class="btn btn-outline-primary btn-sm" style="display: none;" onclick="toggleFullscreen()" id="toggle-fullscreen-btn">
-          🔍 Mở rộng
-        </button>
-      </div> -->
-    </div>
-  </div>
-</div>
-
-<div class="row justify-content-center">
-  <div class="col-12">
-    <div id="js-schedule-table-wrapper" class="schedule-table-wrapper" style="overflow: auto; max-height: 900px;">
+  <div id="js-schedule-table-wrapper" class="schedule-table-wrapper" style="overflow: auto;">
       <table border="1" class="schedule-table">
         <thead>
           <tr>
-            <th rowspan="4">Công ty</th>
+            <th rowspan="5">Công ty</th>
             {% for day in days %}
               <td
               data-date="{{ day|date:'Y-m-d' }}"
@@ -195,12 +184,33 @@
                 {% endif %}
               {% endfor %}
             </tr>
+            <!-- DÒNG TỔNG SIÊU ÂM -->
+            <tr>
+              {% for info in daily_us_data %}
+                {% if forloop.counter0 in sunday_indexes %}
+                  <td class="col-sunday"></td>
+                {% elif forloop.counter0 in holiday_indexes %}
+                  <td class="col-holiday"></td>
+                {% else %}
+                  {% if info.registered_total > 0 or info.allocated_total > 0 %}
+                    <td class="js-us-total-cell"
+                        data-date="{{ info.date }}"
+                        style="background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:11px; font-weight:600; white-space:nowrap;"
+                        title="Số siêu âm đã đăng ký / số siêu âm theo slot phân bổ. Click để xem chi tiết siêu âm đã đăng ký">
+                      🔬 {{ info.registered_total }}/{{ info.allocated_total }} SA
+                    </td>
+                  {% else %}
+                    <td style="font-size:10px;"></td>
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            </tr>
         </thead>
         <tbody>
         {% for row in schedule_rows %}
           <!-- DÒNG 1: LẤY MÁU -->
           <tr class="blood-row" data-staff-id="{{ row.salesperson_id }}">
-            <th rowspan="3" class="schedule-company-col">
+            <th rowspan="3" class="schedule-company-col {% if forloop.counter0|divisibleby:2 %}company-col-even{% else %}company-col-odd{% endif %} {% if row.is_confirmed %}company-col-confirmed{% else %}company-col-unconfirmed{% endif %}">
               {% if row.is_masked_company %}
                 <span style="color:{% if row.is_confirmed %}#1b5e20{% else %}#1565c0{% endif %}; font-weight:600;">{{ row.company_name }}</span>
               {% else %}
@@ -386,11 +396,7 @@
         {% endfor %}
         </tbody>
       </table>
-    </div>
   </div>
-</div>
-
-
 </div>
 
 <script>
@@ -423,80 +429,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
-
-<!-- lọc hiển thị ngày trong bảng -->
-<script>
-function filterByDate() {
-  const startDateStr = document.getElementById('start-date').value;
-  const endDateStr = document.getElementById('end-date').value;
-
-  if (!startDateStr || !endDateStr) return;
-
-  const startDate = new Date(startDateStr);
-  const endDate = new Date(endDateStr);
-
-  const table = document.querySelector('.schedule-table');
-  const headerCells = table.rows[0].cells;
-
-  // 1. Ẩn/hiện các cột ngày theo lọc
-  for (let col = 1; col < headerCells.length; col++) {
-    const cell = headerCells[col];
-    const cellDateStr = cell.dataset.date; // lấy từ data-date="YYYY-MM-DD"
-    const cellDate = new Date(cellDateStr);
-
-    const hide = (cellDate < startDate || cellDate > endDate);
-
-    for (let row of table.rows) {
-      if (row.cells[col]) {
-        row.cells[col].style.display = hide ? 'none' : '';
-      }
-    }
-  }
-
-  // 2. Ẩn/hiện các dòng công ty
-  // Duyệt từng cặp dòng sáng/chiều
-  // Bỏ qua 3 dòng tiêu đề đầu tiên!
-  for (let i = 3; i < table.rows.length; i += 2) {
-    const amRow = table.rows[i];
-    const pmRow = table.rows[i + 1];
-    let hasVisibleCell = false;
-
-    // Bắt đầu từ cột 1 (bỏ cột tên công ty)
-    for (let col = 1; col < amRow.cells.length; col++) {
-      // Kiểm tra cả sáng lẫn chiều, nếu cell nào còn hiện thì công ty còn lịch
-      if (
-        amRow.cells[col] && amRow.cells[col].style.display !== 'none' && amRow.cells[col].textContent.trim() !== ''
-        ||
-        pmRow.cells[col] && pmRow.cells[col].style.display !== 'none' && pmRow.cells[col].textContent.trim() !== ''
-      ) {
-        hasVisibleCell = true;
-        break;
-      }
-    }
-
-    // Nếu không có cell nào còn hiện, ẩn luôn 2 dòng
-    amRow.style.display = hasVisibleCell ? '' : 'none';
-    pmRow.style.display = hasVisibleCell ? '' : 'none';
-  }
-}
-
-function resetFilter() {
-  const table = document.querySelector('.schedule-table');
-  // Hiện lại toàn bộ cell
-  for (let row of table.rows) {
-    for (let col = 0; col < row.cells.length; col++) {
-      row.cells[col].style.display = '';
-    }
-    // Hiện lại toàn bộ dòng
-    row.style.display = '';
-  }
-
-  // Reset input ngày
-  document.getElementById('start-date').value = '';
-  document.getElementById('end-date').value = '';
-}
-</script>
-
 
 
 <script>
@@ -561,13 +493,35 @@ function scrollToToday() {
   // 1. Cập nhật chiều cao tối đa của bảng theo chiều cao màn hình
   function adjustTableHeight() {
     const wrapper = document.querySelector('.schedule-table-wrapper');
+    if (!wrapper) return;
+    if (window.innerWidth <= 991.98) {
+      wrapper.style.maxHeight = 'none';
+      wrapper.style.minHeight = '70vh';
+      return;
+    }
     const rect = wrapper.getBoundingClientRect();
-    const availableHeight = window.innerHeight - rect.top - 20; // chừa 20px lề dưới
+    const availableHeight = window.innerHeight - rect.top - 20;
     wrapper.style.maxHeight = `${availableHeight}px`;
   }
 
   window.addEventListener('resize', adjustTableHeight);
   window.addEventListener('load', adjustTableHeight);
+
+document.addEventListener('DOMContentLoaded', function () {
+  // Tính top offset tích lũy cho từng dòng trong thead để sticky đúng vị trí
+  (function () {
+    var table = document.querySelector('.schedule-table');
+    if (!table) return;
+    var theadRows = Array.from(table.querySelectorAll('thead tr'));
+    var cumulativeTop = 0;
+    theadRows.forEach(function (tr) {
+      tr.querySelectorAll('th, td').forEach(function (cell) {
+        cell.style.top = cumulativeTop + 'px';
+      });
+      cumulativeTop += tr.getBoundingClientRect().height;
+    });
+  })();
+});
 
 document.addEventListener('DOMContentLoaded', function () {
   // Lấy tất cả ô tiêu đề công ty ở dòng blood-row
@@ -671,6 +625,26 @@ scrollWrapper.addEventListener('touchmove', (e) => {
 });
 
 </script>
+
+<!-- Modal chi tiết siêu âm -->
+<div class="modal fade" id="usDetailModal" tabindex="-1" aria-labelledby="usDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="usDetailModalLabel">Chi tiết siêu âm</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="us-modal-body">
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Modal sửa slot -->
 <div class="modal fade" id="slotEditModal" tabindex="-1" aria-labelledby="slotEditModalLabel" aria-hidden="true">
@@ -942,4 +916,138 @@ scrollWrapper.addEventListener('touchmove', (e) => {
 
 {% block extra_scripts %}
 <script src="{% static 'booking/js/contract_list.js' %}"></script>
+<script>
+(function () {
+  const US_MODAL_URL = "{% url 'scheduling:ultrasound_modal' %}";
+
+  document.addEventListener('click', function (e) {
+    const cell = e.target.closest('.js-us-total-cell');
+    if (!cell) return;
+    openUsModal(cell.dataset.date);
+  });
+
+  function openUsModal(date) {
+    const parts = date.split('-');
+    const dateDisplay = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    document.getElementById('usDetailModalLabel').textContent = `Chi tiết siêu âm ngày ${dateDisplay}`;
+    document.getElementById('us-modal-body').innerHTML =
+      '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
+    new bootstrap.Modal(document.getElementById('usDetailModal')).show();
+
+    fetch(`${US_MODAL_URL}?date=${date}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) { renderUsModal(data); })
+      .catch(function () {
+        document.getElementById('us-modal-body').innerHTML =
+          '<div class="alert alert-danger">Không thể tải dữ liệu.</div>';
+      });
+  }
+
+  function renderUsModal(data) {
+    const body = document.getElementById('us-modal-body');
+    const regBadge = data.total || 0;
+    const planBadge = data.planned_total_us || 0;
+    body.innerHTML =
+      `<ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#us-tab-reg" type="button">
+            BN đã đăng ký <span class="badge bg-primary ms-1">${regBadge}</span>
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#us-tab-plan" type="button">
+            Gói khám theo ngày <span class="badge bg-secondary ms-1">${planBadge}</span>
+          </button>
+        </li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="us-tab-reg">${buildRegisteredContent(data)}</div>
+        <div class="tab-pane fade" id="us-tab-plan">${buildPlannedContent(data)}</div>
+      </div>`;
+  }
+
+  function buildRegisteredContent(data) {
+    if (!data.companies || data.companies.length === 0) {
+      return '<p class="text-muted text-center py-4">Không có dữ liệu siêu âm cho ngày này.</p>';
+    }
+    let html = `<p class="text-muted mb-3">Tổng: <strong>${data.total}</strong> lượt siêu âm</p>`;
+    for (const company of data.companies) {
+      html += `<div class="card mb-3"><div class="card-header py-2 fw-semibold">${esc(company.name)}</div><div class="card-body p-0">`;
+      if (company.am_patients && company.am_patients.length > 0) {
+        html += `<div class="px-3 pt-2 pb-1"><strong style="color:#1e88e5;">&#9728; Sáng</strong></div>`;
+        html += buildPatientTable(company.am_patients);
+      }
+      if (company.pm_patients && company.pm_patients.length > 0) {
+        html += `<div class="px-3 pt-2 pb-1"><strong style="color:#fb8c00;">&#9790; Chiều</strong></div>`;
+        html += buildPatientTable(company.pm_patients);
+      }
+      html += '</div></div>';
+    }
+    return html;
+  }
+
+  function buildPlannedContent(data) {
+    const companies = data.planned_companies || [];
+    if (companies.length === 0) {
+      return '<p class="text-muted text-center py-4">Không có dữ liệu gói khám cho ngày này.</p>';
+    }
+    let html = `<p class="text-muted mb-2">Tổng SA dự kiến: <strong>${data.planned_total_us || 0}</strong> lượt</p>`;
+    html += '<div class="table-responsive"><table class="table table-sm table-bordered align-middle">';
+    html += '<thead class="table-light"><tr>';
+    html += '<th style="font-size:11px;min-width:160px;">Công ty / Gói khám</th>';
+    html += '<th style="font-size:11px;text-align:center;">Slot ngày</th>';
+    html += '<th style="font-size:11px;text-align:center;">SA/người</th>';
+    html += '<th style="font-size:11px;text-align:center;">Tổng SA dự kiến</th>';
+    html += '<th style="font-size:11px;">Dịch vụ siêu âm trong gói</th>';
+    html += '</tr></thead><tbody>';
+    for (const c of companies) {
+      const badges = c.us_services.map(function (s) {
+        return `<span class="badge me-1" style="background:#7c3aed;font-size:10px;">${esc(s)}</span>`;
+      }).join('');
+      html += '<tr>';
+      html += `<td style="font-size:11px;"><strong>${esc(c.name)}</strong>`;
+      if (c.package_name) html += `<br><small class="text-muted">${esc(c.package_name)}</small>`;
+      html += '</td>';
+      html += `<td style="font-size:11px;text-align:center;">${c.allocated_slots}</td>`;
+      html += `<td style="font-size:11px;text-align:center;">${c.us_services.length}</td>`;
+      html += `<td style="font-size:11px;text-align:center;font-weight:${c.estimated_us > 0 ? 'bold' : 'normal'};">${c.estimated_us}</td>`;
+      html += `<td>${badges || '<small class="text-muted">Không có SA trong gói</small>'}</td>`;
+      html += '</tr>';
+    }
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  function buildPatientTable(patients) {
+    let t = `<div class="table-responsive"><table class="table table-sm table-bordered mb-0">
+      <thead class="table-light"><tr>
+        <th style="font-size:11px;">Mã BN</th>
+        <th style="font-size:11px;">Họ tên</th>
+        <th style="font-size:11px;">Ngày sinh</th>
+        <th style="font-size:11px;">GT</th>
+        <th style="font-size:11px;">Siêu âm</th>
+      </tr></thead><tbody>`;
+    for (const p of patients) {
+      const badges = p.services.map(function (s) {
+        return `<span class="badge me-1" style="background:#7c3aed;font-size:10px;">${esc(s)}</span>`;
+      }).join('');
+      t += `<tr>
+        <td style="font-size:11px;">${esc(p.code)}</td>
+        <td style="font-size:11px;">${esc(p.name)}</td>
+        <td style="font-size:11px;">${esc(p.dob)}</td>
+        <td style="font-size:11px;">${esc(p.gender)}</td>
+        <td>${badges}</td>
+      </tr>`;
+    }
+    t += '</tbody></table></div>';
+    return t;
+  }
+
+  function esc(text) {
+    const d = document.createElement('div');
+    d.appendChild(document.createTextNode(text || ''));
+    return d.innerHTML;
+  }
+})();
+</script>
 {% endblock %}

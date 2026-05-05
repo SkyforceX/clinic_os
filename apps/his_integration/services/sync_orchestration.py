@@ -14,6 +14,14 @@ SYNC_PATIENT_TYPES = "patient_types"
 SYNC_PATIENTS = "patients"
 SYNC_PACKAGES = "packages"
 SYNC_EXAM_RECORDS = "exam_records"
+SYNC_DIAGNOSTIC_IMAGING = "diagnostic_imaging"
+SYNC_SERVICE_CATALOG = "service_catalog"
+SYNC_PACKAGE_SERVICES = "package_services"
+SYNC_FUNCTIONAL_TESTS = "functional_tests"
+SYNC_EXAM_SERVICE_ITEMS = "exam_service_items"
+SYNC_APPOINTMENTS = "appointments"
+SYNC_INVOICES = "invoices"
+SYNC_PATIENT_TYPE_CONFIGS = "patient_type_configs"
 SYNC_ALL = "all"
 
 
@@ -90,6 +98,80 @@ def _build_single_step(
             },
         )
 
+    if sync_type == SYNC_DIAGNOSTIC_IMAGING:
+        return HisSyncStep(
+            sync_type=sync_type,
+            label="diagnostic imaging",
+            task=tasks.sync_diagnostic_imaging_from_his,
+            kwargs={
+                "batch_size": exam_batch_size,
+                "reset_cursor": reset_cursor,
+                "triggered_by_id": triggered_by_id,
+                "source": source,
+            },
+        )
+
+    if sync_type == SYNC_SERVICE_CATALOG:
+        return HisSyncStep(
+            sync_type=sync_type,
+            label="service catalog",
+            task=tasks.sync_service_catalog_from_his,
+            kwargs={"triggered_by_id": triggered_by_id, "source": source},
+        )
+
+    if sync_type == SYNC_PACKAGE_SERVICES:
+        return HisSyncStep(
+            sync_type=sync_type,
+            label="package services",
+            task=tasks.sync_package_services_from_his,
+            kwargs={"triggered_by_id": triggered_by_id, "source": source},
+        )
+
+    if sync_type == SYNC_FUNCTIONAL_TESTS:
+        return HisSyncStep(
+            sync_type=sync_type,
+            label="functional tests",
+            task=tasks.sync_functional_tests_from_his,
+            kwargs={"triggered_by_id": triggered_by_id, "source": source},
+        )
+
+    if sync_type == SYNC_EXAM_SERVICE_ITEMS:
+        return HisSyncStep(
+            sync_type=sync_type,
+            label="exam service items",
+            task=tasks.sync_exam_service_items_from_his,
+            kwargs={"triggered_by_id": triggered_by_id, "source": source},
+        )
+
+    if sync_type == SYNC_APPOINTMENTS:
+        return HisSyncStep(
+            sync_type=sync_type,
+            label="appointments",
+            task=tasks.sync_appointments_from_his,
+            kwargs={
+                "batch_size": exam_batch_size,
+                "reset_cursor": reset_cursor,
+                "triggered_by_id": triggered_by_id,
+                "source": source,
+            },
+        )
+
+    if sync_type == SYNC_INVOICES:
+        return HisSyncStep(
+            sync_type=sync_type,
+            label="invoices",
+            task=tasks.sync_invoices_from_his,
+            kwargs={"triggered_by_id": triggered_by_id, "source": source},
+        )
+
+    if sync_type == SYNC_PATIENT_TYPE_CONFIGS:
+        return HisSyncStep(
+            sync_type=sync_type,
+            label="patient type configs",
+            task=tasks.sync_patient_type_configs_from_his,
+            kwargs={"triggered_by_id": triggered_by_id, "source": source},
+        )
+
     raise InvalidHisSyncType(sync_type)
 
 
@@ -111,7 +193,15 @@ def build_his_sync_steps(
             SYNC_PATIENT_TYPES,
             SYNC_PATIENTS,
             SYNC_PACKAGES,
+            SYNC_SERVICE_CATALOG,
+            SYNC_PACKAGE_SERVICES,
             SYNC_EXAM_RECORDS,
+            SYNC_DIAGNOSTIC_IMAGING,
+            SYNC_FUNCTIONAL_TESTS,
+            SYNC_EXAM_SERVICE_ITEMS,
+            SYNC_APPOINTMENTS,
+            SYNC_INVOICES,
+            SYNC_PATIENT_TYPE_CONFIGS,
         )
     else:
         sync_types = (sync_type,)

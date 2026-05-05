@@ -799,23 +799,34 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                     active_url_names=["general_settings"],
                     active_app_names=["scheduling"],
                 ),
+                # _item(
+                #     request=request,
+                #     label="Test HIS API",
+                #     url_name="api_his:api_playground",
+                #     icon="fa-solid fa-plug",
+                #     active_url_names=["api_playground"],
+                #     active_app_names=["api_his"],
+                # ),
                 _item(
                     request=request,
                     label="Test HIS API",
-                    url_name="api_his:api_playground",
+                    url_name="api_his:booking_his_push_demo",
                     icon="fa-solid fa-plug",
-                    active_url_names=["api_playground"],
+                    active_url_names=["booking_his_push_demo"],
                     active_app_names=["api_his"],
                 ),
+            ]
+        if is_supperuser:
+            sys_items.append(
                 _item(
                     request=request,
                     label="AI",
-                    url_name="ai_assistant:index",
+                    url_name="ai_assistant:manager_index",
                     icon="fa-solid fa-robot",
-                    active_url_names=["index"],
+                    active_url_names=["index", "manager_index"],
                     active_app_names=["ai_assistant"],
-                ),
-            ]
+                )
+            )
         _append_section(sections, _section("Hệ thống", "⚙️", sys_items))
 
     return _normalize_active_items(sections)

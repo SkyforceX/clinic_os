@@ -13,11 +13,13 @@
         </a>
     </div>
 
-    <!-- Filters -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-4">
+            <form method="get" class="row g-3 align-items-end">
+                {% if quality_warning %}
+                <input type="hidden" name="quality_warning" value="{{ quality_warning }}">
+                {% endif %}
+                <div class="col-md-5">
                     <label class="form-label">Gói khám</label>
                     <select name="package" class="form-select">
                         <option value="">Tất cả</option>
@@ -36,8 +38,7 @@
                         <option value="false" {% if request.GET.is_complete == 'false' %}selected{% endif %}>Chưa hoàn thành</option>
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">&nbsp;</label>
+                <div class="col-md-3">
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="fas fa-filter me-2"></i>Lọc
                     </button>
@@ -46,10 +47,23 @@
         </div>
     </div>
 
+    {% if active_quality_warning %}
+    <div class="alert alert-warning border-0 shadow-sm d-flex justify-content-between align-items-center mb-4" role="alert">
+        <div>
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Đang lọc cảnh báo:</strong> {{ active_quality_warning.title }}
+            <span class="ms-2 badge bg-warning text-dark">{{ paginator.count }} bản ghi</span>
+        </div>
+        <a href="{% url 'his_integration:exam_record_list' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-times me-1"></i>Bỏ lọc
+        </a>
+    </div>
+    {% endif %}
+
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>Mã hồ sơ</th>
@@ -57,38 +71,48 @@
                             <th>Ngày khám</th>
                             <th>Gói khám</th>
                             <th>Chẩn đoán</th>
-                            <th>Hoàn thành</th>
+                            <th>Trạng thái</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for record in records %}
                         <tr>
-                            <td><code>{{ record.his_record_code }}</code></td>
+                            <td><code class="text-secondary">{{ record.his_record_code }}</code></td>
                             <td>
-                                <div class="fw-bold">{{ record.patient_sync.full_name }}</div>
-                                <small class="text-muted">{{ record.patient_sync.his_patient_code }}</small>
-                                {% if record.patient_sync.birth_date_display %}
-                                <small class="text-muted d-block">{{ record.patient_sync.birth_date_display }}</small>
+                                {% if record.patient_sync %}
+                                <div class="fw-semibold">{{ record.patient_sync.full_name }}</div>
+                                <div class="text-muted small">
+                                    {{ record.patient_sync.his_patient_code }}
+                                    {% if record.patient_sync.birth_date_display %} · {{ record.patient_sync.birth_date_display }}{% endif %}
+                                </div>
+                                {% else %}
+                                <span class="text-danger small"><i class="fas fa-unlink me-1"></i>Chưa link bệnh nhân</span>
+                                {% if record.raw_payload.MaBenhNhan %}
+                                <div class="text-muted small"><code>{{ record.raw_payload.MaBenhNhan }}</code></div>
+                                {% endif %}
                                 {% endif %}
                             </td>
-                            <td>{{ record.exam_date|date:"d/m/Y"|default:"N/A" }}</td>
+                            <td class="text-nowrap">{{ record.exam_date|date:"d/m/Y"|default:"—" }}</td>
                             <td>
                                 {% if record.package_sync %}
-                                <div>{{ record.package_sync.package_name|truncatewords:5 }}</div>
-                                <small class="text-muted">{{ record.package_sync.company_name|truncatewords:5 }}</small>
+                                <div class="small">{{ record.package_sync.package_name|truncatewords:5 }}</div>
+                                <div class="text-muted small">{{ record.package_sync.company_name|truncatewords:4 }}</div>
                                 {% else %}
-                                <span class="text-muted">Khám lẻ</span>
+                                <span class="text-muted small">—</span>
+                                {% if record.raw_payload.MaGoiKhamTheoDoan %}
+                                <div><code class="text-danger small">{{ record.raw_payload.MaGoiKhamTheoDoan }}</code></div>
+                                {% endif %}
                                 {% endif %}
                             </td>
-                            <td>{{ record.diagnosis|truncatewords:8|default:"Chưa có" }}</td>
+                            <td class="text-muted small">{{ record.diagnosis|truncatewords:8|default:"—" }}</td>
                             <td>
                                 {% if record.is_complete %}
-                                <span class="badge bg-success">Hoàn thành</span>
+                                <span class="badge bg-success"><i class="fas fa-check me-1"></i>Hoàn thành</span>
                                 {% else %}
-                                <span class="badge bg-warning">Chưa hoàn thành</span>
+                                <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Chưa xong</span>
                                 {% if record.missing_fields %}
-                                <div class="small text-danger mt-1">
+                                <div class="text-danger small mt-1">
                                     Thiếu {{ record.missing_fields|length }} trường
                                 </div>
                                 {% endif %}
@@ -102,7 +126,8 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="fas fa-inbox d-block mb-2" style="font-size:2rem;opacity:.3"></i>
                                 Không tìm thấy hồ sơ khám nào
                             </td>
                         </tr>
@@ -118,20 +143,23 @@
         <ul class="pagination justify-content-center">
             {% if page_obj.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.package %}&package={{ request.GET.package }}{% endif %}{% if request.GET.is_complete %}&is_complete={{ request.GET.is_complete }}{% endif %}">Trước</a>
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.package %}&package={{ request.GET.package }}{% endif %}{% if request.GET.is_complete %}&is_complete={{ request.GET.is_complete }}{% endif %}{% if quality_warning %}&quality_warning={{ quality_warning }}{% endif %}">
+                    <i class="fas fa-angle-left"></i>
+                </a>
             </li>
             {% endif %}
-            
             <li class="page-item disabled">
-                <span class="page-link">Trang {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
             </li>
-            
             {% if page_obj.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.package %}&package={{ request.GET.package }}{% endif %}{% if request.GET.is_complete %}&is_complete={{ request.GET.is_complete }}{% endif %}">Sau</a>
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.package %}&package={{ request.GET.package }}{% endif %}{% if request.GET.is_complete %}&is_complete={{ request.GET.is_complete }}{% endif %}{% if quality_warning %}&quality_warning={{ quality_warning }}{% endif %}">
+                    <i class="fas fa-angle-right"></i>
+                </a>
             </li>
             {% endif %}
         </ul>
+        <p class="text-center text-muted small mt-1">{{ paginator.count }} hồ sơ</p>
     </nav>
     {% endif %}
 </div>

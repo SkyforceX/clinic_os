@@ -78,6 +78,24 @@ HIS_LOCAL_PG = {
     "SCHEMA": os.getenv("HIS_LOCAL_PG_SCHEMA", "dbo"),
 }
 HIS_LOCAL_SYNC_ENABLED = DEBUG and env.bool("HIS_LOCAL_SYNC_ENABLED", default=False)
+HIS_APPOINTMENT_PUSH = {
+    "ENABLED": env.bool("HIS_APPOINTMENT_PUSH_ENABLED", default=False),
+    "URL": env("HIS_APPOINTMENT_PUSH_URL", default=""),
+    "CMD": env("HIS_APPOINTMENT_PUSH_CMD", default="API_DanhSachLichHen.Insert"),
+    "TIMEOUT": env.int("HIS_APPOINTMENT_PUSH_TIMEOUT", default=8),
+    "DEFAULT_DOCTOR_CODE": env("HIS_APPOINTMENT_PUSH_DOCTOR_CODE", default=""),
+    "DEFAULT_DEPARTMENT_CODE": env("HIS_APPOINTMENT_PUSH_DEPARTMENT_CODE", default=""),
+    "DEFAULT_USER_CODE": env("HIS_APPOINTMENT_PUSH_USER_CODE", default=""),
+    "DEFAULT_CLIENT_SOURCE_CODE": env("HIS_APPOINTMENT_PUSH_CLIENT_SOURCE_CODE", default=""),
+    "DEFAULT_CONTENT": env("HIS_APPOINTMENT_PUSH_CONTENT", default="Đăng ký khám đoàn từ Clinic OS"),
+    "DEFAULT_REASON": env("HIS_APPOINTMENT_PUSH_REASON", default="Đăng ký khám sức khỏe doanh nghiệp"),
+    "DEFAULT_NOTE": env("HIS_APPOINTMENT_PUSH_NOTE", default=""),
+    "DEFAULT_APPOINTMENT_TYPE": env.int("HIS_APPOINTMENT_PUSH_APPOINTMENT_TYPE", default=0),
+    "MORNING_START": env("HIS_APPOINTMENT_PUSH_MORNING_START", default="07:00:00"),
+    "MORNING_END": env("HIS_APPOINTMENT_PUSH_MORNING_END", default="11:30:00"),
+    "AFTERNOON_START": env("HIS_APPOINTMENT_PUSH_AFTERNOON_START", default="13:00:00"),
+    "AFTERNOON_END": env("HIS_APPOINTMENT_PUSH_AFTERNOON_END", default="17:00:00"),
+}
 
 # ==== HIS AUTOMATION ==== #
 # HIS_AUTOMATION = {
@@ -147,6 +165,7 @@ INSTALLED_APPS = [
     "apps.engagement",
     "apps.procedures",
     "apps.media_library",
+    "apps.ai_knowledge",
     "apps.ai_assistant",
     "apps.helpdesk",
 
@@ -208,17 +227,25 @@ TEMPLATES = [
 
 ASGI_APPLICATION = "config.asgi.application"
 
+default_db_options = {
+    "sslmode": os.getenv("DJANGO_DB_SSLMODE", "disable"),
+    "connect_timeout": int(os.getenv("DJANGO_DB_CONNECT_TIMEOUT", "5")),
+}
+django_db_options = os.getenv("DJANGO_DB_OPTIONS", "").strip()
+if django_db_options:
+    default_db_options["options"] = django_db_options
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DJANGO_DB_NAME"),
-        "USER": os.getenv("DJANGO_DB_USER"),
-        "PASSWORD": os.getenv("DJANGO_DB_PASSWORD"),
-        "HOST": os.getenv("DJANGO_DB_HOST"),
-        "PORT": os.getenv("DJANGO_DB_PORT"),
-        "OPTIONS": {
-            "sslmode": "disable",
-        },
+        "NAME": os.getenv("DJANGO_DB_NAME", "clinic_os_db"),
+        "USER": os.getenv("DJANGO_DB_USER", "clinic_user"),
+        "PASSWORD": os.getenv("DJANGO_DB_PASSWORD", "123456"),
+        "HOST": os.getenv("DJANGO_DB_HOST", "127.0.0.1"),
+        "PORT": os.getenv("DJANGO_DB_PORT", "5432"),
+        "CONN_MAX_AGE": int(os.getenv("DJANGO_DB_CONN_MAX_AGE", "60")),
+        "CONN_HEALTH_CHECKS": os.getenv("DJANGO_DB_CONN_HEALTH_CHECKS", "true").lower() in {"1", "true", "yes", "on"},
+        "OPTIONS": default_db_options,
     }
 }
 
@@ -283,7 +310,25 @@ OLLAMA_SYSTEM_PROMPT = (
 
 # Nhóm được phép dùng AI assistant (ngoài superadmin)
 # Tên group phải khớp đúng với Group.name trong database
-AI_ASSISTANT_ALLOWED_GROUPS = ["Executives"]
+AI_ASSISTANT_ALLOWED_GROUPS = [
+    "Executives",
+    "Executive",
+    "Managers",
+    "Manager",
+    "Quality",
+    "HR Admins",
+    "HR Admin",
+    "Sales Team",
+    "Doctors",
+    "Nurses",
+    "Accountants",
+    "Lab Technicians",
+    "Imaging Technicians",
+    "Operations Team",
+    "IT Staff",
+    "IT Admin",
+    "Customer Service Team",
+]
 
 AI_BASE_URL = _normalize_ai_base_url(
     env("AI_BASE_URL", default=OLLAMA_BASE_URL),
@@ -293,8 +338,14 @@ AI_BASE_URL = _normalize_ai_base_url(
 AI_MODEL = env("AI_MODEL", default="Qwen/Qwen2.5-3B-Instruct")
 AI_API_KEY = env("AI_API_KEY", default="")
 AI_TIMEOUT = env.int("AI_TIMEOUT", default=120)
+AI_TOOLCALL_ENABLED = env.bool("AI_TOOLCALL_ENABLED", default=True)
+AI_TOOLCALL_MODEL = env("AI_TOOLCALL_MODEL", default=OLLAMA_MODEL)
+AI_TOOLCALL_FALLBACK_MODEL = env("AI_TOOLCALL_FALLBACK_MODEL", default="")
+AI_TOOLCALL_TIMEOUT = env.int("AI_TOOLCALL_TIMEOUT", default=25)
+AI_TOOLCALL_FINAL_TIMEOUT = env.int("AI_TOOLCALL_FINAL_TIMEOUT", default=25)
 AI_KNOWLEDGE_ENABLED = env.bool("AI_KNOWLEDGE_ENABLED", default=True)
 AI_KNOWLEDGE_TOP_K = env.int("AI_KNOWLEDGE_TOP_K", default=5)
+AI_EMBED_DIMENSIONS = env.int("AI_EMBED_DIMENSIONS", default=768)
 AI_EMBED_BASE_URL = _normalize_ai_base_url(
     env("AI_EMBED_BASE_URL", default=OLLAMA_BASE_URL),
     local_default=LOCAL_AI_BASE_URL,
@@ -333,6 +384,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "booking.tasks.auto_terminate_contracts",
         "schedule": 86400,
     },
+    "sync-ai-knowledge-periodic": {
+        "task": "ai_knowledge.tasks.sync_ai_knowledge",
+        "schedule": env.int("AI_KNOWLEDGE_SYNC_INTERVAL", default=14400),  # 4 tiếng
+    },
 }
 CELERY_TIMEZONE = "Asia/Ho_Chi_Minh"
 
@@ -368,7 +423,7 @@ LOGGING = {
     },
     "loggers": {
         "apps.ai_assistant": {
-            "handlers": ["console"],
+            "handlers": ["console", "file"],
             "level": "INFO",
             "propagate": False,
         },

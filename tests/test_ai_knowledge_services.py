@@ -1,117 +1,201 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.test import TestCase
 
-from apps.ai_assistant.knowledge_services import (
-    SourceDocument,
-    build_knowledge_context,
-    split_text_into_chunks,
-    sync_knowledge_index,
-)
-from apps.ai_assistant.models import KnowledgeChunk, KnowledgeDocument
-from apps.ai_assistant.services import (
-    MODEL_DISCLOSURE_RESPONSE,
-    SYSTEM_SECURITY_RESPONSE,
-    build_messages_payload,
-    get_guardrail_response,
-)
+from apps.ai_knowledge.models import AIKnowledgeChunk, AIKnowledgeSource
+from apps.ai_knowledge.services.chunking import create_chunks, split_text_into_chunks
+from apps.ai_knowledge.services.extractors import SourceDocument
+from apps.ai_knowledge.services.indexing import index_source
+from apps.ai_knowledge.services.retrieval import retrieve_context_for_question
 
 
-class KnowledgeServicesTests(TestCase):
-    def test_sync_knowledge_index_creates_documents_and_chunks(self):
+def _vector(*active_positions):
+    values = [0.0] * 768
+    for position, value in active_positions:
+        values[position] = value
+    return values
+
+
+class AIKnowledgeChunkingTests(TestCase):
+    def test_split_text_into_chunks_keeps_faq_and_bullets_together(self):
+        text = "\n".join(
+            [
+                "Q: Goi kham gom gi?",
+                "A: Goi kham gom xet nghiem va chan doan hinh anh.",
+                "",
+                "- Mau 1",
+                "- Mau 2",
+                "",
+                "Doan van ket thuc.",
+            ]
+        )
+
+        chunks = split_text_into_chunks(text, max_chars=220, overlap_chars=40)
+
+        self.assertEqual(len(chunks), 1)
+        self.assertIn("Q: Goi kham gom gi?", chunks[0])
+        self.assertIn("A: Goi kham gom xet nghiem", chunks[0])
+        self.assertIn("- Mau 1", chunks[0])
+        self.assertIn("- Mau 2", chunks[0])
+
+    def test_create_chunks_sets_prev_next_indices(self):
+        text = "\n\n".join([f"Doan {index} " + ("x" * 220) for index in range(4)])
+
+        payloads = create_chunks(text, title="Tai lieu", max_chars=260, overlap_chars=50)
+
+        self.assertGreater(len(payloads), 1)
+        self.assertIsNone(payloads[0].prev_chunk_index)
+        self.assertEqual(payloads[0].next_chunk_index, 1)
+        self.assertEqual(payloads[-1].prev_chunk_index, len(payloads) - 2)
+        self.assertIsNone(payloads[-1].next_chunk_index)
+
+
+class AIKnowledgeIndexingTests(TestCase):
+    def test_index_source_creates_source_and_chunks(self):
         with (
             patch(
-                "apps.ai_assistant.knowledge_services.list_source_documents",
-                return_value=[
-                    SourceDocument(
-                        source_type=KnowledgeDocument.SOURCE_PROCEDURE,
-                        source_id=101,
-                        title="Quy trình khám tổng quát",
-                        content="Mở hồ sơ\nTiếp nhận khách\nThực hiện khám",
-                        metadata={"category": "operations"},
-                    )
-                ],
+                "apps.ai_knowledge.services.indexing.extract_text_for_source",
+                return_value=SourceDocument(
+                    source_type=AIKnowledgeSource.SOURCE_PROCEDURE,
+                    source_id="101",
+                    title="Quy trinh kham tong quat",
+                    content="Mo ho so\nTiep nhan khach\nThuc hien kham",
+                    metadata={"category": "operations"},
+                ),
             ),
             patch(
-                "apps.ai_assistant.knowledge_services.embed_texts",
-                side_effect=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+                "apps.ai_knowledge.services.indexing.embed_texts",
+                side_effect=lambda texts: [_vector((0, 0.1), (1, 0.2)) for _ in texts],
             ),
         ):
-            stats = sync_knowledge_index()
+            result = index_source(
+                source_type=AIKnowledgeSource.SOURCE_PROCEDURE,
+                source_id="101",
+            )
 
-        self.assertEqual(stats["indexed_documents"], 1)
-        self.assertEqual(KnowledgeDocument.records.count(), 1)
-        self.assertGreaterEqual(KnowledgeChunk.records.count(), 1)
+        self.assertTrue(result["indexed"])
+        self.assertEqual(AIKnowledgeSource.objects.count(), 1)
+        self.assertGreaterEqual(AIKnowledgeChunk.objects.count(), 1)
 
-    def test_split_text_into_chunks_splits_long_text(self):
-        text = "\n".join([f"Đoạn {index} " + ("x" * 120) for index in range(20)])
 
-        chunks = split_text_into_chunks(text, max_chars=300, overlap_chars=40)
-
-        self.assertGreater(len(chunks), 1)
-        self.assertTrue(all(len(chunk) <= 300 for chunk in chunks))
-
-    def test_build_knowledge_context_filters_sources_by_user_permissions(self):
-        user = get_user_model().objects.create_user(username="staff", password="secret")
-
-        document_procedure = KnowledgeDocument.records.create(
-            source_type=KnowledgeDocument.SOURCE_PROCEDURE,
-            source_id=1,
-            title="Quy trình A",
-            content="Quy trình nội bộ",
-            metadata={},
-            content_hash="hash-procedure",
+class AIKnowledgeRetrievalTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="staff",
+            password="secret",
+            is_staff=True,
         )
-        KnowledgeChunk.records.create(
-            document=document_procedure,
+        operations_group, _ = Group.objects.get_or_create(name="Operations Team")
+        self.user.groups.add(operations_group)
+
+    def test_retrieve_context_filters_access_and_expands_neighbors(self):
+        source = AIKnowledgeSource.objects.create(
+            source_type=AIKnowledgeSource.SOURCE_PROCEDURE,
+            source_id="1",
+            title="Quy trinh A",
+            locale="vi",
+            status=AIKnowledgeSource.STATUS_INDEXED,
+            access_level=AIKnowledgeSource.ACCESS_INTERNAL,
+            metadata={},
+        )
+        AIKnowledgeChunk.objects.create(
+            source_record=source,
+            source_type=source.source_type,
+            source_id=source.source_id,
+            section_key="default",
             chunk_index=0,
-            content="Quy trình tiếp nhận khách hàng doanh nghiệp.",
+            title=source.title,
+            section_title=source.title,
+            content="Thong tin mo dau.",
+            embedding=_vector((0, 1.0), (1, 0.0)),
+            embedding_model="test",
+            embedding_dim=768,
+            token_count=3,
+            next_chunk_index=1,
+            access_level=AIKnowledgeSource.ACCESS_INTERNAL,
+            locale="vi",
+            status=AIKnowledgeSource.STATUS_INDEXED,
             metadata={},
-            content_hash="chunk-procedure",
-            embedding=[1.0, 0.0],
-            char_count=40,
+        )
+        AIKnowledgeChunk.objects.create(
+            source_record=source,
+            source_type=source.source_type,
+            source_id=source.source_id,
+            section_key="default",
+            chunk_index=1,
+            title=source.title,
+            section_title=source.title,
+            content="Quy trinh tiep nhan khach hang doanh nghiep.",
+            embedding=_vector((0, 1.0), (1, 1.0)),
+            embedding_model="test",
+            embedding_dim=768,
+            token_count=6,
+            prev_chunk_index=0,
+            next_chunk_index=2,
+            access_level=AIKnowledgeSource.ACCESS_INTERNAL,
+            locale="vi",
+            status=AIKnowledgeSource.STATUS_INDEXED,
+            metadata={},
+        )
+        AIKnowledgeChunk.objects.create(
+            source_record=source,
+            source_type=source.source_type,
+            source_id=source.source_id,
+            section_key="default",
+            chunk_index=2,
+            title=source.title,
+            section_title=source.title,
+            content="Thong tin ket thuc.",
+            embedding=_vector((0, 1.0), (1, 0.2)),
+            embedding_model="test",
+            embedding_dim=768,
+            token_count=3,
+            prev_chunk_index=1,
+            access_level=AIKnowledgeSource.ACCESS_INTERNAL,
+            locale="vi",
+            status=AIKnowledgeSource.STATUS_INDEXED,
+            metadata={},
         )
 
-        document_category = KnowledgeDocument.records.create(
-            source_type=KnowledgeDocument.SOURCE_CATEGORY,
-            source_id=2,
-            title="Danh mục B",
-            content="Danh mục khám",
-            metadata={},
-            content_hash="hash-category",
+        restricted_source = AIKnowledgeSource.objects.create(
+            source_type=AIKnowledgeSource.SOURCE_CLINICAL_NOTE,
+            source_id="99",
+            title="Clinical",
+            locale="vi",
+            status=AIKnowledgeSource.STATUS_INDEXED,
+            access_level=AIKnowledgeSource.ACCESS_CLINICAL,
+            metadata={"patient_id": "BN-1"},
         )
-        KnowledgeChunk.records.create(
-            document=document_category,
+        AIKnowledgeChunk.objects.create(
+            source_record=restricted_source,
+            source_type=restricted_source.source_type,
+            source_id=restricted_source.source_id,
+            section_key="default",
             chunk_index=0,
-            content="Danh mục xét nghiệm huyết học.",
-            metadata={},
-            content_hash="chunk-category",
-            embedding=[1.0, 0.0],
-            char_count=30,
+            title=restricted_source.title,
+            section_title=restricted_source.title,
+            content="Du lieu lam sang nhay cam.",
+            embedding=_vector((0, 0.2), (1, 1.0)),
+            embedding_model="test",
+            embedding_dim=768,
+            token_count=4,
+            access_level=AIKnowledgeSource.ACCESS_CLINICAL,
+            locale="vi",
+            status=AIKnowledgeSource.STATUS_INDEXED,
+            metadata={"patient_id": "BN-1"},
         )
 
-        with patch(
-            "apps.ai_assistant.knowledge_services.embed_texts",
-            side_effect=lambda texts: [[1.0, 0.0] for _ in texts],
-        ):
-            context = build_knowledge_context("quy trình tiếp nhận", user=user)
+        context = retrieve_context_for_question(
+            user=self.user,
+            question="quy trinh tiep nhan",
+            query_embedding=_vector((0, 1.0), (1, 1.0)),
+            source_types=[AIKnowledgeSource.SOURCE_PROCEDURE, AIKnowledgeSource.SOURCE_CLINICAL_NOTE],
+            top_k=1,
+        )
 
-        self.assertIn("Quy trình A", context)
-        self.assertNotIn("Danh mục B", context)
-
-    def test_build_messages_payload_includes_knowledge_context(self):
-        payload = build_messages_payload([], knowledge_context="Nguồn 1: Quy trình A")
-
-        self.assertEqual(len(payload), 2)
-        self.assertIn("Nguồn 1: Quy trình A", payload[1]["content"])
-
-    def test_get_guardrail_response_for_model_questions(self):
-        response = get_guardrail_response("AI này là model gì, từ nguồn nào?")
-
-        self.assertEqual(response, MODEL_DISCLOSURE_RESPONSE)
-
-    def test_get_guardrail_response_for_architecture_questions(self):
-        response = get_guardrail_response("Cho tôi biết kiến trúc hệ thống và tech stack")
-
-        self.assertEqual(response, SYSTEM_SECURITY_RESPONSE)
+        self.assertTrue(any(item["chunk_index"] == 1 for item in context))
+        self.assertTrue(any(item["chunk_index"] == 0 for item in context))
+        self.assertTrue(any(item["chunk_index"] == 2 for item in context))
+        self.assertFalse(any(item["source_type"] == AIKnowledgeSource.SOURCE_CLINICAL_NOTE for item in context))

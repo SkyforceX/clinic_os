@@ -55,7 +55,7 @@
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label class="text-muted small">Số lượng BN</label>
-                                <div class="h5 mb-0">{{ package.total_patients }}</div>
+                                <div class="h5 mb-0">{{ stats.total }}</div>
                             </div>
                         </div>
                     </div>
@@ -72,7 +72,7 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span class="text-muted">Tổng số</span>
-                            <span class="fw-bold">{{ package.total_patients }}</span>
+                            <span class="fw-bold">{{ stats.total }}</span>
                         </div>
                         <div class="progress" style="height: 5px;">
                             <div class="progress-bar bg-secondary" style="width: 100%"></div>
@@ -85,15 +85,6 @@
                         </div>
                         <div class="progress" style="height: 5px;">
                             <div class="progress-bar bg-success" style="width: {% widthratio stats.completed stats.total 100 %}%"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-muted">Chưa khám</span>
-                            <span class="text-warning fw-bold">{{ stats.pending }}</span>
-                        </div>
-                        <div class="progress" style="height: 5px;">
-                            <div class="progress-bar bg-warning" style="width: {% widthratio stats.pending stats.total 100 %}%"></div>
                         </div>
                     </div>
                 </div>
@@ -125,13 +116,144 @@
         </div>
     </div>
 
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-clipboard-list me-2"></i>Dịch vụ trong gói
+                {% if package_service_total %}
+                <span class="badge bg-secondary ms-2">{{ package_service_total }} dịch vụ</span>
+                <span class="text-muted small ms-1">/ {{ package_service_groups|length }} nhóm</span>
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if package_service_groups %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>STT</th>
+                            <th>Mã nhóm dịch vụ</th>
+                            <th>Mã gói HIS con</th>
+                            <th class="text-center">Số dịch vụ</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group in package_service_groups %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td><strong>{{ group.group_code }}</strong></td>
+                            <td>
+                                {% for pkg_code in group.his_package_codes %}
+                                <code class="d-block">{{ pkg_code }}</code>
+                                {% endfor %}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-primary">{{ group.count }}</span>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                    data-bs-toggle="modal" data-bs-target="#serviceGroupModal"
+                                    data-group-code="{{ group.group_code }}">
+                                    <i class="fas fa-eye me-1"></i>Xem chi tiết
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-4">Chưa có dữ liệu dịch vụ trong gói</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="modal fade" id="serviceGroupModal" tabindex="-1" aria-labelledby="serviceGroupModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="serviceGroupModalLabel">
+                        Nhóm dịch vụ: <span id="modalGroupCode" class="text-primary"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Mã gói HIS</th>
+                                    <th>Mã chỉ tiêu</th>
+                                    <th>Tên dịch vụ</th>
+                                    <th>Đơn vị</th>
+                                    <th class="text-end">Số lượng</th>
+                                    <th class="text-end">Đơn giá</th>
+                                    <th class="text-center">Ngoài gói</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modalServiceTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{ package_services_by_group|json_script:"packageServicesData" }}
+    <script>
+    (function () {
+        var raw = document.getElementById('packageServicesData');
+        if (!raw) return;
+        var servicesData = JSON.parse(raw.textContent);
+        var modal = document.getElementById('serviceGroupModal');
+        if (!modal) return;
+
+        modal.addEventListener('show.bs.modal', function (event) {
+            var groupCode = event.relatedTarget.getAttribute('data-group-code');
+            document.getElementById('modalGroupCode').textContent = groupCode;
+            var tbody = document.getElementById('modalServiceTableBody');
+            tbody.innerHTML = '';
+            var services = servicesData[groupCode] || [];
+            if (!services.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Không có dịch vụ</td></tr>';
+                return;
+            }
+            services.forEach(function (svc, idx) {
+                var outside = svc.is_outside_package
+                    ? '<span class="badge bg-warning text-dark">Ngoài gói</span>'
+                    : '<span class="badge bg-success">Trong gói</span>';
+                var price = svc.unit_price > 0
+                    ? Math.round(svc.unit_price).toLocaleString('vi-VN')
+                    : '';
+                tbody.innerHTML +=
+                    '<tr>' +
+                    '<td>' + (idx + 1) + '</td>' +
+                    '<td><code class="text-secondary">' + (svc.his_package_code || '') + '</code></td>' +
+                    '<td><code>' + svc.code + '</code></td>' +
+                    '<td>' + svc.name + '</td>' +
+                    '<td>' + (svc.unit || '') + '</td>' +
+                    '<td class="text-end">' + svc.quantity + '</td>' +
+                    '<td class="text-end">' + price + '</td>' +
+                    '<td class="text-center">' + outside + '</td>' +
+                    '</tr>';
+            });
+        });
+    })();
+    </script>
+
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white">
             <h5 class="mb-0">Danh sách bệnh nhân</h5>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>STT</th>
@@ -139,23 +261,23 @@
                             <th>Họ tên</th>
                             <th>Ngày khám</th>
                             <th>Chẩn đoán</th>
-                            <th>Hoàn thành</th>
+                            <th>Trạng thái</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for record in exam_records %}
                         <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td><code>{{ record.patient_sync.his_patient_code }}</code></td>
-                            <td>{{ record.patient_sync.full_name }}</td>
-                            <td>{{ record.exam_date|date:"d/m/Y"|default:"N/A" }}</td>
-                            <td>{{ record.diagnosis|truncatewords:10 }}</td>
+                            <td class="text-muted small">{{ forloop.counter }}</td>
+                            <td><code class="text-secondary">{{ record.patient_sync.his_patient_code }}</code></td>
+                            <td class="fw-semibold">{{ record.patient_sync.full_name }}</td>
+                            <td class="text-nowrap">{{ record.exam_date|date:"d/m/Y"|default:"—" }}</td>
+                            <td class="text-muted small">{{ record.diagnosis|truncatewords:10|default:"—" }}</td>
                             <td>
                                 {% if record.is_complete %}
                                 <span class="badge bg-success">Hoàn thành</span>
                                 {% else %}
-                                <span class="badge bg-warning">Chưa hoàn thành</span>
+                                <span class="badge bg-warning text-dark">Chưa xong</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -166,7 +288,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                                 Chưa có hồ sơ khám nào
                             </td>
                         </tr>

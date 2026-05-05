@@ -1,0 +1,99 @@
+{% extends "base_admin.html" %}
+
+{% load static %}
+{% block title %}Demo push lịch hẹn HIS{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'api_his/css/style.css' %}">
+  <meta name="description" content="Demo gửi lịch hẹn khám đoàn sang HIS AppService">
+{% endblock %}
+
+{% block content %}
+<div class="his-api-page">
+  <h2>Demo Push Lịch Hẹn HIS</h2>
+
+  <div class="row g-3 align-items-end mb-2">
+    <div class="col-lg-4 col-md-6 col-12">
+      <label class="form-label text-light">appointment_id</label>
+      <input id="appointment_id" type="number" min="1" class="form-control bg-dark text-light border-secondary" placeholder="Ví dụ: 123">
+    </div>
+    <div class="col-lg-3 col-md-6 col-12">
+      <div class="form-check mt-4">
+        <input class="form-check-input" type="checkbox" value="1" id="force_send">
+        <label class="form-check-label text-light" for="force_send">
+          Force send
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 align-items-end mt-1">
+    <div class="col-md-6 col-12 d-flex gap-2 justify-content-md-end">
+      <button id="btnSendPush" class="btn btn-primary">Gửi thử sang HIS</button>
+      <button id="btnClearPush" class="btn btn-outline-secondary">Xoá</button>
+    </div>
+  </div>
+
+  <div class="panel fade-in">
+    <div class="toolbar">
+      <div class="pills">
+        <span class="pill">POST</span>
+        <span class="pill">JSON</span>
+        <span class="pill">Local tool</span>
+      </div>
+    </div>
+    <pre id="pushResult" class="result">(chưa có dữ liệu)</pre>
+    <div class="separator"></div>
+    <h4 class="mgb-8">Internal endpoint</h4>
+    <pre id="pushEndpoint" class="curl">{% url 'api_his:booking_his_push_send' %}</pre>
+  </div>
+
+  {# ── Bảng log local ── #}
+  {% if his_local_enabled %}
+  <div class="panel fade-in" style="margin-top:20px;">
+    <div class="toolbar">
+      <div class="pills">
+        <span class="pill" style="color:#34d399;border-color:#34d399;">LOCAL PG</span>
+        <span class="pill">ClinicOSLichHenLocal</span>
+      </div>
+      <button id="btnRefreshLog" class="btn btn-outline-secondary btn-sm ms-auto">
+        ↻ Tải lại
+      </button>
+    </div>
+    <div class="separator" style="margin-top:4px;"></div>
+    <div id="localLogWrap" style="overflow-x:auto;">
+      <table id="localLogTable" style="width:100%;border-collapse:collapse;font-size:13px;font-family:var(--mono,monospace);">
+        <thead>
+          <tr style="color:#9fb0d8;border-bottom:1px solid rgba(255,255,255,.1);">
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;">#id</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;">Appt ID</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;">Họ tên</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;">Mã BN</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;">Ngày bắt đầu</th>
+            <th style="padding:8px 10px;text-align:left;">Nội dung</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;">Pushed at</th>
+          </tr>
+        </thead>
+        <tbody id="localLogBody">
+          <tr><td colspan="7" style="padding:14px 10px;color:#9fb0d8;text-align:center;">Đang tải...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="localLogError" style="display:none;color:#ef4444;font-size:13px;margin-top:8px;"></div>
+  </div>
+  {% else %}
+  <div class="panel fade-in" style="margin-top:20px;opacity:.6;">
+    <span style="color:#9fb0d8;font-size:13px;">
+      Local log không khả dụng — <code>HIS_LOCAL_SYNC_ENABLED</code> chưa bật.
+    </span>
+  </div>
+  {% endif %}
+
+</div>
+
+<span id="logEndpoint" style="display:none;">{% url 'api_his:booking_his_local_log' %}</span>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{% static 'api_his/js/booking_his_push_demo.js' %}"></script>
+{% endblock %}

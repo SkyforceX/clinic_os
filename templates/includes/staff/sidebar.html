@@ -439,8 +439,14 @@
       width: var(--sidebar-width);
     }
 
-    .sidebar.open {
+    .sidebar.open,
+    .sidebar.active {
       transform: translateX(0);
+    }
+
+    body.sidebar-open .sidebar-overlay {
+      opacity: 1;
+      visibility: visible;
     }
 
     body.sidebar-collapsed .sidebar {

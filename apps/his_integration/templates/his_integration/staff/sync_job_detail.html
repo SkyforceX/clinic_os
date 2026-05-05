@@ -84,14 +84,6 @@
                         </div>
                     </div>
                     
-                    {% if job.started_at and job.completed_at %}
-                    <div>
-                        <label class="text-muted small">Thời gian xử lý</label>
-                        <div>
-                            {% widthratio job.completed_at|timeuntil:job.started_at 1 1 %} giây
-                        </div>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -142,18 +134,31 @@
 
             {% if job.error_log %}
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 text-danger">
                         <i class="fas fa-exclamation-triangle me-2"></i>Log lỗi
+                        <span class="badge bg-danger ms-2">{{ job.error_log|length }}</span>
                     </h5>
                 </div>
-                <div class="card-body">
-                    {% for key, error in job.error_log.items %}
-                    <div class="alert alert-danger mb-2">
-                        <div class="fw-bold">{{ key }}</div>
-                        <div class="small">{{ error }}</div>
+                <div class="card-body p-0">
+                    <div style="max-height:400px;overflow-y:auto;">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light" style="position:sticky;top:0;">
+                                <tr>
+                                    <th style="width:38%">Mã / Key</th>
+                                    <th>Lỗi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for key, error in job.error_log.items %}
+                                <tr>
+                                    <td><code class="text-danger small">{{ key }}</code></td>
+                                    <td class="small text-muted">{{ error }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
             {% endif %}

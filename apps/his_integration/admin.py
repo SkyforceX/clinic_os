@@ -5,6 +5,8 @@ from apps.his_integration.models import (
     HisPatientTypeSync,
     HisCorporatePackageSync,
     HisExamRecordSync,
+    HisDiagnosticImagingSync,
+    HisDiagnosticImagingItemSync,
     HisSyncJob,
 )
 
@@ -42,6 +44,21 @@ class HisExamRecordSyncAdmin(admin.ModelAdmin):
     search_fields = ['his_record_code', 'patient_sync__full_name']
     readonly_fields = ['last_synced_at']
     date_hierarchy = 'exam_date'
+
+@admin.register(HisDiagnosticImagingSync)
+class HisDiagnosticImagingSyncAdmin(admin.ModelAdmin):
+    list_display = ['his_imaging_code', 'exam_record_sync', 'patient_sync', 'service_code', 'performed_at', 'is_active']
+    list_filter = ['is_active', 'service_code', 'performed_at']
+    search_fields = ['his_imaging_code', 'exam_record_sync__his_record_code', 'patient_sync__full_name']
+    readonly_fields = ['last_synced_at']
+    date_hierarchy = 'performed_at'
+
+@admin.register(HisDiagnosticImagingItemSync)
+class HisDiagnosticImagingItemSyncAdmin(admin.ModelAdmin):
+    list_display = ['his_imaging_detail_auto_id', 'imaging_sync', 'service_item_code', 'quantity', 'performed_quantity', 'is_active']
+    list_filter = ['is_active', 'service_item_code']
+    search_fields = ['his_imaging_detail_auto_id', 'imaging_sync__his_imaging_code', 'service_item_code']
+    readonly_fields = ['last_synced_at']
 
 @admin.register(HisSyncJob)
 class HisSyncJobAdmin(admin.ModelAdmin):

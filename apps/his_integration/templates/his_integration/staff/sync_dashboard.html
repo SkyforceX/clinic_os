@@ -1,145 +1,645 @@
 {% extends "base_admin.html" %}
 {% load static %}
 
-{% block title %}Đồng bộ dữ liệu HIS{% endblock %}
+{% block title %}Dong bo du lieu HIS{% endblock %}
 
 {% block content %}
+<style>
+    .his-stats-grid > div,
+    .sync-actions-grid > div {
+        display: flex;
+    }
+
+    .his-stats-grid .card,
+    .sync-actions-card,
+    .sync-history-card {
+        border: 0;
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06) !important;
+    }
+
+    .his-stats-grid .card {
+        width: 100%;
+    }
+
+    .his-stats-grid .card-body {
+        padding: 1rem 1.1rem;
+    }
+
+    .his-stat-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        flex-shrink: 0;
+    }
+
+    .his-stat-icon i {
+        font-size: 1.05rem;
+    }
+
+    .his-stat-label {
+        font-size: 0.78rem;
+        line-height: 1.25;
+        color: #64748b;
+        margin-bottom: 0.2rem;
+    }
+
+    .his-stat-value {
+        margin: 0;
+        font-size: 1.45rem;
+        line-height: 1;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .sync-actions-card .card-header,
+    .sync-history-card .card-header,
+    .sync-quality-card .card-header {
+        border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+        padding: 1rem 1.25rem;
+    }
+
+    .sync-actions-card .card-body {
+        padding: 1.1rem 1.25rem 1.25rem;
+    }
+
+    .sync-actions-note {
+        font-size: 0.82rem;
+        line-height: 1.45;
+        color: #64748b;
+        margin-bottom: 1rem;
+    }
+
+    .sync-action-btn {
+        width: 100%;
+        min-height: 142px;
+        border-radius: 16px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: flex-start;
+        text-align: left;
+        border-width: 1px;
+        transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+    }
+
+    .sync-action-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .sync-action-btn:disabled {
+        opacity: 0.72;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .sync-action-badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.24rem 0.58rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        margin-bottom: 0.8rem;
+    }
+
+    .badge-primary-soft {
+        background: rgba(255, 255, 255, 0.18);
+        color: rgba(255, 255, 255, 0.96);
+    }
+
+    .badge-neutral-soft {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .badge-dev-soft {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .sync-icon-wrap {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.85rem;
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
+    .btn-outline-primary .sync-icon-wrap,
+    .btn-outline-danger .sync-icon-wrap,
+    .btn-outline-warning .sync-icon-wrap,
+    .btn-warning .sync-icon-wrap {
+        background: #f8fafc;
+        border-color: rgba(148, 163, 184, 0.18);
+    }
+
+    .sync-icon-wrap i {
+        font-size: 1rem;
+    }
+
+    .sync-action-title {
+        font-size: 0.98rem;
+        font-weight: 700;
+        line-height: 1.25;
+        margin-bottom: 0.22rem;
+    }
+
+    .sync-action-desc {
+        margin: 0;
+        font-size: 0.8rem;
+        line-height: 1.4;
+        opacity: 0.92;
+    }
+
+    .sync-hidden-actions {
+        display: none;
+    }
+
+    .sync-history-card .table th {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: #64748b;
+    }
+
+    .his-stats-section-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #94a3b8;
+        margin-bottom: 0.55rem;
+        margin-top: 0.1rem;
+    }
+
+    .text-teal   { color: #0d9488 !important; }
+    .text-indigo { color: #6366f1 !important; }
+
+    .his-stat-link {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+    }
+    .his-stat-link:hover {
+        color: inherit;
+    }
+    .his-stat-link .card {
+        transition: box-shadow 0.16s ease, transform 0.16s ease;
+    }
+    .his-stat-link:hover .card {
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.13) !important;
+        transform: translateY(-3px);
+    }
+    .his-stat-arrow {
+        font-size: 0.65rem;
+        color: #cbd5e1;
+        flex-shrink: 0;
+        margin-left: 0.4rem;
+        transition: transform 0.16s ease, color 0.16s ease;
+    }
+
+    .sync-quality-card {
+        border: 0;
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06) !important;
+    }
+
+    .quality-warning-item {
+        border: 1px solid rgba(251, 191, 36, 0.28);
+        border-radius: 16px;
+        background: linear-gradient(180deg, #fffdf7 0%, #ffffff 100%);
+        padding: 1rem 1rem 0.9rem;
+        height: 100%;
+    }
+
+    .quality-warning-title {
+        font-size: 0.94rem;
+        font-weight: 700;
+        color: #92400e;
+        margin-bottom: 0.3rem;
+    }
+
+    .quality-warning-count {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1;
+    }
+
+    .quality-warning-label {
+        font-size: 0.76rem;
+        color: #78716c;
+    }
+
+    .quality-warning-samples {
+        margin-top: 0.85rem;
+        padding-left: 1rem;
+        margin-bottom: 0;
+        color: #475569;
+        font-size: 0.82rem;
+    }
+
+    .quality-warning-samples li + li {
+        margin-top: 0.3rem;
+    }
+
+    .quality-warning-empty {
+        padding: 1.25rem;
+        border-radius: 16px;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 0.92rem;
+    }
+    .his-stat-link:hover .his-stat-arrow {
+        color: #64748b;
+        transform: translateX(3px);
+    }
+
+    @media (max-width: 991.98px) {
+        .his-stats-grid .card-body,
+        .sync-actions-card .card-body {
+            padding: 0.95rem 1rem;
+        }
+
+        .his-stat-value {
+            font-size: 1.3rem;
+        }
+
+        .sync-action-btn {
+            min-height: 128px;
+        }
+    }
+</style>
+
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
-            <i class="fas fa-sync-alt me-2"></i>Đồng bộ dữ liệu HIS
+            <i class="fas fa-sync-alt me-2"></i>Dong bo du lieu HIS
         </h2>
+        <a href="{% url 'his_integration:quality' %}" class="btn btn-outline-warning">
+            <i class="fas fa-triangle-exclamation me-2"></i>Data Quality
+        </a>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-users fa-2x text-primary"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Bệnh nhân</div>
-                            <div class="h4 mb-0">{{ stats.patients|default:0 }}</div>
+    {# ── Nhóm 1: Dữ liệu lâm sàng ── #}
+    <div class="his-stats-section-label">Dữ liệu lâm sàng</div>
+    <div class="row g-3 mb-2 his-stats-grid">
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'his_integration:data_list' 'patients' %}" class="his-stat-link">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="his-stat-icon">
+                                <i class="fas fa-users text-primary"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="his-stat-label">Bệnh nhân</div>
+                                <div class="his-stat-value">{{ stats.patients|default:0 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-right his-stat-arrow"></i>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-box fa-2x text-success"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Gói khám đoàn</div>
-                            <div class="h4 mb-0">{{ stats.packages|default:0 }}</div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'his_integration:data_list' 'patient_types' %}" class="his-stat-link">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="his-stat-icon">
+                                <i class="fas fa-tags text-warning"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="his-stat-label">Đối tượng BN</div>
+                                <div class="his-stat-value">{{ stats.patient_types|default:0 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-right his-stat-arrow"></i>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-file-medical fa-2x text-info"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Hồ sơ khám</div>
-                            <div class="h4 mb-0">{{ stats.exam_records|default:0 }}</div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'his_integration:package_list' %}" class="his-stat-link">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="his-stat-icon">
+                                <i class="fas fa-box text-success"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="his-stat-label">Gói khám đoàn</div>
+                                <div class="his-stat-value">{{ stats.packages|default:0 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-right his-stat-arrow"></i>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-tags fa-2x text-warning"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Đối tượng BN</div>
-                            <div class="h4 mb-0">{{ stats.patient_types|default:0 }}</div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'his_integration:exam_record_list' %}" class="his-stat-link">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="his-stat-icon">
+                                <i class="fas fa-file-medical text-info"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="his-stat-label">Hồ sơ khám</div>
+                                <div class="his-stat-value">{{ stats.exam_records|default:0 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-right his-stat-arrow"></i>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'his_integration:data_list' 'diagnostic_imaging' %}" class="his-stat-link">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="his-stat-icon">
+                                <i class="fas fa-x-ray text-danger"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="his-stat-label">Chẩn đoán hình ảnh</div>
+                                <div class="his-stat-value">{{ stats.diagnostic_imaging|default:0 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-right his-stat-arrow"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'his_integration:data_list' 'functional_tests' %}" class="his-stat-link">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="his-stat-icon">
+                                <i class="fas fa-heartbeat text-danger"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="his-stat-label">Phiếu TDCN</div>
+                                <div class="his-stat-value">{{ stats.functional_tests|default:0 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-right his-stat-arrow"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'his_integration:data_list' 'exam_service_items' %}" class="his-stat-link">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="his-stat-icon">
+                                <i class="fas fa-list-check text-secondary"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="his-stat-label">Chi tiết DV khám</div>
+                                <div class="his-stat-value">{{ stats.exam_service_items|default:0 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-right his-stat-arrow"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'his_integration:data_list' 'appointments' %}" class="his-stat-link">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="his-stat-icon">
+                                <i class="fas fa-calendar-check text-primary"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="his-stat-label">Lịch hẹn</div>
+                                <div class="his-stat-value">{{ stats.appointments|default:0 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-right his-stat-arrow"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
         </div>
     </div>
 
-    <!-- Sync Actions -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white py-3">
-            <h5 class="mb-0">Thực hiện đồng bộ</h5>
+    {# ── Nhóm 2: Danh mục & Gói ── #}
+    <div class="his-stats-section-label">Danh mục &amp; Gói dịch vụ</div>
+    <div class="row g-3 mb-2 his-stats-grid">
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'his_integration:data_list' 'service_catalog' %}" class="his-stat-link">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="his-stat-icon">
+                                <i class="fas fa-th-list text-teal"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="his-stat-label">Danh mục dịch vụ</div>
+                                <div class="his-stat-value">{{ stats.service_catalog|default:0 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-right his-stat-arrow"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'his_integration:data_list' 'package_services' %}" class="his-stat-link">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="his-stat-icon">
+                                <i class="fas fa-box-open text-success"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="his-stat-label">DV định nghĩa theo gói</div>
+                                <div class="his-stat-value">{{ stats.package_services|default:0 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-right his-stat-arrow"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    {# ── Nhóm 3: Hóa đơn ── #}
+    <div class="his-stats-section-label">Hóa đơn điện tử</div>
+    <div class="row g-3 mb-4 his-stats-grid">
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'his_integration:data_list' 'invoices' %}" class="his-stat-link">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="his-stat-icon">
+                                <i class="fas fa-file-invoice text-indigo"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="his-stat-label">Hóa đơn</div>
+                                <div class="his-stat-value">{{ stats.invoices|default:0 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-right his-stat-arrow"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'his_integration:data_list' 'invoice_details' %}" class="his-stat-link">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="his-stat-icon">
+                                <i class="fas fa-receipt text-secondary"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="his-stat-label">Chi tiết hóa đơn</div>
+                                <div class="his-stat-value">{{ stats.invoice_details|default:0 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-right his-stat-arrow"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="card sync-quality-card mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Canh bao chat luong du lieu sau sync</h5>
         </div>
         <div class="card-body">
-            
+            {% if quality_warnings %}
             <div class="row g-3">
-                <div style="display: none;">
-                <div class="col-md-6 col-lg-4">
-                    <button type="button" class="btn btn-outline-primary w-100 py-3 sync-btn" data-sync-type="patient_types">
-                        <i class="fas fa-tags fa-2x d-block mb-2"></i>
-                        <div class="fw-bold">Đối tượng bệnh nhân</div>
-                        <small class="text-muted">Đồng bộ danh mục đối tượng</small>
+                {% for warning in quality_warnings %}
+                <div class="col-12 col-xl-6">
+                    <div class="quality-warning-item">
+                        <div class="d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                                <div class="quality-warning-title">{{ warning.title }}</div>
+                                <div class="quality-warning-label">Top {{ warning.items|length }} mau gan nhat de doi soat</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="quality-warning-count">{{ warning.count }}</div>
+                                <div class="quality-warning-label">ban ghi</div>
+                            </div>
+                        </div>
+                        <ul class="quality-warning-samples">
+                            {% for item in warning.items %}
+                            <li>
+                                <strong>{{ item.primary }}</strong>
+                                {% if item.secondary %} -> {{ item.secondary }}{% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% if warning.url %}
+                        <div class="mt-3">
+                            <a href="{{ warning.url }}" class="btn btn-sm btn-outline-warning">
+                                Loc truc tiep danh sach loi
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="quality-warning-empty">
+                Khong phat hien canh bao orphan-link nao trong du lieu HIS da sync.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card sync-actions-card mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Thuc hien dong bo</h5>
+        </div>
+        <div class="card-body">
+            <div class="sync-actions-note">
+                Nut chinh dung cho luong sync hang ngay. Cac nut ra lai va test local dung cho doi soat, debug va kiem tra du lieu mau.
+            </div>
+
+            <div class="sync-hidden-actions">
+                <button type="button" class="btn btn-outline-primary sync-btn" data-sync-type="patient_types">patient_types</button>
+                <button type="button" class="btn btn-outline-primary sync-btn" data-sync-type="patients">patients</button>
+                <button type="button" class="btn btn-outline-primary sync-btn" data-sync-type="packages">packages</button>
+                <button type="button" class="btn btn-outline-primary sync-btn" data-sync-type="exam_records">exam_records</button>
+            </div>
+
+            <div class="row g-3 sync-actions-grid">
+                <div class="col-md-6 col-xl-4">
+                    <button type="button" class="btn btn-primary sync-action-btn sync-btn" data-sync-type="all">
+                        <div>
+                            <span class="sync-action-badge badge-primary-soft">Khuyen nghi</span>
+                            <div class="sync-icon-wrap">
+                                <i class="fas fa-sync-alt text-white"></i>
+                            </div>
+                            <div class="sync-action-title">Dong bo toan bo</div>
+                        </div>
+                        <p class="sync-action-desc text-white">Chi lay du lieu moi cho quy trinh sync thong thuong.</p>
                     </button>
                 </div>
-                <div class="col-md-6 col-lg-4">
-                    <button type="button" class="btn btn-outline-primary w-100 py-3 sync-btn" data-sync-type="patients">
-                        <i class="fas fa-users fa-2x d-block mb-2"></i>
-                        <div class="fw-bold">Bệnh nhân</div>
-                        <small class="text-muted">Đồng bộ danh sách bệnh nhân</small>
+
+                <div class="col-md-6 col-xl-4">
+                    <button type="button" class="btn btn-outline-danger sync-action-btn sync-btn" data-sync-type="all" data-reset-cursor="true">
+                        <div>
+                            <span class="sync-action-badge badge-neutral-soft">Ra lai</span>
+                            <div class="sync-icon-wrap">
+                                <i class="fas fa-rotate text-danger"></i>
+                            </div>
+                            <div class="sync-action-title">Ra lai toan bo</div>
+                        </div>
+                        <p class="sync-action-desc text-muted">Cap nhat lai ca du lieu da duoc dong bo truoc do.</p>
                     </button>
                 </div>
-                <div class="col-md-6 col-lg-4">
-                    <button type="button" class="btn btn-outline-primary w-100 py-3 sync-btn" data-sync-type="packages">
-                        <i class="fas fa-box fa-2x d-block mb-2"></i>
-                        <div class="fw-bold">Gói khám đoàn</div>
-                        <small class="text-muted">Đồng bộ gói khám theo đoàn</small>
-                    </button>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <button type="button" class="btn btn-outline-primary w-100 py-3 sync-btn" data-sync-type="exam_records">
-                        <i class="fas fa-file-medical fa-2x d-block mb-2"></i>
-                        <div class="fw-bold">Hồ sơ khám</div>
-                        <small class="text-muted">Đồng bộ hồ sơ khám bệnh</small>
-                    </button>
-                </div>
-                </div>
-                <div class="col-md-12 col-lg-4">
-                    <button type="button" class="btn btn-primary w-100 py-3 sync-btn" data-sync-type="all">
-                        <i class="fas fa-sync-alt fa-2x d-block mb-2"></i>
-                        <div class="fw-bold">Đồng bộ toàn bộ</div>
-                        <small class="text-white">Chỉ lấy dữ liệu mới</small>
-                    </button>
-                </div>
-                <div class="col-md-12 col-lg-4">
-                    <button type="button" class="btn btn-outline-danger w-100 py-3 sync-btn" data-sync-type="all" data-reset-cursor="true">
-                        <i class="fas fa-rotate fa-2x d-block mb-2"></i>
-                        <div class="fw-bold">Rà lại toàn bộ</div>
-                        <small class="text-muted">Cập nhật cả dữ liệu đã đồng bộ</small>
-                    </button>
-                </div>
+
                 {% if local_sync_enabled %}
-                <div class="col-md-12 col-lg-4">
-                    <button type="button" class="btn btn-warning w-100 py-3 sync-btn" data-sync-type="all" data-source="local_pg">
-                        <i class="fas fa-database fa-2x d-block mb-2"></i>
-                        <div class="fw-bold">Sync mới (test local)</div>
-                        <small class="text-dark">Chỉ lấy dữ liệu mới – PK_HCM local</small>
+                <div class="col-md-6 col-xl-4">
+                    <button type="button" class="btn btn-warning sync-action-btn sync-btn" data-sync-type="all" data-source="local_pg">
+                        <div>
+                            <span class="sync-action-badge badge-dev-soft">Dev local</span>
+                            <div class="sync-icon-wrap">
+                                <i class="fas fa-database text-dark"></i>
+                            </div>
+                            <div class="sync-action-title">Sync moi test local</div>
+                        </div>
+                        <p class="sync-action-desc text-dark">Lay du lieu moi tu PK_HCM local de kiem tra dev.</p>
                     </button>
                 </div>
-                <div class="col-md-12 col-lg-4">
-                    <button type="button" class="btn btn-outline-warning w-100 py-3 sync-btn" data-sync-type="all" data-source="local_pg" data-reset-cursor="true">
-                        <i class="fas fa-rotate fa-2x d-block mb-2"></i>
-                        <div class="fw-bold">Rà lại toàn bộ (test local)</div>
-                        <small class="text-muted">Cập nhật cả dữ liệu đã sync – PK_HCM local</small>
+
+                <div class="col-md-6 col-xl-4">
+                    <button type="button" class="btn btn-outline-warning sync-action-btn sync-btn" data-sync-type="all" data-source="local_pg" data-reset-cursor="true">
+                        <div>
+                            <span class="sync-action-badge badge-dev-soft">Dev local</span>
+                            <div class="sync-icon-wrap">
+                                <i class="fas fa-rotate text-warning"></i>
+                            </div>
+                            <div class="sync-action-title">Ra lai test local</div>
+                        </div>
+                        <p class="sync-action-desc text-muted">Chay lai toan bo du lieu local de doi soat va debug.</p>
                     </button>
                 </div>
                 {% endif %}
@@ -147,12 +647,11 @@
         </div>
     </div>
 
-    <!-- Recent Jobs -->
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Lịch sử đồng bộ gần đây</h5>
+    <div class="card sync-history-card">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Lich su dong bo gan day</h5>
             <a href="{% url 'his_integration:job_list' %}" class="btn btn-sm btn-outline-secondary">
-                Xem tất cả
+                Xem tat ca
             </a>
         </div>
         <div class="card-body p-0">
@@ -160,12 +659,12 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Loại</th>
-                            <th>Trạng thái</th>
-                            <th>Tổng số</th>
-                            <th>Thành công</th>
-                            <th>Lỗi</th>
-                            <th>Thời gian</th>
+                            <th>Loai</th>
+                            <th>Trang thai</th>
+                            <th>Tong so</th>
+                            <th>Thanh cong</th>
+                            <th>Loi</th>
+                            <th>Thoi gian</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -175,13 +674,13 @@
                             <td>{{ job.get_entity_type_display }}</td>
                             <td>
                                 {% if job.status == 'SUCCESS' %}
-                                <span class="badge bg-success">Thành công</span>
+                                <span class="badge bg-success">Thanh cong</span>
                                 {% elif job.status == 'FAILED' %}
-                                <span class="badge bg-danger">Lỗi</span>
+                                <span class="badge bg-danger">Loi</span>
                                 {% elif job.status == 'RUNNING' %}
-                                <span class="badge bg-primary">Đang chạy</span>
+                                <span class="badge bg-primary">Dang chay</span>
                                 {% else %}
-                                <span class="badge bg-secondary">Chờ</span>
+                                <span class="badge bg-secondary">Cho</span>
                                 {% endif %}
                             </td>
                             <td>{{ job.total_records }}</td>
@@ -190,14 +689,14 @@
                             <td>{{ job.created_at|date:"d/m/Y H:i" }}</td>
                             <td>
                                 <a href="{% url 'his_integration:job_detail' job.pk %}" class="btn btn-sm btn-outline-secondary">
-                                    Chi tiết
+                                    Chi tiet
                                 </a>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
                             <td colspan="7" class="text-center text-muted py-4">
-                                Chưa có lịch sử đồng bộ
+                                Chua co lich su dong bo
                             </td>
                         </tr>
                         {% endfor %}
@@ -212,7 +711,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const syncButtons = document.querySelectorAll('.sync-btn');
     const csrfToken = '{{ csrf_token }}';
-    
+
     async function parseSyncResponse(response) {
         const contentType = response.headers.get('content-type') || '';
 
@@ -226,24 +725,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return {
             success: false,
-            error: compact || `Server trả về HTTP ${response.status}`,
+            error: compact || `Server tra ve HTTP ${response.status}`,
         };
     }
-    
+
     syncButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             const syncType = this.dataset.syncType;
             const source = this.dataset.source || 'his_mssql';
             const resetCursor = this.dataset.resetCursor || 'false';
-            
-            if (!confirm(`Bạn có chắc muốn đồng bộ ${this.querySelector('.fw-bold').textContent}?`)) {
+            const titleNode = this.querySelector('.sync-action-title') || this.querySelector('.fw-bold');
+            const buttonTitle = titleNode ? titleNode.textContent : syncType;
+
+            if (!confirm(`Ban co chac muon dong bo ${buttonTitle}?`)) {
                 return;
             }
-            
+
             this.disabled = true;
             const originalHTML = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
-            
+            this.innerHTML = '<div class="d-flex align-items-center gap-2"><i class="fas fa-spinner fa-spin"></i><span>Dang xu ly...</span></div>';
+
             fetch('{% url "his_integration:trigger_sync" %}', {
                 method: 'POST',
                 headers: {
@@ -267,18 +768,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         setTimeout(() => location.reload(), 2000);
                         return;
                     }
-                    alert(result.data.message + '\n\nJob đang chạy trong background. Vui lòng kiểm tra lịch sử đồng bộ.');
+                    alert(result.data.message + '\n\nJob dang chay trong background. Vui long kiem tra lich su dong bo.');
                     setTimeout(() => location.reload(), 2000);
                 } else {
                     const detail = result.data && result.data.error ? result.data.error : `HTTP ${result.status}`;
-                    alert('Lỗi: ' + detail);
+                    alert('Loi: ' + detail);
                     this.disabled = false;
                     this.innerHTML = originalHTML;
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert('Có lỗi xảy ra khi kết nối đến server: ' + (err && err.message ? err.message : 'Unknown error'));
+                alert('Co loi xay ra khi ket noi den server: ' + (err && err.message ? err.message : 'Unknown error'));
                 this.disabled = false;
                 this.innerHTML = originalHTML;
             });

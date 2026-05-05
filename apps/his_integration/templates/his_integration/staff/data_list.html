@@ -1,0 +1,321 @@
+{% extends "base_admin.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<style>
+    .dl-header {
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .dl-count-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        background: #f1f5f9;
+        color: #475569;
+        border-radius: 999px;
+        padding: 0.22rem 0.7rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        margin-top: 0.3rem;
+    }
+
+    .dl-search-wrap {
+        max-width: 440px;
+    }
+
+    .dl-search-wrap .input-group-text {
+        background: #fff;
+        border-right: none;
+        color: #94a3b8;
+    }
+
+    .dl-search-wrap .form-control {
+        border-left: none;
+        box-shadow: none;
+    }
+
+    .dl-search-wrap .form-control:focus {
+        border-color: #cbd5e1;
+        box-shadow: none;
+    }
+
+    .dl-card {
+        border: 0;
+        border-radius: 18px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        overflow: hidden;
+    }
+
+    .dl-table {
+        margin-bottom: 0;
+        font-size: 0.875rem;
+    }
+
+    .dl-table thead th {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+        background: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+        padding: 0.75rem 0.9rem;
+        white-space: nowrap;
+    }
+
+    .dl-table tbody td {
+        vertical-align: middle;
+        padding: 0.6rem 0.9rem;
+        border-bottom: 1px solid #f1f5f9;
+        max-width: 240px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #334155;
+    }
+
+    .dl-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .dl-table tbody tr:hover td {
+        background: #f8fafc;
+    }
+
+    .dl-row-num {
+        width: 2.8rem;
+        text-align: right;
+        font-size: 0.72rem;
+        color: #94a3b8;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .dl-empty {
+        padding: 5rem 2rem;
+        text-align: center;
+    }
+
+    .dl-empty-icon {
+        font-size: 3rem;
+        color: #cbd5e1;
+        margin-bottom: 1rem;
+    }
+
+    /* Pagination */
+    .dl-pagination {
+        gap: 0.2rem;
+    }
+
+    .dl-pagination .page-link {
+        border-radius: 8px !important;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        padding: 0.38rem 0.72rem;
+        font-size: 0.875rem;
+        line-height: 1.4;
+        transition: all 0.12s ease;
+        min-width: 2.2rem;
+        text-align: center;
+    }
+
+    .dl-pagination .page-link:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #0f172a;
+    }
+
+    .dl-pagination .page-item.active .page-link {
+        background: #0f172a;
+        border-color: #0f172a;
+        color: #fff;
+        font-weight: 600;
+    }
+
+    .dl-pagination .page-item.disabled .page-link {
+        color: #cbd5e1;
+        background: #fff;
+        border-color: #f1f5f9;
+    }
+
+    .dl-page-info {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        text-align: center;
+        margin-top: 0.6rem;
+    }
+
+    @media (max-width: 767.98px) {
+        .dl-header {
+            padding: 1rem;
+        }
+        .dl-search-wrap {
+            max-width: 100%;
+        }
+        .dl-table thead th,
+        .dl-table tbody td {
+            padding: 0.5rem 0.65rem;
+        }
+    }
+</style>
+
+<div class="container-fluid py-4">
+
+    {# ── Header ── #}
+    <div class="dl-header">
+        <div class="d-flex align-items-start gap-3 flex-wrap">
+            <a href="{% url 'his_integration:dashboard' %}"
+               class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 mt-1 flex-shrink-0">
+                <i class="fas fa-arrow-left" style="font-size:.72rem"></i>
+                <span>Trở về</span>
+            </a>
+            <div class="flex-grow-1">
+                <h4 class="mb-0 fw-bold" style="color:#0f172a">{{ title }}</h4>
+                <span class="dl-count-badge">
+                    <i class="fas fa-database" style="font-size:.65rem"></i>
+                    {{ paginator.count|default:0 }} bản ghi
+                </span>
+            </div>
+        </div>
+    </div>
+
+    {# ── Search ── #}
+    {% if has_search %}
+    <form method="get" class="mb-3 dl-search-wrap">
+        {% if quality_warning %}
+        <input type="hidden" name="quality_warning" value="{{ quality_warning }}">
+        {% endif %}
+        <div class="input-group shadow-sm" style="border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
+            <span class="input-group-text border-0">
+                <i class="fas fa-search" style="font-size:.82rem"></i>
+            </span>
+            <input type="text" name="q" value="{{ q }}"
+                   class="form-control border-0 ps-0"
+                   placeholder="Tìm kiếm..."
+                   autocomplete="off">
+            {% if q %}
+            <a href="?" class="btn btn-sm btn-outline-secondary border-0 px-3"
+               title="Xóa tìm kiếm" style="border-radius:0">
+                <i class="fas fa-times"></i>
+            </a>
+            {% endif %}
+            <button class="btn btn-primary px-4 border-0" type="submit"
+                    style="border-radius:0 12px 12px 0">Tìm</button>
+        </div>
+    </form>
+    {% endif %}
+
+    {% if active_quality_warning %}
+    <div class="alert alert-warning border-0 shadow-sm d-flex justify-content-between align-items-center mb-3" role="alert">
+        <div>
+            <strong>Đang lọc cảnh báo:</strong> {{ active_quality_warning.title }}
+            <span class="ms-2 badge bg-warning text-dark">{{ paginator.count }} bản ghi</span>
+        </div>
+        <a href="{% url 'his_integration:data_list' entity_type %}" class="btn btn-sm btn-outline-secondary">Bỏ lọc lỗi</a>
+    </div>
+    {% endif %}
+
+    {# ── Table ── #}
+    <div class="card dl-card">
+        <div class="card-body p-0">
+            {% if rows %}
+            <div class="table-responsive">
+                <table class="table table-hover dl-table">
+                    <thead>
+                        <tr>
+                            <th class="dl-row-num">#</th>
+                            {% for col in columns %}
+                            <th>{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            <td class="dl-row-num">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                            {% for cell in row %}
+                            <td title="{{ cell }}">{{ cell }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="dl-empty">
+                <div class="dl-empty-icon">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                {% if q %}
+                <p class="text-muted mb-1">Không tìm thấy kết quả cho <strong>"{{ q }}"</strong></p>
+                <a href="?" class="btn btn-sm btn-outline-secondary mt-2">Xóa bộ lọc</a>
+                {% else %}
+                <p class="text-muted mb-0">Chưa có dữ liệu</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ── Pagination ── #}
+    {% if is_paginated %}
+    <nav class="mt-4" aria-label="Phân trang">
+        <ul class="pagination dl-pagination justify-content-center flex-wrap mb-0">
+            {# Prev #}
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Trang trước">
+                    <i class="fas fa-angle-left"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-angle-left"></i></span>
+            </li>
+            {% endif %}
+
+            {# Page numbers with smart ellipsis #}
+            {% for p in page_range %}
+                {% if p == '…' %}
+                <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                </li>
+                {% elif p == page_obj.number %}
+                <li class="page-item active">
+                    <span class="page-link">{{ p }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ p }}">{{ p }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {# Next #}
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Trang sau">
+                    <i class="fas fa-angle-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-angle-right"></i></span>
+            </li>
+            {% endif %}
+        </ul>
+        <p class="dl-page-info">
+            Trang {{ page_obj.number }} / {{ paginator.num_pages }}
+            &nbsp;·&nbsp; {{ paginator.count }} bản ghi
+        </p>
+    </nav>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -5,6 +5,8 @@ app_name = 'his_integration'
 
 urlpatterns = [
     path('', staff.HisSyncDashboardView.as_view(), name='dashboard'),
+    path('quality/', staff.HisSyncQualityView.as_view(), name='quality'),
+    path('quality/export/', staff.export_quality_warning_csv, name='quality_export'),
     path('jobs/', staff.HisSyncJobListView.as_view(), name='job_list'),
     path('jobs/<int:pk>/', staff.HisSyncJobDetailView.as_view(), name='job_detail'),
     path('packages/', staff.CorporatePackageListView.as_view(), name='package_list'),
@@ -15,4 +17,5 @@ urlpatterns = [
     path('exam-records/', staff.ExamRecordListView.as_view(), name='exam_record_list'),
     path('exam-records/<int:pk>/', staff.ExamRecordDetailView.as_view(), name='exam_record_detail'),
     path('trigger-sync/', staff.trigger_sync, name='trigger_sync'),
+    path('data/<str:entity_type>/', staff.HisDataListView.as_view(), name='data_list'),
 ]

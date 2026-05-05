@@ -1,36 +1,78 @@
-# Python
+# ── Python ───────────────────────────────────────────────────────────────────
 .venv/
+venv/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.pdb
+*.egg-info/
+dist/
+build/
+.eggs/
 
-# Django
+# ── Django ───────────────────────────────────────────────────────────────────
 db.sqlite3
+*.sqlite3
 media/
 staticfiles/
 static/fontawesome-7.2.0/
-# Env
-.env
 
-# IDE
+# ── Secrets / Credentials ────────────────────────────────────────────────────
+# Bắt mọi file .env ở bất kỳ thư mục nào
+.env
+.env.*
+!.env.*.example
+env/
+# Exception: file example không chứa secret
+!env/*.example
+
+# ── IDE & Editor ─────────────────────────────────────────────────────────────
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# Logs
+# ── Logs ─────────────────────────────────────────────────────────────────────
 *.log
+*.log.*
+logs/
 
-# Temp / backup
-backup/
+# ── Temp / Working dirs ───────────────────────────────────────────────────────
+tmp/
 tmp_docs/
+.tmp_pycompile/
 formhd/
 
-# Archives
+# ── Backup & Archives ────────────────────────────────────────────────────────
+backup/
 *.rar
 *.zip
 *.tar.gz
+*.tar
+*.bak
+*.backup
 
-# AI / tools
+# ── AI Agent / Coding tools ───────────────────────────────────────────────────
+# File nội bộ của AI agent, không liên quan đến hệ thống
 .claude/
+.codex/
 promts/
-.tmp_pycompile/
+prompts/
+*.md
+
+# ── Test artifacts ────────────────────────────────────────────────────────────
+.test_artifacts/
+
+# ── Scripts: dữ liệu mẫu & one-off ──────────────────────────────────────────
+scripts/
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+docker/
+*.yml

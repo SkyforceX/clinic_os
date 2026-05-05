@@ -46,7 +46,9 @@ body {
 
 @media (max-width: 991.98px) {
   .main-content {
-    margin-left: 0;
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
     padding-top: var(--topbar-height);
   }
 }
@@ -193,7 +195,9 @@ body.sidebar-collapsed .main-content {
 /* ── Responsive ───────────────────────────────────────────────────────── */
 @media (max-width: 991.98px) {
   .main-content {
-    margin-left: 0;
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
     padding-top: var(--topbar-height);
   }
 
@@ -204,7 +208,7 @@ body.sidebar-collapsed .main-content {
   }
 
   .wrapper.app-shell-wrapper {
-    padding: 16px 14px 24px;
+    padding: 10px 8px 16px;
   }
 
   #notif-toast-container {
@@ -229,6 +233,660 @@ body.sidebar-collapsed .main-content {
 {% include "includes/staff/sidebar.html" %}
 
 <div id="notif-toast-container"></div>
+
+{% if ai_available and request.user.is_superuser %}
+<!-- ── AI Sticky Chat Widget ─────────────────────────────────────── -->
+<div id="ai-widget-wrap">
+  <button id="ai-widget-toggle" title="Trợ lý AI" aria-label="Mở trợ lý AI">
+    <i class="fa-solid fa-robot" id="ai-widget-icon"></i>
+    <span id="ai-widget-badge"></span>
+  </button>
+
+  <div id="ai-widget-panel" role="dialog" aria-label="Trợ lý AI" aria-hidden="true">
+    <div id="ai-widget-header">
+      <div class="d-flex align-items-center gap-2">
+        <div class="ai-wd-avatar-md">
+          <i class="fa-solid fa-robot"></i>
+        </div>
+        <div>
+          <div style="font-weight:600;font-size:.9rem;line-height:1.25;color:#1a1a1a;">Trợ lý AI</div>
+          <div id="ai-wd-status" style="font-size:.7rem;color:#6c757d;">Đang kết nối...</div>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-1">
+        <button id="ai-wd-new" class="ai-wd-hdr-btn" title="Hội thoại mới">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+        <button id="ai-wd-close" class="ai-wd-hdr-btn" title="Đóng">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="ai-wd-msgs">
+      <div id="ai-wd-welcome">
+        <div style="font-size:2rem;margin-bottom:.6rem;"><i class="fa-solid fa-robot" style="color:#0d6efd;"></i></div>
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:.3rem;color:#212529;">Xin chào!</div>
+        <div style="font-size:.82rem;color:#6c757d;line-height:1.5;">Tôi có thể giúp gì cho bạn hôm nay?</div>
+      </div>
+      <div id="ai-wd-typing" class="ai-wd-row-ai">
+        <div class="ai-wd-avatar-xs"><i class="fa-solid fa-robot"></i></div>
+        <div class="ai-wd-bubble-ai" style="padding:.45rem .8rem;">
+          <span class="ai-wd-dot"></span><span class="ai-wd-dot"></span><span class="ai-wd-dot"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="ai-wd-footer">
+      <div id="ai-wd-error" class="d-none">
+        <div id="ai-wd-error-text"></div>
+      </div>
+      <div class="d-flex gap-2 align-items-end">
+        <textarea id="ai-wd-input"
+                  placeholder="Nhập câu hỏi..."
+                  rows="1"
+                  style="resize:none;max-height:100px;flex-grow:1;border:1px solid #dee2e6;border-radius:10px;padding:.45rem .75rem;font-size:.875rem;line-height:1.5;outline:none;transition:border-color .15s;font-family:inherit;"></textarea>
+        <button id="ai-wd-send" title="Gửi (Enter)">
+          <i class="fa-solid fa-paper-plane" id="ai-wd-send-icon"></i>
+          <span class="spinner-border spinner-border-sm d-none" id="ai-wd-spinner" style="width:.8rem;height:.8rem;border-width:.12em;"></span>
+        </button>
+      </div>
+      <div style="text-align:center;padding:.35rem 0 0;font-size:.68rem;color:#adb5bd;">
+        Enter gửi &nbsp;·&nbsp; Shift+Enter xuống dòng
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* ── AI Widget Layout ──────────────────────────────────────────────── */
+#ai-widget-wrap {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1048;
+  width: 56px;
+  height: 56px;
+}
+
+/* Toggle button */
+#ai-widget-toggle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(145deg, #3d8bfd 0%, #0d6efd 55%, #0a58ca 100%);
+  color: #fff;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(13,110,253,.38), 0 2px 8px rgba(0,0,0,.14);
+  transition: transform .2s ease, box-shadow .2s ease, background .2s;
+  position: relative;
+  flex-shrink: 0;
+  outline: none;
+}
+#ai-widget-toggle:hover {
+  transform: scale(1.1) translateY(-1px);
+  box-shadow: 0 8px 28px rgba(13,110,253,.48), 0 3px 12px rgba(0,0,0,.18);
+}
+#ai-widget-toggle:active { transform: scale(.97); }
+#ai-widget-toggle.is-open {
+  background: linear-gradient(145deg, #0a58ca 0%, #084298 100%);
+}
+#ai-widget-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 14px;
+  height: 14px;
+  background: #e24b4a;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  display: none;
+  animation: wd-pulse 1.8s infinite;
+}
+@keyframes wd-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+
+/* Panel — absolutely positioned above the toggle button */
+#ai-widget-panel {
+  position: absolute;
+  bottom: 68px;
+  right: 0;
+  width: 368px;
+  height: 520px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.15), 0 3px 14px rgba(0,0,0,.09);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform-origin: bottom right;
+  opacity: 0;
+  transform: scale(.92) translateY(10px);
+  pointer-events: none;
+  transition: opacity .22s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
+  border: 1px solid rgba(0,0,0,.06);
+}
+#ai-widget-panel.wd-open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: all;
+}
+
+/* Header */
+#ai-widget-header {
+  padding: 13px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  background: #fff;
+}
+.ai-wd-avatar-md {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg,#e7f0ff,#d0e4ff);
+  display: flex; align-items: center; justify-content: center;
+  color: #0d6efd; font-size: .9rem; flex-shrink: 0;
+}
+.ai-wd-hdr-btn {
+  width: 30px; height: 30px;
+  border: none; background: transparent;
+  border-radius: 7px; cursor: pointer;
+  color: #6c757d; font-size: .85rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s, color .12s;
+  outline: none;
+}
+.ai-wd-hdr-btn:hover { background: #f0f2f5; color: #212529; }
+
+/* Messages */
+#ai-wd-msgs {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 14px 14px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-behavior: smooth;
+}
+#ai-wd-msgs::-webkit-scrollbar { width: 4px; }
+#ai-wd-msgs::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 2px; }
+#ai-wd-msgs::-webkit-scrollbar-track { background: transparent; }
+
+#ai-wd-welcome {
+  text-align: center;
+  padding: 28px 16px;
+  flex-shrink: 0;
+}
+
+.ai-wd-row-user {
+  display: flex;
+  justify-content: flex-end;
+}
+.ai-wd-row-ai {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+.ai-wd-bubble-user {
+  background: linear-gradient(135deg,#1a7efb,#0d6efd);
+  color: #fff;
+  padding: .5rem .85rem;
+  border-radius: 15px;
+  border-bottom-right-radius: 4px;
+  font-size: .875rem;
+  max-width: 84%;
+  word-break: break-word;
+  line-height: 1.5;
+  box-shadow: 0 2px 8px rgba(13,110,253,.2);
+}
+.ai-wd-bubble-ai {
+  background: #f4f6f8;
+  border: 1px solid #e8eaed;
+  color: #212529;
+  padding: .5rem .85rem;
+  border-radius: 15px;
+  border-bottom-left-radius: 4px;
+  font-size: .875rem;
+  max-width: 84%;
+  word-break: break-word;
+  line-height: 1.5;
+}
+.ai-wd-avatar-xs {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg,#e7f0ff,#d0e4ff);
+  display: flex; align-items: center; justify-content: center;
+  color: #0d6efd; font-size: .62rem; flex-shrink: 0; margin-top:2px;
+}
+
+/* Typing dots */
+.ai-wd-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%; background: #adb5bd;
+  display: inline-block;
+  animation: wd-bounce .9s infinite ease-in-out;
+}
+.ai-wd-dot:nth-child(2) { animation-delay:.15s; }
+.ai-wd-dot:nth-child(3) { animation-delay:.3s; }
+@keyframes wd-bounce { 0%,80%,100%{transform:scale(.65);opacity:.45} 40%{transform:scale(1);opacity:1} }
+
+/* Markdown inside AI bubble */
+.ai-wd-bubble-ai p { margin-bottom:.3rem;font-size:.875rem; }
+.ai-wd-bubble-ai p:last-child { margin-bottom:0; }
+.ai-wd-bubble-ai ul,.ai-wd-bubble-ai ol { padding-left:1.25rem;margin-bottom:.3rem;font-size:.875rem; }
+.ai-wd-bubble-ai li { margin-bottom:.15rem; }
+.ai-wd-bubble-ai code { background:#e8eaed;border-radius:4px;padding:.1em .3em;font-size:.8em;font-family:'Cascadia Code',monospace; }
+.ai-wd-bubble-ai pre { background:#f1f3f5;border:1px solid #dee2e6;border-radius:7px;padding:.55rem .8rem;overflow-x:auto;margin-bottom:.35rem; }
+.ai-wd-bubble-ai pre code { background:none;padding:0;font-size:.78em; }
+.ai-wd-bubble-ai h1,.ai-wd-bubble-ai h2,.ai-wd-bubble-ai h3 { font-size:1em;font-weight:600;margin-bottom:.3rem; }
+.ai-wd-bubble-ai strong { font-weight:600; }
+.ai-wd-bubble-ai blockquote { border-left:3px solid #0d6efd;padding-left:.65rem;margin:.3rem 0;color:#495057;font-style:italic; }
+
+/* Footer */
+#ai-wd-footer {
+  border-top: 1px solid #f0f0f0;
+  padding: 10px 12px 10px;
+  flex-shrink: 0;
+  background: #fff;
+}
+#ai-wd-error {
+  background: #fff3f3;
+  border: 1px solid #f5c6c6;
+  border-radius: 8px;
+  padding: .45rem .75rem;
+  margin-bottom: 8px;
+  font-size: .8rem;
+  color: #842029;
+}
+#ai-wd-send {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  border: none;
+  background: #0d6efd;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; font-size: .8rem;
+  transition: background .15s, transform .1s;
+  outline: none;
+}
+#ai-wd-send:hover { background: #0a58ca; }
+#ai-wd-send:active { transform: scale(.93); }
+#ai-wd-send:disabled { background: #a0bffd; cursor: not-allowed; }
+#ai-wd-input:focus { border-color: #0d6efd !important; box-shadow: 0 0 0 3px rgba(13,110,253,.12); }
+
+/* Offset toast container so it doesn't hide behind toggle */
+body.ai-widget-on #notif-toast-container { bottom: 90px; }
+
+/* Mobile */
+@media (max-width: 575.98px) {
+  #ai-widget-wrap { bottom: 16px; right: 16px; }
+  #ai-widget-panel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    width: 100% !important;
+    height: 78svh;
+    border-radius: 20px 20px 0 0;
+    transform-origin: bottom center;
+  }
+  #ai-widget-panel.wd-open { transform: scale(1) translateY(0); }
+  body.ai-widget-on #notif-toast-container { bottom: 86px; }
+}
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  const QUICK_START_URL = "{% url 'ai_assistant:staff_quick_start' %}";
+  const CSRF = "{{ csrf_token }}";
+  const SK = "ai_wd_conv";
+
+  const toggleBtn  = document.getElementById("ai-widget-toggle");
+  const panel      = document.getElementById("ai-widget-panel");
+  const closeBtn   = document.getElementById("ai-wd-close");
+  const newBtn     = document.getElementById("ai-wd-new");
+  const msgs       = document.getElementById("ai-wd-msgs");
+  const welcome    = document.getElementById("ai-wd-welcome");
+  const typing     = document.getElementById("ai-wd-typing");
+  const input      = document.getElementById("ai-wd-input");
+  const sendBtn    = document.getElementById("ai-wd-send");
+  const sendIcon   = document.getElementById("ai-wd-send-icon");
+  const spinner    = document.getElementById("ai-wd-spinner");
+  const statusEl   = document.getElementById("ai-wd-status");
+  const errorEl    = document.getElementById("ai-wd-error");
+  const errorTxt   = document.getElementById("ai-wd-error-text");
+  const badge      = document.getElementById("ai-widget-badge");
+
+  document.body.classList.add("ai-widget-on");
+
+  let isOpen = false, isSending = false;
+  let convPk = null, streamUrl = null;
+  let mdReady = false;
+  let msgHistory = [];      // [{role:"user"|"assistant", content:"..."}]
+  let historyRestored = false; // đã render lịch sử lần này chưa
+
+  /* ── Markdown ──────────────────────────────────────────────────── */
+  function loadMarked(cb) {
+    if (typeof marked !== "undefined") { mdReady = true; cb(); return; }
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/marked/11.2.0/marked.min.js";
+    s.crossOrigin = "anonymous";
+    s.onload = function () {
+      marked.setOptions({ breaks: true, gfm: true });
+      mdReady = true; cb();
+    };
+    s.onerror = function () { cb(); };
+    document.head.appendChild(s);
+  }
+  function renderMd(text) {
+    if (mdReady && typeof marked !== "undefined") return marked.parse(text);
+    return text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");
+  }
+
+  /* ── Storage helpers (localStorage — persist qua tab/session) ──── */
+  // Giới hạn mềm 3.5MB tính theo ký tự JSON (mỗi char ~1 byte UTF-16)
+  const STORE_SOFT_LIMIT = 3.5 * 1024 * 1024;
+
+  function saveState() {
+    if (!convPk || !streamUrl) return;
+    _trySave(msgHistory);
+  }
+
+  function _trySave(messages) {
+    const payload = JSON.stringify({ pk: convPk, url: streamUrl, messages: messages });
+    if (payload.length > STORE_SOFT_LIMIT) {
+      // Trim dần: còn 200, 100, 40 rồi bỏ
+      const cuts = [200, 100, 40];
+      for (const n of cuts) {
+        if (messages.length > n) { _trySave(messages.slice(-n)); return; }
+      }
+      return; // quá lớn, bỏ qua
+    }
+    try {
+      localStorage.setItem(SK, payload);
+    } catch (e) {
+      // QuotaExceededError: giải phóng bằng cách xóa tin cũ rồi thử lại 1 lần
+      if (messages.length > 40) _trySave(messages.slice(-40));
+    }
+  }
+
+  function loadState() {
+    try {
+      return JSON.parse(localStorage.getItem(SK) || "null");
+    } catch { return null; }
+  }
+
+  function clearState() {
+    try { localStorage.removeItem(SK); } catch {}
+  }
+
+  /* ── Helpers ───────────────────────────────────────────────────── */
+  function scrollBottom() { msgs.scrollTop = msgs.scrollHeight; }
+
+  function setStatus(text, color) {
+    statusEl.textContent = text;
+    statusEl.style.color = color || "#6c757d";
+  }
+
+  function showError(msg) {
+    errorTxt.textContent = msg;
+    errorEl.classList.remove("d-none");
+  }
+  function hideError() { errorEl.classList.add("d-none"); }
+
+  function setSending(v) {
+    isSending = v;
+    sendBtn.disabled = v;
+    input.disabled = v;
+    sendIcon.classList.toggle("d-none", v);
+    spinner.classList.toggle("d-none", !v);
+    typing.style.display = v ? "flex" : "none";
+    if (v) scrollBottom();
+  }
+
+  /* ── DOM builders ──────────────────────────────────────────────── */
+  function buildUserRow(text) {
+    const row = document.createElement("div");
+    row.className = "ai-wd-row-user";
+    const b = document.createElement("div");
+    b.className = "ai-wd-bubble-user";
+    b.innerHTML = text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");
+    row.appendChild(b);
+    return row;
+  }
+
+  function buildAiRow(html) {
+    const row = document.createElement("div");
+    row.className = "ai-wd-row-ai";
+    const av = document.createElement("div");
+    av.className = "ai-wd-avatar-xs";
+    av.innerHTML = '<i class="fa-solid fa-robot"></i>';
+    const b = document.createElement("div");
+    b.className = "ai-wd-bubble-ai";
+    b.innerHTML = html;
+    row.appendChild(av); row.appendChild(b);
+    return row;
+  }
+
+  function appendUser(text) {
+    welcome.style.display = "none";
+    msgs.insertBefore(buildUserRow(text), typing);
+    scrollBottom();
+  }
+
+  function createAiBubble() {
+    const row = buildAiRow("");
+    msgs.insertBefore(row, typing);
+    return row.querySelector(".ai-wd-bubble-ai");
+  }
+
+  /* ── Restore lịch sử từ sessionStorage ────────────────────────── */
+  function restoreHistory(history) {
+    if (!history || !history.length) return;
+    welcome.style.display = "none";
+    history.forEach(function (m) {
+      if (m.role === "user") {
+        msgs.insertBefore(buildUserRow(m.content), typing);
+      } else {
+        msgs.insertBefore(buildAiRow(renderMd(m.content)), typing);
+      }
+    });
+    scrollBottom();
+  }
+
+  /* ── Conversation init ─────────────────────────────────────────── */
+  async function initConversation(forceNew) {
+    setStatus("Đang kết nối...", "#6c757d");
+    try {
+      const url = QUICK_START_URL + (forceNew ? "?new=1" : "");
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF, "Content-Type": "application/json" },
+      });
+      if (r.status === 403) { setStatus("Không có quyền truy cập", "#dc3545"); return; }
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const data = await r.json();
+      convPk = data.pk;
+      streamUrl = data.stream_url;
+      saveState();
+      setStatus("Sẵn sàng", "#198754");
+    } catch (e) {
+      setStatus("Lỗi kết nối AI", "#dc3545");
+    }
+  }
+
+  /* ── Send message ──────────────────────────────────────────────── */
+  async function sendMessage() {
+    const content = input.value.trim();
+    if (!content || isSending) return;
+    if (!streamUrl) { showError("Chưa kết nối được với AI. Vui lòng thử lại."); return; }
+
+    hideError();
+    input.value = "";
+    input.style.height = "auto";
+    appendUser(content);
+    msgHistory.push({ role: "user", content: content });
+    setSending(true);
+
+    let aiBubble = null, raw = "";
+
+    try {
+      const resp = await fetch(streamUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+        body: JSON.stringify({ content }),
+      });
+      if (!resp.ok) throw new Error("Máy chủ phản hồi lỗi " + resp.status);
+
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+
+          if (data === "[DONE]") {
+            if (aiBubble && raw) {
+              aiBubble.innerHTML = renderMd(raw);
+              // Lưu tin nhắn AI sau khi hoàn thành
+              msgHistory.push({ role: "assistant", content: raw });
+              saveState();
+            }
+            break;
+          }
+          if (data.startsWith("[ERROR]")) {
+            const msg = data.slice(7).trim();
+            try { showError(JSON.parse(msg)); } catch { showError(msg); }
+            if (aiBubble) aiBubble.closest(".ai-wd-row-ai")?.remove();
+            // Bỏ user message vừa push vì không thành công
+            msgHistory.pop();
+            break;
+          }
+          try {
+            const chunk = JSON.parse(data);
+            if (!aiBubble) {
+              typing.style.display = "none";
+              aiBubble = createAiBubble();
+            }
+            raw += chunk;
+            aiBubble.innerHTML = renderMd(raw);
+            scrollBottom();
+          } catch {}
+        }
+      }
+    } catch (err) {
+      showError(err.message || "Đã xảy ra lỗi khi gửi tin nhắn.");
+      if (aiBubble) aiBubble.closest(".ai-wd-row-ai")?.remove();
+      msgHistory.pop();
+    } finally {
+      setSending(false);
+      typing.style.display = "none";
+      scrollBottom();
+      input.focus();
+    }
+  }
+
+  /* ── Panel open/close ──────────────────────────────────────────── */
+  function openPanel() {
+    isOpen = true;
+    panel.classList.add("wd-open");
+    panel.setAttribute("aria-hidden", "false");
+    toggleBtn.classList.add("is-open");
+    badge.style.display = "none";
+
+    if (!convPk) {
+      const stored = loadState();
+      if (stored && stored.pk && stored.url) {
+        // Khôi phục conversation từ trang trước
+        convPk = stored.pk;
+        streamUrl = stored.url;
+        msgHistory = stored.messages || [];
+        setStatus("Sẵn sàng", "#198754");
+        if (!historyRestored) {
+          loadMarked(() => {
+            restoreHistory(msgHistory);
+            historyRestored = true;
+          });
+        }
+      } else {
+        // Lần đầu dùng: khởi tạo conversation mới
+        loadMarked(() => initConversation(false));
+      }
+    }
+    setTimeout(() => input.focus(), 240);
+  }
+
+  function closePanel() {
+    isOpen = false;
+    panel.classList.remove("wd-open");
+    panel.setAttribute("aria-hidden", "true");
+    toggleBtn.classList.remove("is-open");
+  }
+
+  /* ── New conversation ──────────────────────────────────────────── */
+  async function startNewConversation() {
+    Array.from(msgs.children).forEach(function (el) {
+      if (el !== welcome && el !== typing) el.remove();
+    });
+    welcome.style.display = "";
+    convPk = null; streamUrl = null;
+    msgHistory = [];
+    historyRestored = false;
+    clearState();
+    hideError();
+    await initConversation(true);
+  }
+
+  /* ── Events ────────────────────────────────────────────────────── */
+  toggleBtn.addEventListener("click", () => isOpen ? closePanel() : openPanel());
+  closeBtn.addEventListener("click", closePanel);
+  newBtn.addEventListener("click", startNewConversation);
+  sendBtn.addEventListener("click", sendMessage);
+
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+  input.addEventListener("input", function () {
+    this.style.height = "auto";
+    this.style.height = Math.min(this.scrollHeight, 100) + "px";
+  });
+  input.addEventListener("focus", function() {
+    this.style.borderColor = "#0d6efd";
+  });
+  input.addEventListener("blur", function() {
+    this.style.borderColor = "#dee2e6";
+  });
+
+  /* Keyboard shortcut: Ctrl+Shift+A to toggle */
+  document.addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "A") {
+      e.preventDefault();
+      isOpen ? closePanel() : openPanel();
+    }
+  });
+
+  /* Init typing indicator hidden */
+  typing.style.display = "none";
+
+  /* Warm up marked.js silently */
+  loadMarked(() => {});
+})();
+</script>
+{% endif %}
 
 <div class="main-content" id="main-content">
   <div class="wrapper app-shell-wrapper">

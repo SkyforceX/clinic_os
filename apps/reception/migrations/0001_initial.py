@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("patients", "0001_initial"),
-        ("scheduling", "0001_initial"),
+        ("scheduling", "0002_contractscheduleconfig"),
         ("organizations", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]

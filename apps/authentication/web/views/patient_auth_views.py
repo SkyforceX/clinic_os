@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import redirect, render
 
@@ -36,7 +37,7 @@ def patient_login(request):
             else:
                 form.add_error("date_of_birth", message)
 
-    return render(request, "authentication/login_form.html", {"form": form})
+    return render(request, "authentication/login_form.html", {"form": form, "debug": settings.DEBUG})
 
 
 @patient_access_required

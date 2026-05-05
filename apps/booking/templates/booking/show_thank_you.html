@@ -22,6 +22,21 @@
             Ca: {{ schedule.get_shift_display }}
         </li>
     </ul>
+    {% if show_his_push_debug and his_push %}
+    <div style="margin: 16px 0; padding: 12px 14px; border: 1px solid #d7e3f4; border-radius: 10px; background: #f8fbff; text-align: left;">
+        <strong>Debug HIS sync</strong><br>
+        {% if his_push.success %}
+            Đồng bộ API thành công{% if his_push.status_code %} (HTTP {{ his_push.status_code }}){% endif %}.
+        {% elif his_push.skipped_reason %}
+            Chưa gửi API: {{ his_push.skipped_reason }}
+        {% else %}
+            Đồng bộ API lỗi{% if his_push.status_code %} (HTTP {{ his_push.status_code }}){% endif %}: {{ his_push.error|default:"Không có chi tiết." }}
+        {% endif %}
+        <div style="margin-top: 8px;">
+            <a href="{% url 'api_his:booking_his_push_demo' %}" class="back-button" style="display: inline-block;">Mở trang demo test API</a>
+        </div>
+    </div>
+    {% endif %}
     <br>
     <div style="font-weight: 580; color:rgb(3, 129, 24); text-align: center;">Vui lòng đến đúng buổi hẹn để được phục vụ tốt nhất.</div>
     <br>

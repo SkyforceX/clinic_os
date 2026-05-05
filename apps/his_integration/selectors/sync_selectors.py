@@ -7,9 +7,17 @@ from django.utils import timezone
 
 from apps.his_integration.models import (
     HisCorporatePackageSync,
+    HisDiagnosticImagingSync,
     HisExamRecordSync,
+    HisExamServiceItemSync,
+    HisFunctionalTestSync,
+    HisAppointmentSync,
+    HisInvoiceSync,
+    HisInvoiceDetailSync,
+    HisPackageServiceSync,
     HisPatientSync,
     HisPatientTypeSync,
+    HisServiceCatalogSync,
     HisSyncJob,
 )
 
@@ -200,11 +208,229 @@ def has_active_his_package_for_current_year(*, patient_code: str) -> bool:
 
 def get_his_sync_dashboard_stats() -> dict[str, int]:
     return {
+        # --- Dữ liệu lâm sàng ---
         "patients": HisPatientSync.objects.filter(is_active=True).count(),
+        "patient_types": HisPatientTypeSync.objects.filter(is_active=True).count(),
         "packages": HisCorporatePackageSync.objects.filter(is_active=True).count(),
         "exam_records": HisExamRecordSync.objects.filter(is_active=True).count(),
-        "patient_types": HisPatientTypeSync.objects.filter(is_active=True).count(),
+        "diagnostic_imaging": HisDiagnosticImagingSync.objects.filter(is_active=True).count(),
+        "functional_tests": HisFunctionalTestSync.objects.filter(is_active=True).count(),
+        "exam_service_items": HisExamServiceItemSync.objects.filter(is_active=True).count(),
+        "appointments": HisAppointmentSync.objects.filter(is_active=True).count(),
+        # --- Danh mục & Gói ---
+        "service_catalog": HisServiceCatalogSync.objects.filter(is_active=True).count(),
+        "package_services": HisPackageServiceSync.objects.filter(is_active=True).count(),
+        # --- Hóa đơn ---
+        "invoices": HisInvoiceSync.objects.filter(is_active=True).count(),
+        "invoice_details": HisInvoiceDetailSync.objects.filter(is_active=True).count(),
     }
+
+
+def get_his_sync_quality_warnings(*, sample_limit: int = 5) -> list[dict]:
+    warnings: list[dict] = []
+
+    exam_records_missing_patient = list(
+        HisExamRecordSync.objects.filter(is_active=True, patient_sync__isnull=True)
+        .order_by("-last_synced_at")
+        .values("his_record_code", "raw_payload")[:sample_limit]
+    )
+    if exam_records_missing_patient:
+        warnings.append({
+            "key": "exam_records_missing_patient",
+            "title": "Ho so kham chua link duoc benh nhan",
+            "count": HisExamRecordSync.objects.filter(
+                is_active=True,
+                patient_sync__isnull=True,
+            ).count(),
+            "items": [
+                {
+                    "primary": row["his_record_code"],
+                    "secondary": (row.get("raw_payload") or {}).get("MaBenhNhan") or "",
+                }
+                for row in exam_records_missing_patient
+            ],
+        })
+
+    exam_records_missing_package = list(
+        HisExamRecordSync.objects.filter(
+            is_active=True,
+            package_sync__isnull=True,
+        )
+        .exclude(raw_payload__MaGoiKhamTheoDoan__in=["", None])
+        .order_by("-last_synced_at")
+        .values("his_record_code", "raw_payload")[:sample_limit]
+    )
+    if exam_records_missing_package:
+        warnings.append({
+            "key": "exam_records_missing_package",
+            "title": "Ho so kham chua link duoc goi kham",
+            "count": HisExamRecordSync.objects.filter(
+                is_active=True,
+                package_sync__isnull=True,
+            ).exclude(raw_payload__MaGoiKhamTheoDoan__in=["", None]).count(),
+            "items": [
+                {
+                    "primary": row["his_record_code"],
+                    "secondary": (row.get("raw_payload") or {}).get("MaGoiKhamTheoDoan") or "",
+                }
+                for row in exam_records_missing_package
+            ],
+        })
+
+    package_services_missing_package = list(
+        HisPackageServiceSync.objects.filter(
+            is_active=True,
+            package_sync__isnull=True,
+        )
+        .exclude(his_package_code__in=["", None])
+        .order_by("-last_synced_at")
+        .values("his_order_code", "his_package_code")[:sample_limit]
+    )
+    if package_services_missing_package:
+        warnings.append({
+            "key": "package_services_missing_package",
+            "title": "DV theo goi chua link duoc goi kham",
+            "count": HisPackageServiceSync.objects.filter(
+                is_active=True,
+                package_sync__isnull=True,
+            ).exclude(his_package_code__in=["", None]).count(),
+            "items": [
+                {
+                    "primary": row["his_order_code"],
+                    "secondary": row["his_package_code"],
+                }
+                for row in package_services_missing_package
+            ],
+        })
+
+    package_services_missing_service = list(
+        HisPackageServiceSync.objects.filter(
+            is_active=True,
+            service_catalog__isnull=True,
+        )
+        .exclude(service_item_code__in=["", None])
+        .order_by("-last_synced_at")
+        .values("his_order_code", "service_item_code")[:sample_limit]
+    )
+    if package_services_missing_service:
+        warnings.append({
+            "key": "package_services_missing_service",
+            "title": "DV theo goi chua link duoc danh muc dich vu",
+            "count": HisPackageServiceSync.objects.filter(
+                is_active=True,
+                service_catalog__isnull=True,
+            ).exclude(service_item_code__in=["", None]).count(),
+            "items": [
+                {
+                    "primary": row["his_order_code"],
+                    "secondary": row["service_item_code"],
+                }
+                for row in package_services_missing_service
+            ],
+        })
+
+    exam_service_items_missing_record = list(
+        HisExamServiceItemSync.objects.filter(
+            is_active=True,
+            exam_record_sync__isnull=True,
+        )
+        .order_by("-last_synced_at")
+        .values("ma_kham_benh", "service_item_code")[:sample_limit]
+    )
+    if exam_service_items_missing_record:
+        warnings.append({
+            "key": "exam_service_items_missing_record",
+            "title": "Chi tiet DV kham chua link duoc ho so",
+            "count": HisExamServiceItemSync.objects.filter(
+                is_active=True,
+                exam_record_sync__isnull=True,
+            ).count(),
+            "items": [
+                {
+                    "primary": row["ma_kham_benh"],
+                    "secondary": row["service_item_code"],
+                }
+                for row in exam_service_items_missing_record
+            ],
+        })
+
+    exam_service_items_missing_service = list(
+        HisExamServiceItemSync.objects.filter(
+            is_active=True,
+            service_catalog__isnull=True,
+        )
+        .exclude(service_item_code__in=["", None])
+        .order_by("-last_synced_at")
+        .values("ma_kham_benh", "service_item_code")[:sample_limit]
+    )
+    if exam_service_items_missing_service:
+        warnings.append({
+            "key": "exam_service_items_missing_service",
+            "title": "Chi tiet DV kham chua link duoc danh muc dich vu",
+            "count": HisExamServiceItemSync.objects.filter(
+                is_active=True,
+                service_catalog__isnull=True,
+            ).exclude(service_item_code__in=["", None]).count(),
+            "items": [
+                {
+                    "primary": row["ma_kham_benh"],
+                    "secondary": row["service_item_code"],
+                }
+                for row in exam_service_items_missing_service
+            ],
+        })
+
+    diagnostic_imaging_missing_record = list(
+        HisDiagnosticImagingSync.objects.filter(
+            is_active=True,
+            exam_record_sync__isnull=True,
+        )
+        .order_by("-last_synced_at")
+        .values("his_imaging_code", "raw_payload")[:sample_limit]
+    )
+    if diagnostic_imaging_missing_record:
+        warnings.append({
+            "key": "diagnostic_imaging_missing_record",
+            "title": "CDHA chua link duoc ho so",
+            "count": HisDiagnosticImagingSync.objects.filter(
+                is_active=True,
+                exam_record_sync__isnull=True,
+            ).count(),
+            "items": [
+                {
+                    "primary": row["his_imaging_code"],
+                    "secondary": (row.get("raw_payload") or {}).get("MaHoSo") or "",
+                }
+                for row in diagnostic_imaging_missing_record
+            ],
+        })
+
+    functional_tests_missing_record = list(
+        HisFunctionalTestSync.objects.filter(
+            is_active=True,
+            exam_record_sync__isnull=True,
+        )
+        .order_by("-last_synced_at")
+        .values("his_ft_code", "raw_payload")[:sample_limit]
+    )
+    if functional_tests_missing_record:
+        warnings.append({
+            "key": "functional_tests_missing_record",
+            "title": "TDCN chua link duoc ho so",
+            "count": HisFunctionalTestSync.objects.filter(
+                is_active=True,
+                exam_record_sync__isnull=True,
+            ).count(),
+            "items": [
+                {
+                    "primary": row["his_ft_code"],
+                    "secondary": (row.get("raw_payload") or {}).get("MaHoSo") or "",
+                }
+                for row in functional_tests_missing_record
+            ],
+        })
+
+    return sorted(warnings, key=lambda item: item["count"], reverse=True)
 
 
 def list_sync_jobs():
@@ -273,10 +499,14 @@ def list_active_corporate_packages():
             )
         )
         .annotate(
-            exam_count=Count("exam_records__patient_sync", distinct=True),
+            exam_count=Count(
+                "exam_records__patient_sync",
+                filter=Q(exam_records__is_active=True),
+                distinct=True,
+            ),
             completed_count=Count(
                 "exam_records__patient_sync",
-                filter=Q(exam_records__is_complete=True),
+                filter=Q(exam_records__is_active=True, exam_records__is_complete=True),
                 distinct=True,
             ),
         )
