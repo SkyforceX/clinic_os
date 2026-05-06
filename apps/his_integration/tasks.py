@@ -130,6 +130,22 @@ def _build_exam_header_map(rows: list[dict[str, Any]]) -> dict[str, dict[str, An
     return headers_by_code
 
 
+def _chunked_rows(rows: list[dict[str, Any]], chunk_size: int) -> list[list[dict[str, Any]]]:
+    if chunk_size <= 0:
+        chunk_size = 500
+    return [rows[index:index + chunk_size] for index in range(0, len(rows), chunk_size)]
+
+
+def _group_rows_by_code(rows: list[dict[str, Any]], *, field_name: str) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        code = _normalize_his_code(row.get(field_name))
+        if not code:
+            continue
+        grouped.setdefault(code, []).append(row)
+    return grouped
+
+
 def _safe_close_client(client) -> None:
     if not client:
         return
@@ -683,12 +699,18 @@ def sync_diagnostic_imaging_from_his(self, batch_size=300, reset_cursor=False, t
                     details_by_code[imaging_code] = []
                 details_by_code[imaging_code].append(detail)
 
-            header_rows = client.fetch_diagnostic_imaging_by_codes(imaging_codes=imaging_codes)
-            headers_by_code = {
-                (row.get('MaChanDoanHinhAnh') or '').strip(): row
-                for row in header_rows
-                if (row.get('MaChanDoanHinhAnh') or '').strip()
-            }
+            headers_by_code: dict[str, dict[str, Any]] = {}
+            for imaging_code_chunk in _chunked_rows(
+                [{'code': code} for code in imaging_codes],
+                500,
+            ):
+                chunk_codes = [item['code'] for item in imaging_code_chunk]
+                header_rows = client.fetch_diagnostic_imaging_by_codes(imaging_codes=chunk_codes)
+                headers_by_code.update({
+                    (row.get('MaChanDoanHinhAnh') or '').strip(): row
+                    for row in header_rows
+                    if (row.get('MaChanDoanHinhAnh') or '').strip()
+                })
 
             for imaging_code in imaging_codes:
                 try:
@@ -985,108 +1007,107 @@ def sync_functional_tests_from_his(self, triggered_by_id=None, source=SOURCE_HIS
         rows = client.fetch_functional_tests()
         job.total_records = len(rows)
         job.save(update_fields=['total_records'])
+        for row_chunk in _chunked_rows(rows, 500):
+            ft_codes = [
+                _normalize_his_code(data.get('MaThamDoChucNang'))
+                for data in row_chunk
+                if _normalize_his_code(data.get('MaThamDoChucNang'))
+            ]
+            item_rows = client.fetch_functional_test_items_by_codes(ft_codes=ft_codes)
+            items_by_code = _group_rows_by_code(item_rows, field_name='MaThamDoChucNang')
 
-        ft_codes = [(data.get('MaThamDoChucNang') or '').strip() for data in rows]
-        ft_codes = [c for c in ft_codes if c]
-        item_rows = client.fetch_functional_test_items_by_codes(ft_codes=ft_codes)
-
-        items_by_code: dict[str, list] = {}
-        for item in item_rows:
-            ft_code = (item.get('MaThamDoChucNang') or '').strip()
-            items_by_code.setdefault(ft_code, []).append(item)
-
-        for data in rows:
-            try:
-                ft_code = (data.get('MaThamDoChucNang') or '').strip()
-                if not ft_code:
-                    continue
-
-                record_code = (data.get('MaHoSo') or '').strip()
-                exam_record_sync = None
-                patient_sync = None
-                if record_code:
-                    exam_record_sync = HisExamRecordSync.objects.filter(
-                        his_record_code=record_code
-                    ).select_related('patient_sync').first()
-                    if exam_record_sync:
-                        patient_sync = exam_record_sync.patient_sync
-
-                ft_sync, _ = HisFunctionalTestSync.objects.update_or_create(
-                    his_ft_code=ft_code,
-                    defaults={
-                        'his_admission_number': data.get('SoVaoVien') or '',
-                        'exam_record_sync': exam_record_sync,
-                        'patient_sync': patient_sync,
-                        'sequence_number': _to_int(data.get('STT')),
-                        'daily_sequence_number': _to_int(data.get('STTNgay')),
-                        'exam_date': _to_date(data.get('NgayVaoKham')),
-                        'ordered_at': _to_date(data.get('NgayGioYLenh')),
-                        'performed_at': _to_date(data.get('NgayThucHien')),
-                        'machine_received_at': _to_date(data.get('NgayVaoMay')),
-                        'dispatch_at': _to_date(data.get('NgayDieuPhoi')),
-                        'his_sysdate': _to_date(data.get('sysdate')),
-                        'request_text': data.get('YeuCau') or '',
-                        'note': data.get('GhiChu') or '',
-                        'result_text': data.get('KetQuaText') or '',
-                        'result_html': data.get('KetQuaHtml') or '',
-                        'conclusion': data.get('KetLuan') or '',
-                        'ordering_doctor_code': data.get('MaBacSyCD') or '',
-                        'ft_doctor_code': data.get('MaBacSyTDCN') or '',
-                        'performing_doctor_code': data.get('MaBacSyTH') or '',
-                        'user_code': data.get('MaNguoiDungTDCN') or '',
-                        'status_code': _to_int(data.get('TrangThaiPhieu')),
-                        'queue_status': _to_int(data.get('TrangThaiCho')),
-                        'internal_status': _to_int(data.get('iTrangthai')),
-                        'pacs_status': _to_int(data.get('iTrangThaiPACS')),
-                        'clinical_department_code': data.get('MaKhoaCanLamSang') or '',
-                        'clinical_room_code': data.get('MaPhongCanLamSang') or '',
-                        'service_code': data.get('MaDichVu') or '',
-                        'exam_department_code': data.get('MaKhoaKham') or '',
-                        'exam_room_code': data.get('MaPhongKham') or '',
-                        'machine_code': data.get('MaMayCLS') or '',
-                        'result_template_code': data.get('MaPhieuKetQua') or '',
-                        'sid_to_pacs': data.get('SIDToPACS') or '',
-                        'has_anesthesia': data.get('CoGayMe'),
-                        'hp_test': data.get('TestNhanhHP'),
-                        'hp_test_time': data.get('ThoiGianTestHP') or '',
-                        'is_voluntary': data.get('TuNguyen'),
-                        'priority': _to_int(data.get('UuTien')),
-                        'is_skipped': data.get('BoQua'),
-                        'pushed_to_pacs': data.get('bDayPacs'),
-                        'raw_payload': json_safe(data),
-                        'last_synced_at': timezone.now(),
-                    }
-                )
-
-                for item in items_by_code.get(ft_code, []):
-                    item_code = (item.get('MaChiTieu') or '').strip()
-                    if not item_code:
+            for data in row_chunk:
+                try:
+                    ft_code = (data.get('MaThamDoChucNang') or '').strip()
+                    if not ft_code:
                         continue
-                    service_catalog = HisServiceCatalogSync.objects.filter(
-                        service_item_code=item_code
-                    ).first()
-                    HisFunctionalTestItemSync.objects.update_or_create(
-                        ft_sync=ft_sync,
-                        service_item_code=item_code,
+
+                    record_code = (data.get('MaHoSo') or '').strip()
+                    exam_record_sync = None
+                    patient_sync = None
+                    if record_code:
+                        exam_record_sync = HisExamRecordSync.objects.filter(
+                            his_record_code=record_code
+                        ).select_related('patient_sync').first()
+                        if exam_record_sync:
+                            patient_sync = exam_record_sync.patient_sync
+
+                    ft_sync, _ = HisFunctionalTestSync.objects.update_or_create(
+                        his_ft_code=ft_code,
                         defaults={
-                            'service_catalog': service_catalog,
-                            'unit_price': _to_decimal(item.get('DonGia') or 0),
-                            'collected_amount': _to_decimal(item.get('DaThuTien') or 0),
-                            'quantity': _to_decimal(item.get('SoLuong') or 1),
-                            'performed_quantity': _to_decimal(item.get('SoLuongThucHien') or 0),
-                            'note': item.get('GhiChu') or '',
-                            'his_sysdate': _to_date(item.get('sysdate')),
-                            'is_package_service': item.get('TronGoi'),
-                            'send_status': _to_int(item.get('TrangThaiGui')),
-                            'raw_payload': json_safe(item),
+                            'his_admission_number': data.get('SoVaoVien') or '',
+                            'exam_record_sync': exam_record_sync,
+                            'patient_sync': patient_sync,
+                            'sequence_number': _to_int(data.get('STT')),
+                            'daily_sequence_number': _to_int(data.get('STTNgay')),
+                            'exam_date': _to_date(data.get('NgayVaoKham')),
+                            'ordered_at': _to_date(data.get('NgayGioYLenh')),
+                            'performed_at': _to_date(data.get('NgayThucHien')),
+                            'machine_received_at': _to_date(data.get('NgayVaoMay')),
+                            'dispatch_at': _to_date(data.get('NgayDieuPhoi')),
+                            'his_sysdate': _to_date(data.get('sysdate')),
+                            'request_text': data.get('YeuCau') or '',
+                            'note': data.get('GhiChu') or '',
+                            'result_text': data.get('KetQuaText') or '',
+                            'result_html': data.get('KetQuaHtml') or '',
+                            'conclusion': data.get('KetLuan') or '',
+                            'ordering_doctor_code': data.get('MaBacSyCD') or '',
+                            'ft_doctor_code': data.get('MaBacSyTDCN') or '',
+                            'performing_doctor_code': data.get('MaBacSyTH') or '',
+                            'user_code': data.get('MaNguoiDungTDCN') or '',
+                            'status_code': _to_int(data.get('TrangThaiPhieu')),
+                            'queue_status': _to_int(data.get('TrangThaiCho')),
+                            'internal_status': _to_int(data.get('iTrangthai')),
+                            'pacs_status': _to_int(data.get('iTrangThaiPACS')),
+                            'clinical_department_code': data.get('MaKhoaCanLamSang') or '',
+                            'clinical_room_code': data.get('MaPhongCanLamSang') or '',
+                            'service_code': data.get('MaDichVu') or '',
+                            'exam_department_code': data.get('MaKhoaKham') or '',
+                            'exam_room_code': data.get('MaPhongKham') or '',
+                            'machine_code': data.get('MaMayCLS') or '',
+                            'result_template_code': data.get('MaPhieuKetQua') or '',
+                            'sid_to_pacs': data.get('SIDToPACS') or '',
+                            'has_anesthesia': data.get('CoGayMe'),
+                            'hp_test': data.get('TestNhanhHP'),
+                            'hp_test_time': data.get('ThoiGianTestHP') or '',
+                            'is_voluntary': data.get('TuNguyen'),
+                            'priority': _to_int(data.get('UuTien')),
+                            'is_skipped': data.get('BoQua'),
+                            'pushed_to_pacs': data.get('bDayPacs'),
+                            'raw_payload': json_safe(data),
                             'last_synced_at': timezone.now(),
                         }
                     )
 
-                job.synced_records += 1
-            except Exception as e:
-                job.failed_records += 1
-                job.error_log[str(data.get('MaThamDoChucNang') or 'unknown')] = str(e)
+                    for item in items_by_code.get(ft_code, []):
+                        item_code = (item.get('MaChiTieu') or '').strip()
+                        if not item_code:
+                            continue
+                        service_catalog = HisServiceCatalogSync.objects.filter(
+                            service_item_code=item_code
+                        ).first()
+                        HisFunctionalTestItemSync.objects.update_or_create(
+                            ft_sync=ft_sync,
+                            service_item_code=item_code,
+                            defaults={
+                                'service_catalog': service_catalog,
+                                'unit_price': _to_decimal(item.get('DonGia') or 0),
+                                'collected_amount': _to_decimal(item.get('DaThuTien') or 0),
+                                'quantity': _to_decimal(item.get('SoLuong') or 1),
+                                'performed_quantity': _to_decimal(item.get('SoLuongThucHien') or 0),
+                                'note': item.get('GhiChu') or '',
+                                'his_sysdate': _to_date(item.get('sysdate')),
+                                'is_package_service': item.get('TronGoi'),
+                                'send_status': _to_int(item.get('TrangThaiGui')),
+                                'raw_payload': json_safe(item),
+                                'last_synced_at': timezone.now(),
+                            }
+                        )
+
+                    job.synced_records += 1
+                except Exception as e:
+                    job.failed_records += 1
+                    job.error_log[str(data.get('MaThamDoChucNang') or 'unknown')] = str(e)
 
         job.status = 'SUCCESS'
         job.completed_at = timezone.now()
@@ -1114,53 +1135,53 @@ def sync_exam_service_items_from_his(self, triggered_by_id=None, source=SOURCE_H
         rows = client.fetch_exam_service_items()
         job.total_records = len(rows)
         job.save(update_fields=['total_records'])
+        for row_chunk in _chunked_rows(rows, 500):
+            exam_codes = sorted({
+                _normalize_his_code(row.get('MaKhamBenh'))
+                for row in row_chunk
+                if _normalize_his_code(row.get('MaKhamBenh'))
+            })
+            exam_headers_by_code = _build_exam_header_map(
+                client.fetch_exam_headers_by_codes(exam_codes=exam_codes)
+            )
 
-        exam_codes = sorted({
-            _normalize_his_code(row.get('MaKhamBenh'))
-            for row in rows
-            if _normalize_his_code(row.get('MaKhamBenh'))
-        })
-        exam_headers_by_code = _build_exam_header_map(
-            client.fetch_exam_headers_by_codes(exam_codes=exam_codes)
-        )
+            for data in row_chunk:
+                try:
+                    ma_kham_benh = _normalize_his_code(data.get('MaKhamBenh'))
+                    service_item_code = _normalize_his_code(data.get('MaChiTieu'))
+                    if not ma_kham_benh or not service_item_code:
+                        continue
 
-        for data in rows:
-            try:
-                ma_kham_benh = _normalize_his_code(data.get('MaKhamBenh'))
-                service_item_code = _normalize_his_code(data.get('MaChiTieu'))
-                if not ma_kham_benh or not service_item_code:
-                    continue
+                    exam_header = exam_headers_by_code.get(ma_kham_benh) or {}
+                    record_code = _normalize_his_code(exam_header.get('MaHoSo'))
+                    exam_record_sync = HisExamRecordSync.objects.filter(
+                        his_record_code=record_code
+                    ).first() if record_code else None
 
-                exam_header = exam_headers_by_code.get(ma_kham_benh) or {}
-                record_code = _normalize_his_code(exam_header.get('MaHoSo'))
-                exam_record_sync = HisExamRecordSync.objects.filter(
-                    his_record_code=record_code
-                ).first() if record_code else None
+                    service_catalog = HisServiceCatalogSync.objects.filter(
+                        service_item_code=service_item_code
+                    ).first()
 
-                service_catalog = HisServiceCatalogSync.objects.filter(
-                    service_item_code=service_item_code
-                ).first()
-
-                HisExamServiceItemSync.objects.update_or_create(
-                    ma_kham_benh=ma_kham_benh,
-                    service_item_code=service_item_code,
-                    defaults={
-                        'exam_record_sync': exam_record_sync,
-                        'service_catalog': service_catalog,
-                        'unit_price': _to_decimal(data.get('DonGia') or 0),
-                        'collected_amount': _to_decimal(data.get('DaThuTien') or 0),
-                        'quantity': _to_decimal(data.get('SoLuong')) if data.get('SoLuong') is not None else None,
-                        'his_sysdate': _to_date(data.get('sysdate')),
-                        'is_package_service': bool(data.get('TronGoi') or False),
-                        'raw_payload': json_safe(data),
-                        'last_synced_at': timezone.now(),
-                    }
-                )
-                job.synced_records += 1
-            except Exception as e:
-                job.failed_records += 1
-                key = f"{data.get('MaKhamBenh') or '?'}:{data.get('MaChiTieu') or '?'}"
-                job.error_log[key] = str(e)
+                    HisExamServiceItemSync.objects.update_or_create(
+                        ma_kham_benh=ma_kham_benh,
+                        service_item_code=service_item_code,
+                        defaults={
+                            'exam_record_sync': exam_record_sync,
+                            'service_catalog': service_catalog,
+                            'unit_price': _to_decimal(data.get('DonGia') or 0),
+                            'collected_amount': _to_decimal(data.get('DaThuTien') or 0),
+                            'quantity': _to_decimal(data.get('SoLuong')) if data.get('SoLuong') is not None else None,
+                            'his_sysdate': _to_date(data.get('sysdate')),
+                            'is_package_service': bool(data.get('TronGoi') or False),
+                            'raw_payload': json_safe(data),
+                            'last_synced_at': timezone.now(),
+                        }
+                    )
+                    job.synced_records += 1
+                except Exception as e:
+                    job.failed_records += 1
+                    key = f"{data.get('MaKhamBenh') or '?'}:{data.get('MaChiTieu') or '?'}"
+                    job.error_log[key] = str(e)
 
         job.status = 'SUCCESS'
         job.completed_at = timezone.now()

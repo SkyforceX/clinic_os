@@ -41,6 +41,8 @@ def get_his_source_client(*, source: str = SOURCE_HIS_MSSQL):
 
 
 class MssqlHisSourceClient:
+    IN_CLAUSE_BATCH_SIZE = 1000
+
     def __init__(self):
         try:
             import pyodbc
@@ -77,6 +79,33 @@ class MssqlHisSourceClient:
             return [dict(zip(columns, row)) for row in rows]
         finally:
             cursor.close()
+
+    def _fetch_dicts_for_codes(
+        self,
+        *,
+        base_query_prefix: str,
+        code_field: str,
+        codes: list[str],
+    ) -> list[dict[str, Any]]:
+        normalized_codes = list(dict.fromkeys(code for code in codes if code))
+        if not normalized_codes:
+            return []
+
+        rows: list[dict[str, Any]] = []
+        batch_size = self.IN_CLAUSE_BATCH_SIZE
+        for start in range(0, len(normalized_codes), batch_size):
+            chunk = normalized_codes[start:start + batch_size]
+            placeholders = ",".join("?" for _ in chunk)
+            rows.extend(
+                self._fetch_dicts(
+                    f"""
+                    {base_query_prefix}
+                    WHERE {code_field} IN ({placeholders})
+                    """,
+                    tuple(chunk),
+                )
+            )
+        return rows
 
     def fetch_patient_types(self) -> list[dict[str, Any]]:
         return self._fetch_dicts("SELECT * FROM dbo.DMDoiTuongBenhNhan")
@@ -121,18 +150,13 @@ class MssqlHisSourceClient:
         )
 
     def fetch_diagnostic_imaging_by_codes(self, *, imaging_codes: list[str]) -> list[dict[str, Any]]:
-        codes = [code for code in imaging_codes if code]
-        if not codes:
-            return []
-
-        placeholders = ",".join("?" for _ in codes)
-        return self._fetch_dicts(
-            f"""
+        return self._fetch_dicts_for_codes(
+            base_query_prefix="""
             SELECT *
             FROM dbo.PhieuChanDoanHinhAnh
-            WHERE MaChanDoanHinhAnh IN ({placeholders})
             """,
-            tuple(codes),
+            code_field="MaChanDoanHinhAnh",
+            codes=imaging_codes,
         )
 
     def fetch_service_catalog(self) -> list[dict[str, Any]]:
@@ -145,26 +169,20 @@ class MssqlHisSourceClient:
         return self._fetch_dicts("SELECT * FROM dbo.PhieuThamDoChucNang ORDER BY MaThamDoChucNang ASC")
 
     def fetch_functional_test_items_by_codes(self, *, ft_codes: list[str]) -> list[dict[str, Any]]:
-        codes = [c for c in ft_codes if c]
-        if not codes:
-            return []
-        placeholders = ",".join("?" for _ in codes)
-        return self._fetch_dicts(
-            f"SELECT * FROM dbo.PhieuThamDoChucNangChiTiet WHERE MaThamDoChucNang IN ({placeholders})",
-            tuple(codes),
+        return self._fetch_dicts_for_codes(
+            base_query_prefix="SELECT * FROM dbo.PhieuThamDoChucNangChiTiet",
+            code_field="MaThamDoChucNang",
+            codes=ft_codes,
         )
 
     def fetch_exam_service_items(self) -> list[dict[str, Any]]:
         return self._fetch_dicts("SELECT * FROM dbo.PhieuKhamBenhChiTiet ORDER BY MaKhamBenh ASC")
 
     def fetch_exam_headers_by_codes(self, *, exam_codes: list[str]) -> list[dict[str, Any]]:
-        codes = [code for code in exam_codes if code]
-        if not codes:
-            return []
-        placeholders = ",".join("?" for _ in codes)
-        return self._fetch_dicts(
-            f"SELECT * FROM dbo.PhieuKhamBenh WHERE MaKhamBenh IN ({placeholders})",
-            tuple(codes),
+        return self._fetch_dicts_for_codes(
+            base_query_prefix="SELECT * FROM dbo.PhieuKhamBenh",
+            code_field="MaKhamBenh",
+            codes=exam_codes,
         )
 
     def fetch_appointments_batch(self, *, last_auto_id: int, batch_size: int) -> list[dict[str, Any]]:
