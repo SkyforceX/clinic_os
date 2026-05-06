@@ -262,24 +262,25 @@ def dispatch_his_sync(
             "success": True,
         }
 
-    triggered_by_id = steps[0].kwargs.get("triggered_by_id") if steps else _get_triggered_by_id(actor=actor)
-
     if len(steps) == 1:
         async_result = steps[0].task.apply_async(kwargs=steps[0].kwargs)
+        task_ids = [async_result.id]
     else:
-        async_result = tasks.run_his_sync_sequence.apply_async(
-            kwargs={
-                "sync_type": sync_type,
-                "triggered_by_id": triggered_by_id,
-                "reset_cursor": reset_cursor,
-                "patient_batch_size": patient_batch_size,
-                "exam_batch_size": exam_batch_size,
-                "source": source,
-            }
-        )
+        # Use already-registered per-entity tasks so production workers do not
+        # depend on a newly introduced orchestration task being loaded first.
+        #
+        # A small stagger keeps the original order roughly intact and avoids one
+        # failed step blocking all later sync jobs from being created.
+        async_results = [
+            step.task.apply_async(kwargs=step.kwargs, countdown=index * 5)
+            for index, step in enumerate(steps)
+        ]
+        async_result = async_results[0]
+        task_ids = [result.id for result in async_results]
 
     return {
         "task_id": async_result.id,
+        "task_ids": task_ids,
         "sync_type": sync_type,
         "source": source,
         "step_count": len(steps),

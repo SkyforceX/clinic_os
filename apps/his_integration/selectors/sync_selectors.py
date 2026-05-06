@@ -226,6 +226,34 @@ def get_his_sync_dashboard_stats() -> dict[str, int]:
     }
 
 
+def get_his_sync_job_watchlist() -> list[dict]:
+    entity_labels = dict(HisSyncJob.ENTITY_CHOICES)
+    watch_entities = [
+        "patient_type",
+        "patient",
+        "corporate_package",
+        "service_catalog",
+        "package_service",
+        "exam_record",
+        "diagnostic_imaging",
+        "functional_test",
+        "exam_service_item",
+        "appointment",
+        "invoice",
+        "patient_type_config",
+    ]
+
+    rows: list[dict] = []
+    for entity_type in watch_entities:
+        job = HisSyncJob.objects.filter(entity_type=entity_type).order_by("-created_at").first()
+        rows.append({
+            "entity_type": entity_type,
+            "label": entity_labels.get(entity_type, entity_type),
+            "job": job,
+        })
+    return rows
+
+
 def get_his_sync_quality_warnings(*, sample_limit: int = 5) -> list[dict]:
     warnings: list[dict] = []
 

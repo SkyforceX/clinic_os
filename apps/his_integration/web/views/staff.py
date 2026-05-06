@@ -36,6 +36,7 @@ from apps.his_integration.selectors import (
     corporate_package_detail_queryset,
     exam_record_detail_queryset,
     get_his_sync_dashboard_stats,
+    get_his_sync_job_watchlist,
     get_his_sync_quality_warnings,
     get_package_exam_record_stats,
     list_active_corporate_packages,
@@ -575,6 +576,7 @@ class HisSyncDashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['stats'] = get_his_sync_dashboard_stats()
+        context['job_watchlist'] = get_his_sync_job_watchlist()
         quality_warnings = get_his_sync_quality_warnings(sample_limit=5)
         for warning in quality_warnings:
             warning['url'] = _quality_warning_url(warning['key'])
@@ -884,6 +886,8 @@ def trigger_sync(request):
     return JsonResponse({
         'success': True,
         'task_id': sync_result['task_id'],
+        'task_ids': sync_result.get('task_ids', [sync_result['task_id']] if sync_result.get('task_id') else []),
+        'step_count': sync_result.get('step_count', 1),
         'inline': sync_result.get('inline', False),
         'message': f'Đã {"hoàn tất" if sync_result.get("inline") else "bắt đầu"} đồng bộ {sync_type}'
     })

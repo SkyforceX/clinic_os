@@ -59,7 +59,8 @@
 
     .sync-actions-card .card-header,
     .sync-history-card .card-header,
-    .sync-quality-card .card-header {
+    .sync-quality-card .card-header,
+    .sync-watch-card .card-header {
         border-bottom: 1px solid rgba(226, 232, 240, 0.9);
         padding: 1rem 1.25rem;
     }
@@ -216,6 +217,24 @@
         border: 0;
         border-radius: 18px;
         box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06) !important;
+    }
+
+    .sync-watch-card {
+        border: 0;
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06) !important;
+    }
+
+    .sync-watch-card .table th {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: #64748b;
+    }
+
+    .sync-watch-empty {
+        color: #94a3b8;
+        font-size: 0.8rem;
     }
 
     .quality-warning-item {
@@ -486,8 +505,8 @@
     </div>
 
     {# ── Nhóm 3: Hóa đơn ── #}
-    <div class="his-stats-section-label">Hóa đơn điện tử</div>
-    <div class="row g-3 mb-4 his-stats-grid">
+    <div class="his-stats-section-label" style="display: none;">Hóa đơn điện tử</div>
+    <div class="row g-3 mb-4 his-stats-grid" style="display: none;">
         <div class="col-6 col-md-4 col-lg-3">
             <a href="{% url 'his_integration:data_list' 'invoices' %}" class="his-stat-link">
                 <div class="card">
@@ -647,6 +666,60 @@
         </div>
     </div>
 
+    <div class="card sync-watch-card mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Theo doi 12 nhom sync</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nhom du lieu</th>
+                            <th>Trang thai moi nhat</th>
+                            <th>Tong so</th>
+                            <th>Thanh cong</th>
+                            <th>Loi</th>
+                            <th>Lan cuoi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in job_watchlist %}
+                        <tr>
+                            <td>{{ item.label }}</td>
+                            <td>
+                                {% if item.job %}
+                                    {% if item.job.status == 'SUCCESS' %}
+                                    <span class="badge bg-success">Thanh cong</span>
+                                    {% elif item.job.status == 'FAILED' %}
+                                    <span class="badge bg-danger">Loi</span>
+                                    {% elif item.job.status == 'RUNNING' %}
+                                    <span class="badge bg-primary">Dang chay</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Cho</span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="sync-watch-empty">Chua co job</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.job.total_records|default:"-" }}</td>
+                            <td class="text-success">{{ item.job.synced_records|default:"-" }}</td>
+                            <td class="text-danger">{{ item.job.failed_records|default:"-" }}</td>
+                            <td>
+                                {% if item.job %}
+                                {{ item.job.created_at|date:"d/m/Y H:i" }}
+                                {% else %}
+                                <span class="sync-watch-empty">Chua ghi nhan</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="card sync-history-card">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Lich su dong bo gan day</h5>
@@ -768,7 +841,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         setTimeout(() => location.reload(), 2000);
                         return;
                     }
-                    alert(result.data.message + '\n\nJob dang chay trong background. Vui long kiem tra lich su dong bo.');
+                    const stepCount = result.data.step_count || 1;
+                    const taskCount = (result.data.task_ids || []).length || 1;
+                    alert(result.data.message + `\n\nDa tao ${taskCount} job cho ${stepCount} nhom sync. Vui long reload de kiem tra bang "Theo doi 12 nhom sync" va lich su dong bo.`);
                     setTimeout(() => location.reload(), 2000);
                 } else {
                     const detail = result.data && result.data.error ? result.data.error : `HTTP ${result.status}`;
