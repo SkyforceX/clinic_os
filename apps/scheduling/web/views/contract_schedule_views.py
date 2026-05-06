@@ -6,21 +6,22 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db.models import Prefetch, Sum
+from django.db.models import Prefetch, Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.booking.models import Appointment
-from apps.contract.models import QuotationLine
-from apps.his_integration.models import HisPackageServiceSync
 from apps.core.models import SystemGeneralSetting
 from apps.scheduling.models import ContractScheduleConfig, ScheduleSlot, SlotType, TimeShift
 from apps.scheduling.policies import SchedulingPolicy
 from apps.scheduling.selectors.schedule_matrix import (
     _appointment_patient,
-    _count_us_services,
+    _build_config_us_plan,
+    _get_company_name_from_config,
+    _get_us_service_names,
+    _is_actor_owned_config,
     _patient_gender_code,
     build_contract_schedule_matrix,
 )
@@ -221,30 +222,6 @@ def update_slot_capacities(request, config_id):
     return JsonResponse({"success": True, "message": "Da cap nhat slot thanh cong."})
 
 
-def _get_us_service_names(us_lines, gender_code):
-    if not us_lines:
-        return []
-    g = gender_code
-    result = []
-    for line in us_lines:
-        if g == "0":  # male
-            if line.for_male and line.checked_male:
-                result.append(line.item_name)
-        elif g == "1":  # female
-            if (line.for_female_single and line.checked_female_single) or (
-                line.for_female_family and line.checked_female_family
-            ):
-                result.append(line.item_name)
-        else:  # unknown
-            if (
-                (line.for_male and line.checked_male)
-                or (line.for_female_single and line.checked_female_single)
-                or (line.for_female_family and line.checked_female_family)
-            ):
-                result.append(line.item_name)
-    return result
-
-
 def _format_patient_dob(patient):
     if hasattr(patient, "birth_date_display"):
         return patient.birth_date_display
@@ -268,48 +245,61 @@ def get_us_modal_data(request):
 
     is_wide_access = SchedulingPolicy.is_executive(request.user) or SchedulingPolicy.is_manager(request.user)
 
-    slots = list(
-        ScheduleSlot.objects.filter(date=target_date, slot_type=SlotType.CONTRACT)
-        .select_related("quotation__company", "quotation__created_by")
+    slot_prefetch = Prefetch(
+        "appointments",
+        queryset=Appointment.objects.select_related(
+            "his_patient_sync", "patient"
+        ).order_by("id"),
+    )
+    configs = list(
+        ContractScheduleConfig.objects.filter(
+            is_ended=False,
+        ).filter(
+            Q(
+                quotation__schedule_slots__date=target_date,
+                quotation__schedule_slots__slot_type=SlotType.CONTRACT,
+            )
+            |
+            Q(
+                contract__contract__schedule_slots__date=target_date,
+                contract__contract__schedule_slots__slot_type=SlotType.CONTRACT,
+            )
+        ).select_related(
+            "quotation",
+            "quotation__company",
+            "quotation__created_by",
+            "contract",
+            "contract__contract",
+            "contract__contract__company",
+            "registered_by",
+            "his_package",
+        )
         .prefetch_related(
             Prefetch(
-                "appointments",
-                queryset=Appointment.objects.select_related(
-                    "his_patient_sync", "patient"
-                ).order_by("id"),
-            )
+                "quotation__schedule_slots",
+                queryset=(
+                    ScheduleSlot.objects.filter(
+                        date=target_date,
+                        slot_type=SlotType.CONTRACT,
+                    ).order_by("date", "shift", "id").prefetch_related(slot_prefetch)
+                ),
+                to_attr="prefetched_schedule_slots",
+            ),
+            Prefetch(
+                "contract__contract__schedule_slots",
+                queryset=(
+                    ScheduleSlot.objects.filter(
+                        date=target_date,
+                        slot_type=SlotType.CONTRACT,
+                    ).order_by("date", "shift", "id").prefetch_related(slot_prefetch)
+                ),
+                to_attr="prefetched_schedule_slots",
+            ),
+            "quotation__company__patients",
+            "contract__contract__company__patients",
         )
+        .distinct()
     )
-
-    q_ids = {s.quotation_id for s in slots if s.quotation_id}
-    us_lines_map = defaultdict(list)
-    for line in QuotationLine.objects.filter(
-        quotation_id__in=q_ids, group_name__icontains="siêu âm"
-    ):
-        us_lines_map[line.quotation_id].append(line)
-
-    # Nhóm slot theo quotation_id + shift
-    slots_by_q = defaultdict(dict)
-    company_name_by_q = {}
-    for slot in slots:
-        q_id = slot.quotation_id
-        if not q_id:
-            continue
-        slots_by_q[q_id][slot.shift] = slot
-        if q_id not in company_name_by_q:
-            q = slot.quotation
-            if is_wide_access:
-                company_name_by_q[q_id] = (
-                    (q.company.name if q and q.company else None) or (q.company_name if q else "") or "—"
-                )
-            else:
-                owner_id = getattr(q, "created_by_id", None) if q else None
-                if owner_id == request.user.id:
-                    company_name_by_q[q_id] = (
-                        (q.company.name if q and q.company else None) or (q.company_name if q else "") or "—"
-                    )
-                else:
-                    company_name_by_q[q_id] = "Lịch khám dự kiến"
 
     def _build_list(slot, us_lines):
         patients = []
@@ -334,66 +324,57 @@ def get_us_modal_data(request):
 
     companies = []
     total_us = 0
-    for q_id in slots_by_q:
-        us_lines = us_lines_map.get(q_id, [])
-        shift_map = slots_by_q[q_id]
+    planned_companies = []
+    planned_total_us = 0
+
+    for config in configs:
+        us_plan = _build_config_us_plan(config)
+        us_lines = us_plan["us_lines"]
+        shift_map = {
+            shift: slot
+            for shift, slot in us_plan["slot_map"].get(target_date, {}).items()
+        }
+        if not shift_map:
+            continue
+
+        masked = not (is_wide_access or _is_actor_owned_config(config, request.user))
+        company_name = _get_company_name_from_config(config) or "—"
+        if masked:
+            company_name = "Lịch khám đã chốt" if config.is_confirmed else "Lịch khám dự kiến"
+
         am_patients = _build_list(shift_map.get(TimeShift.MORNING), us_lines)
         pm_patients = _build_list(shift_map.get(TimeShift.AFTERNOON), us_lines)
         if am_patients or pm_patients:
             total_us += sum(len(p["services"]) for p in am_patients + pm_patients)
             companies.append({
-                "name": company_name_by_q.get(q_id, "—"),
+                "name": company_name,
                 "am_patients": am_patients,
                 "pm_patients": pm_patients,
             })
 
-    # ── Planned: US services per company from HIS packages ──────────────────
-    configs = list(
-        ContractScheduleConfig.objects.filter(
-            quotation_id__in=q_ids,
-            is_ended=False,
-        ).select_related('his_package')
-    )
-    config_by_q = {c.quotation_id: c for c in configs}
+        service_counts = us_plan["allocated_daily_service_counts"].get(target_date, {})
+        est_us = us_plan["allocated_daily_us"].get(target_date, 0)
+        day_cap = sum((slot.capacity or 0) for slot in shift_map.values())
+        if day_cap <= 0:
+            continue
 
-    pkg_codes = [c.his_package.his_package_code for c in configs if c.his_package]
-    us_svc_by_pkg = defaultdict(list)
-    if pkg_codes:
-        for ps in HisPackageServiceSync.objects.filter(
-            his_package_code__in=pkg_codes,
-            is_active=True,
-            is_outside_package=False,
-            service_catalog__isnull=False,
-            service_catalog__service_item_name__icontains='siêu âm',
-        ).select_related('service_catalog'):
-            us_svc_by_pkg[ps.his_package_code].append(ps.service_catalog.service_item_name)
-
-    planned_companies = []
-    planned_total_us = 0
-    for q_id in slots_by_q:
-        shift_map = slots_by_q[q_id]
-        day_cap = sum((s.capacity or 0) for s in shift_map.values())
-        config = config_by_q.get(q_id)
-        pkg = getattr(config, 'his_package', None) if config else None
-
-        if pkg:
-            svc_names = list(us_svc_by_pkg.get(pkg.his_package_code, []))
-            pkg_name = pkg.package_name or ''
-        else:
-            svc_names = list({ln.item_name for ln in us_lines_map.get(q_id, []) if ln.item_name})
-            pkg_name = ''
-
-        est_us = day_cap * len(svc_names)
         planned_total_us += est_us
         planned_companies.append({
-            'name': company_name_by_q.get(q_id, '—'),
-            'package_name': pkg_name,
+            'name': company_name,
+            'package_name': getattr(getattr(config, "his_package", None), "package_name", "") or "",
             'allocated_slots': day_cap,
-            'us_services': svc_names,
+            'us_services': sorted(service_counts.keys()),
+            'service_counts': [
+                {"name": service_name, "count": count}
+                for service_name, count in sorted(
+                    service_counts.items(),
+                    key=lambda item: (-item[1], item[0]),
+                )
+            ],
             'estimated_us': est_us,
         })
 
-    planned_companies.sort(key=lambda c: (-len(c['us_services']), -c['allocated_slots']))
+    planned_companies.sort(key=lambda c: (-c['estimated_us'], -c['allocated_slots'], c['name']))
 
     return JsonResponse({
         "date": date_str,

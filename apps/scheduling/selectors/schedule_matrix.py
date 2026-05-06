@@ -1,13 +1,15 @@
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date, timedelta
+import re
+from types import SimpleNamespace
+import unicodedata
 
 from django.contrib.auth import get_user_model
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 
 from apps.booking.models import Appointment
-from apps.contract.models import QuotationLine
 from apps.core.models import PublicHoliday, SystemGeneralSetting
-from apps.his_integration.models import HisExamRecordSync
+from apps.his_integration.models import HisExamRecordSync, HisPackageServiceSync
 from apps.scheduling.models import ContractScheduleConfig, ScheduleSlot, SlotType, TimeShift
 from apps.scheduling.policies import SchedulingPolicy
 
@@ -183,29 +185,98 @@ def _patient_gender_code(patient):
     return ""
 
 
-def _count_us_services(us_lines, gender_code):
-    """Count applicable ultrasound services for a patient based on gender."""
+def _strip_accents(value):
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    return "".join(ch for ch in text if not unicodedata.combining(ch))
+
+
+def _normalize_service_key(name):
+    text = _strip_accents(name).lower().strip()
+    text = re.sub(r"\s*[-/]\s*(nam|nu|nữ)\s*$", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return text
+
+
+def _display_service_name(name):
+    text = str(name or "").strip()
+    text = re.sub(r"\s*[-/]\s*(Nam|Nữ|Nu)\s*$", "", text, flags=re.IGNORECASE)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _dedupe_service_names(names):
+    deduped = []
+    seen = set()
+    for name in names:
+        normalized = _normalize_service_key(name)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(_display_service_name(name))
+    return deduped
+
+
+def _is_ultrasound_service_catalog(service_catalog):
+    if not service_catalog:
+        return False
+
+    haystacks = [
+        getattr(service_catalog, "service_item_name", ""),
+        getattr(service_catalog, "service_item_name_order", ""),
+        getattr(service_catalog, "service_group_code", ""),
+        getattr(service_catalog, "service_sub_group_code", ""),
+        getattr(service_catalog, "report_group_code", ""),
+        getattr(service_catalog, "common_group_code", ""),
+    ]
+    normalized = " | ".join(_strip_accents(value).lower() for value in haystacks if value)
+    if not normalized:
+        return False
+
+    ultrasound_keywords = [
+        "sieu am",
+        "sieuam",
+        "ultrasound",
+    ]
+    if any(keyword in normalized for keyword in ultrasound_keywords):
+        return True
+
+    code_tokens = {
+        token
+        for token in re.split(r"[^a-z0-9]+", normalized)
+        if token
+    }
+    return "sa" in code_tokens and ("cdha" in code_tokens or "cls" in code_tokens)
+
+
+def _get_us_service_names(us_lines, gender_code):
     if not us_lines:
-        return 0
+        return []
+
     g = gender_code
-    count = 0
+    result = []
     for line in us_lines:
+        if not getattr(line, "item_name", ""):
+            continue
         if g == "0":  # male
             if line.for_male and line.checked_male:
-                count += 1
+                result.append(line.item_name)
         elif g == "1":  # female
             if (line.for_female_single and line.checked_female_single) or (
                 line.for_female_family and line.checked_female_family
             ):
-                count += 1
-        else:  # unknown: include anything applicable
+                result.append(line.item_name)
+        else:  # unknown
             if (
                 (line.for_male and line.checked_male)
                 or (line.for_female_single and line.checked_female_single)
                 or (line.for_female_family and line.checked_female_family)
             ):
-                count += 1
-    return count
+                result.append(line.item_name)
+    return _dedupe_service_names(result)
+
+
+def _count_us_services(us_lines, gender_code):
+    """Count applicable ultrasound services for a patient based on gender."""
+    return len(_get_us_service_names(us_lines, gender_code))
 
 
 def _count_us_services_for_group(us_lines, group_key):
@@ -213,18 +284,19 @@ def _count_us_services_for_group(us_lines, group_key):
     if not us_lines:
         return 0
 
-    count = 0
+    names = []
     for line in us_lines:
         if group_key == "male":
             if line.for_male and line.checked_male:
-                count += 1
+                names.append(line.item_name)
         elif group_key == "female_single":
             if line.for_female_single and line.checked_female_single:
-                count += 1
+                names.append(line.item_name)
         elif group_key == "female_family":
             if line.for_female_family and line.checked_female_family:
-                count += 1
-    return count
+                names.append(line.item_name)
+
+    return len(_dedupe_service_names(names))
 
 
 def _build_allocated_us_totals(slot_map, us_total):
@@ -265,6 +337,120 @@ def _build_allocated_us_totals(slot_map, us_total):
         remaining -= 1
 
     return allocated
+
+
+def _get_us_lines_for_config(config):
+    his_package = getattr(config, "his_package", None)
+    if not his_package:
+        return []
+
+    service_names = []
+    rows = (
+        HisPackageServiceSync.objects.filter(
+            is_active=True,
+            is_outside_package=False,
+            service_catalog__isnull=False,
+        )
+        .filter(
+            Q(package_sync=his_package)
+            | Q(his_package_code=his_package.his_package_code)
+            | Q(his_package_code__startswith=f"{his_package.his_package_code}.")
+        )
+        .select_related("service_catalog")
+    )
+    for row in rows:
+        service_catalog = getattr(row, "service_catalog", None)
+        if not _is_ultrasound_service_catalog(service_catalog):
+            continue
+        service_name = getattr(service_catalog, "service_item_name", "") or ""
+        if service_name:
+            service_names.append(service_name)
+
+    unique_names = _dedupe_service_names(service_names)
+    return [
+        SimpleNamespace(
+            item_name=name,
+            for_male=True,
+            for_female_single=True,
+            for_female_family=True,
+            checked_male=True,
+            checked_female_single=True,
+            checked_female_family=True,
+        )
+        for name in unique_names
+    ]
+
+
+def _build_slot_map_by_day(slots):
+    slot_map = defaultdict(dict)
+    for slot in slots:
+        slot_map[slot.date][slot.shift] = slot
+    return slot_map
+
+
+def _build_allocated_us_service_counts(slot_map, service_counts):
+    allocated = defaultdict(dict)
+    for service_name, total_count in service_counts.items():
+        if total_count <= 0:
+            continue
+        for day, day_count in _build_allocated_us_totals(slot_map, total_count).items():
+            if day_count > 0:
+                allocated[day][service_name] = day_count
+    return dict(allocated)
+
+
+def _get_max_us_service_names(us_lines):
+    names = []
+    for line in us_lines:
+        if not getattr(line, "item_name", ""):
+            continue
+        if (
+            (line.for_male and line.checked_male)
+            or (line.for_female_single and line.checked_female_single)
+            or (line.for_female_family and line.checked_female_family)
+        ):
+            names.append(line.item_name)
+
+    return _dedupe_service_names(names)
+
+
+def _build_config_us_plan(config):
+    us_lines = _get_us_lines_for_config(config)
+    slots = _get_slots_for_config(config)
+    slot_map = _build_slot_map_by_day(slots)
+    max_us_service_names = _get_max_us_service_names(us_lines)
+    max_us_per_person = len(max_us_service_names)
+
+    service_counts = Counter()
+    total_us = 0
+    for patient in _get_all_patients_for_config(config):
+        service_names = _get_us_service_names(us_lines, _patient_gender_code(patient))
+        if not service_names:
+            continue
+        total_us += len(service_names)
+        service_counts.update(service_names)
+
+    allocated_daily_us = {}
+    allocated_daily_service_counts = {}
+    for day, shifts in slot_map.items():
+        day_capacity = sum(_limit_count(slot) for slot in shifts.values())
+        if day_capacity <= 0 or max_us_per_person <= 0:
+            continue
+        allocated_daily_us[day] = day_capacity * max_us_per_person
+        allocated_daily_service_counts[day] = {
+            service_name: day_capacity for service_name in max_us_service_names
+        }
+
+    return {
+        "us_lines": us_lines,
+        "slot_map": slot_map,
+        "total_us": total_us,
+        "service_counts": dict(service_counts),
+        "max_us_per_person": max_us_per_person,
+        "max_us_service_names": max_us_service_names,
+        "allocated_daily_us": allocated_daily_us,
+        "allocated_daily_service_counts": allocated_daily_service_counts,
+    }
 
 
 def build_contract_schedule_matrix(*, actor, start_of_year=None):
@@ -344,17 +530,6 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
                 ),
                 to_attr="prefetched_schedule_slots",
             ),
-            Prefetch(
-                "quotation__lines",
-                queryset=QuotationLine.objects.filter(
-                    group_name__icontains="siêu âm"
-                ).only(
-                    "id", "quotation_id", "item_name",
-                    "for_male", "for_female_single", "for_female_family",
-                    "checked_male", "checked_female_single", "checked_female_family",
-                ),
-                to_attr="prefetched_us_lines",
-            ),
         )
         .order_by("-updated_at", "-id")
     )
@@ -423,15 +598,21 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
     # ─── Tổng siêu âm mỗi ngày ───────────────────────────────────────────────
     daily_us_counts = defaultdict(int)
     daily_us_allocated_counts = defaultdict(int)
+    daily_us_registered_company_counts = defaultdict(int)
+    daily_us_allocated_company_counts = defaultdict(int)
     for config in visible_configs:
-        quotation = getattr(config, "quotation", None)
-        us_lines = getattr(quotation, "prefetched_us_lines", []) if quotation else []
+        us_plan = _build_config_us_plan(config)
+        us_lines = us_plan["us_lines"]
+        slot_map_us = us_plan["slot_map"]
+        for day, shifts in slot_map_us.items():
+            day_capacity = sum(_limit_count(slot) for slot in shifts.values())
+            if day_capacity > 0:
+                daily_us_allocated_company_counts[day] += 1
+
         if not us_lines:
             continue
-        slots = _get_slots_for_config(config)
-        slot_map_us = defaultdict(dict)
-        for slot in slots:
-            slot_map_us[slot.date][slot.shift] = slot
+
+        has_registered_by_day = set()
         for day in days:
             for shift in (TimeShift.MORNING, TimeShift.AFTERNOON):
                 slot = slot_map_us.get(day, {}).get(shift)
@@ -441,9 +622,17 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
                     patient = _appointment_patient(ap)
                     if not patient:
                         continue
-                    gc = _patient_gender_code(patient)
-                    daily_us_counts[day] += _count_us_services(us_lines, gc)
-                daily_us_allocated_counts[day] += _limit_count(slot)
+                    registered_us = _count_us_services(us_lines, _patient_gender_code(patient))
+                    if registered_us > 0:
+                        daily_us_counts[day] += registered_us
+                        has_registered_by_day.add(day)
+
+        for day, allocated_us in us_plan["allocated_daily_us"].items():
+            if allocated_us > 0:
+                daily_us_allocated_counts[day] += allocated_us
+
+        for day in has_registered_by_day:
+            daily_us_registered_company_counts[day] += 1
 
     daily_us_data = [
         {
@@ -451,6 +640,8 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
             "total": daily_us_counts.get(day, 0),
             "registered_total": daily_us_counts.get(day, 0),
             "allocated_total": daily_us_allocated_counts.get(day, 0),
+            "registered_company_count": daily_us_registered_company_counts.get(day, 0),
+            "allocated_company_count": daily_us_allocated_company_counts.get(day, 0),
         }
         for day in days
     ]

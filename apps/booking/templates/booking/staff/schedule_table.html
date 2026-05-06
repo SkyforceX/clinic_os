@@ -192,12 +192,13 @@
                 {% elif forloop.counter0 in holiday_indexes %}
                   <td class="col-holiday"></td>
                 {% else %}
-                  {% if info.registered_total > 0 or info.allocated_total > 0 %}
+                  {% if info.registered_total > 0 or info.allocated_total > 0 or info.allocated_company_count > 0 %}
                     <td class="js-us-total-cell"
                         data-date="{{ info.date }}"
-                        style="background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:11px; font-weight:600; white-space:nowrap;"
-                        title="Số siêu âm đã đăng ký / số siêu âm theo slot phân bổ. Click để xem chi tiết siêu âm đã đăng ký">
-                      🔬 {{ info.registered_total }}/{{ info.allocated_total }} SA
+                        style="background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:11px; font-weight:600; line-height:1.25;"
+                        title="Đã đăng ký: {{ info.registered_total }} siêu âm / {{ info.registered_company_count }} công ty. Theo phân bổ slot trong ngày: {{ info.allocated_total }} siêu âm / {{ info.allocated_company_count }} công ty. Click để xem chi tiết.">
+                      <div>ĐK: {{ info.registered_total }} SA / {{ info.registered_company_count }} CTY</div>
+                      <div>Slot: {{ info.allocated_total }} SA / {{ info.allocated_company_count }} CTY</div>
                     </td>
                   {% else %}
                     <td style="font-size:10px;"></td>
@@ -996,20 +997,18 @@ scrollWrapper.addEventListener('touchmove', (e) => {
     html += '<thead class="table-light"><tr>';
     html += '<th style="font-size:11px;min-width:160px;">Công ty / Gói khám</th>';
     html += '<th style="font-size:11px;text-align:center;">Slot ngày</th>';
-    html += '<th style="font-size:11px;text-align:center;">SA/người</th>';
     html += '<th style="font-size:11px;text-align:center;">Tổng SA dự kiến</th>';
-    html += '<th style="font-size:11px;">Dịch vụ siêu âm trong gói</th>';
+    html += '<th style="font-size:11px;">Dịch vụ siêu âm theo ngày</th>';
     html += '</tr></thead><tbody>';
     for (const c of companies) {
-      const badges = c.us_services.map(function (s) {
-        return `<span class="badge me-1" style="background:#7c3aed;font-size:10px;">${esc(s)}</span>`;
+      const badges = (c.service_counts || []).map(function (s) {
+        return `<span class="badge me-1 mb-1" style="background:#7c3aed;font-size:10px;">${esc(s.name)}: ${s.count}</span>`;
       }).join('');
       html += '<tr>';
       html += `<td style="font-size:11px;"><strong>${esc(c.name)}</strong>`;
       if (c.package_name) html += `<br><small class="text-muted">${esc(c.package_name)}</small>`;
       html += '</td>';
       html += `<td style="font-size:11px;text-align:center;">${c.allocated_slots}</td>`;
-      html += `<td style="font-size:11px;text-align:center;">${c.us_services.length}</td>`;
       html += `<td style="font-size:11px;text-align:center;font-weight:${c.estimated_us > 0 ? 'bold' : 'normal'};">${c.estimated_us}</td>`;
       html += `<td>${badges || '<small class="text-muted">Không có SA trong gói</small>'}</td>`;
       html += '</tr>';

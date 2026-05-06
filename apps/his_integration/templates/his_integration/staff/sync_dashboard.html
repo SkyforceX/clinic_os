@@ -1,7 +1,7 @@
 {% extends "base_admin.html" %}
 {% load static %}
 
-{% block title %}Dong bo du lieu HIS{% endblock %}
+{% block title %}Đồng bộ dữ liệu HIS{% endblock %}
 
 {% block content %}
 <style>
@@ -12,7 +12,9 @@
 
     .his-stats-grid .card,
     .sync-actions-card,
-    .sync-history-card {
+    .sync-history-card,
+    .sync-quality-card,
+    .sync-watch-card {
         border: 0;
         border-radius: 18px;
         box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06) !important;
@@ -69,13 +71,6 @@
         padding: 1.1rem 1.25rem 1.25rem;
     }
 
-    .sync-actions-note {
-        font-size: 0.82rem;
-        line-height: 1.45;
-        color: #64748b;
-        margin-bottom: 1rem;
-    }
-
     .sync-action-btn {
         width: 100%;
         min-height: 142px;
@@ -99,33 +94,6 @@
         opacity: 0.72;
         cursor: not-allowed;
         transform: none;
-    }
-
-    .sync-action-badge {
-        display: inline-flex;
-        align-items: center;
-        border-radius: 999px;
-        padding: 0.24rem 0.58rem;
-        font-size: 0.68rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-        margin-bottom: 0.8rem;
-    }
-
-    .badge-primary-soft {
-        background: rgba(255, 255, 255, 0.18);
-        color: rgba(255, 255, 255, 0.96);
-    }
-
-    .badge-neutral-soft {
-        background: #f1f5f9;
-        color: #475569;
-    }
-
-    .badge-dev-soft {
-        background: #fef3c7;
-        color: #92400e;
     }
 
     .sync-icon-wrap {
@@ -170,7 +138,8 @@
         display: none;
     }
 
-    .sync-history-card .table th {
+    .sync-history-card .table th,
+    .sync-watch-card .table th {
         font-size: 0.78rem;
         text-transform: uppercase;
         letter-spacing: 0.02em;
@@ -187,7 +156,7 @@
         margin-top: 0.1rem;
     }
 
-    .text-teal   { color: #0d9488 !important; }
+    .text-teal { color: #0d9488 !important; }
     .text-indigo { color: #6366f1 !important; }
 
     .his-stat-link {
@@ -195,16 +164,20 @@
         text-decoration: none;
         color: inherit;
     }
+
     .his-stat-link:hover {
         color: inherit;
     }
+
     .his-stat-link .card {
         transition: box-shadow 0.16s ease, transform 0.16s ease;
     }
+
     .his-stat-link:hover .card {
         box-shadow: 0 16px 36px rgba(15, 23, 42, 0.13) !important;
         transform: translateY(-3px);
     }
+
     .his-stat-arrow {
         font-size: 0.65rem;
         color: #cbd5e1;
@@ -213,28 +186,9 @@
         transition: transform 0.16s ease, color 0.16s ease;
     }
 
-    .sync-quality-card {
-        border: 0;
-        border-radius: 18px;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06) !important;
-    }
-
-    .sync-watch-card {
-        border: 0;
-        border-radius: 18px;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06) !important;
-    }
-
-    .sync-watch-card .table th {
-        font-size: 0.78rem;
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
+    .his-stat-link:hover .his-stat-arrow {
         color: #64748b;
-    }
-
-    .sync-watch-empty {
-        color: #94a3b8;
-        font-size: 0.8rem;
+        transform: translateX(3px);
     }
 
     .quality-warning-item {
@@ -283,9 +237,10 @@
         color: #475569;
         font-size: 0.92rem;
     }
-    .his-stat-link:hover .his-stat-arrow {
-        color: #64748b;
-        transform: translateX(3px);
+
+    .sync-watch-empty {
+        color: #94a3b8;
+        font-size: 0.8rem;
     }
 
     @media (max-width: 991.98px) {
@@ -307,14 +262,13 @@
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
-            <i class="fas fa-sync-alt me-2"></i>Dong bo du lieu HIS
+            <i class="fas fa-sync-alt me-2"></i>Đồng bộ dữ liệu HIS
         </h2>
         <a href="{% url 'his_integration:quality' %}" class="btn btn-outline-warning">
-            <i class="fas fa-triangle-exclamation me-2"></i>Data Quality
+            <i class="fas fa-triangle-exclamation me-2"></i>Chất lượng dữ liệu
         </a>
     </div>
 
-    {# ── Nhóm 1: Dữ liệu lâm sàng ── #}
     <div class="his-stats-section-label">Dữ liệu lâm sàng</div>
     <div class="row g-3 mb-2 his-stats-grid">
         <div class="col-6 col-md-4 col-lg-3">
@@ -463,7 +417,6 @@
         </div>
     </div>
 
-    {# ── Nhóm 2: Danh mục & Gói ── #}
     <div class="his-stats-section-label">Danh mục &amp; Gói dịch vụ</div>
     <div class="row g-3 mb-2 his-stats-grid">
         <div class="col-6 col-md-4 col-lg-3">
@@ -504,7 +457,6 @@
         </div>
     </div>
 
-    {# ── Nhóm 3: Hóa đơn ── #}
     <div class="his-stats-section-label" style="display: none;">Hóa đơn điện tử</div>
     <div class="row g-3 mb-4 his-stats-grid" style="display: none;">
         <div class="col-6 col-md-4 col-lg-3">
@@ -547,7 +499,7 @@
 
     <div class="card sync-quality-card mb-4">
         <div class="card-header bg-white">
-            <h5 class="mb-0">Canh bao chat luong du lieu sau sync</h5>
+            <h5 class="mb-0">Cảnh báo chất lượng dữ liệu sau sync</h5>
         </div>
         <div class="card-body">
             {% if quality_warnings %}
@@ -558,11 +510,10 @@
                         <div class="d-flex justify-content-between align-items-start gap-3">
                             <div>
                                 <div class="quality-warning-title">{{ warning.title }}</div>
-                                <div class="quality-warning-label">Top {{ warning.items|length }} mau gan nhat de doi soat</div>
                             </div>
                             <div class="text-end">
                                 <div class="quality-warning-count">{{ warning.count }}</div>
-                                <div class="quality-warning-label">ban ghi</div>
+                                <div class="quality-warning-label">bản ghi</div>
                             </div>
                         </div>
                         <ul class="quality-warning-samples">
@@ -576,7 +527,7 @@
                         {% if warning.url %}
                         <div class="mt-3">
                             <a href="{{ warning.url }}" class="btn btn-sm btn-outline-warning">
-                                Loc truc tiep danh sach loi
+                                Xem danh sách lỗi
                             </a>
                         </div>
                         {% endif %}
@@ -586,7 +537,7 @@
             </div>
             {% else %}
             <div class="quality-warning-empty">
-                Khong phat hien canh bao orphan-link nao trong du lieu HIS da sync.
+                Không phát hiện cảnh báo liên kết thiếu trong dữ liệu HIS đã sync.
             </div>
             {% endif %}
         </div>
@@ -594,13 +545,9 @@
 
     <div class="card sync-actions-card mb-4">
         <div class="card-header bg-white">
-            <h5 class="mb-0">Thuc hien dong bo</h5>
+            <h5 class="mb-0">Thực hiện đồng bộ</h5>
         </div>
         <div class="card-body">
-            <div class="sync-actions-note">
-                Nut chinh dung cho luong sync hang ngay. Cac nut ra lai va test local dung cho doi soat, debug va kiem tra du lieu mau.
-            </div>
-
             <div class="sync-hidden-actions">
                 <button type="button" class="btn btn-outline-primary sync-btn" data-sync-type="patient_types">patient_types</button>
                 <button type="button" class="btn btn-outline-primary sync-btn" data-sync-type="patients">patients</button>
@@ -612,26 +559,24 @@
                 <div class="col-md-6 col-xl-4">
                     <button type="button" class="btn btn-primary sync-action-btn sync-btn" data-sync-type="all">
                         <div>
-                            <span class="sync-action-badge badge-primary-soft">Khuyen nghi</span>
                             <div class="sync-icon-wrap">
                                 <i class="fas fa-sync-alt text-white"></i>
                             </div>
-                            <div class="sync-action-title">Dong bo toan bo</div>
+                            <div class="sync-action-title">Đồng bộ toàn bộ</div>
                         </div>
-                        <p class="sync-action-desc text-white">Chi lay du lieu moi cho quy trinh sync thong thuong.</p>
+                        <p class="sync-action-desc text-white">Đồng bộ dữ liệu mới nhất.</p>
                     </button>
                 </div>
 
                 <div class="col-md-6 col-xl-4">
                     <button type="button" class="btn btn-outline-danger sync-action-btn sync-btn" data-sync-type="all" data-reset-cursor="true">
                         <div>
-                            <span class="sync-action-badge badge-neutral-soft">Ra lai</span>
                             <div class="sync-icon-wrap">
                                 <i class="fas fa-rotate text-danger"></i>
                             </div>
-                            <div class="sync-action-title">Ra lai toan bo</div>
+                            <div class="sync-action-title">Rà lại toàn bộ</div>
                         </div>
-                        <p class="sync-action-desc text-muted">Cap nhat lai ca du lieu da duoc dong bo truoc do.</p>
+                        <p class="sync-action-desc text-muted">Đồng bộ lại toàn bộ dữ liệu.</p>
                     </button>
                 </div>
 
@@ -639,26 +584,24 @@
                 <div class="col-md-6 col-xl-4">
                     <button type="button" class="btn btn-warning sync-action-btn sync-btn" data-sync-type="all" data-source="local_pg">
                         <div>
-                            <span class="sync-action-badge badge-dev-soft">Dev local</span>
                             <div class="sync-icon-wrap">
                                 <i class="fas fa-database text-dark"></i>
                             </div>
-                            <div class="sync-action-title">Sync moi test local</div>
+                            <div class="sync-action-title">Sync mới test local</div>
                         </div>
-                        <p class="sync-action-desc text-dark">Lay du lieu moi tu PK_HCM local de kiem tra dev.</p>
+                        <p class="sync-action-desc text-dark">Lấy dữ liệu mới từ PK_HCM local.</p>
                     </button>
                 </div>
 
                 <div class="col-md-6 col-xl-4">
                     <button type="button" class="btn btn-outline-warning sync-action-btn sync-btn" data-sync-type="all" data-source="local_pg" data-reset-cursor="true">
                         <div>
-                            <span class="sync-action-badge badge-dev-soft">Dev local</span>
                             <div class="sync-icon-wrap">
                                 <i class="fas fa-rotate text-warning"></i>
                             </div>
-                            <div class="sync-action-title">Ra lai test local</div>
+                            <div class="sync-action-title">Rà lại test local</div>
                         </div>
-                        <p class="sync-action-desc text-muted">Chay lai toan bo du lieu local de doi soat va debug.</p>
+                        <p class="sync-action-desc text-muted">Chạy lại toàn bộ dữ liệu local.</p>
                     </button>
                 </div>
                 {% endif %}
@@ -668,19 +611,19 @@
 
     <div class="card sync-watch-card mb-4">
         <div class="card-header bg-white">
-            <h5 class="mb-0">Theo doi 12 nhom sync</h5>
+            <h5 class="mb-0">Theo dõi 12 nhóm sync</h5>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Nhom du lieu</th>
-                            <th>Trang thai moi nhat</th>
-                            <th>Tong so</th>
-                            <th>Thanh cong</th>
-                            <th>Loi</th>
-                            <th>Lan cuoi</th>
+                            <th>Nhóm dữ liệu</th>
+                            <th>Trạng thái mới nhất</th>
+                            <th>Tổng số</th>
+                            <th>Thành công</th>
+                            <th>Lỗi</th>
+                            <th>Lần cuối</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -690,16 +633,16 @@
                             <td>
                                 {% if item.job %}
                                     {% if item.job.status == 'SUCCESS' %}
-                                    <span class="badge bg-success">Thanh cong</span>
+                                    <span class="badge bg-success">Thành công</span>
                                     {% elif item.job.status == 'FAILED' %}
-                                    <span class="badge bg-danger">Loi</span>
+                                    <span class="badge bg-danger">Lỗi</span>
                                     {% elif item.job.status == 'RUNNING' %}
-                                    <span class="badge bg-primary">Dang chay</span>
+                                    <span class="badge bg-primary">Đang chạy</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">Cho</span>
+                                    <span class="badge bg-secondary">Chờ</span>
                                     {% endif %}
                                 {% else %}
-                                <span class="sync-watch-empty">Chua co job</span>
+                                <span class="sync-watch-empty">Chưa có job</span>
                                 {% endif %}
                             </td>
                             <td>{{ item.job.total_records|default:"-" }}</td>
@@ -709,7 +652,7 @@
                                 {% if item.job %}
                                 {{ item.job.created_at|date:"d/m/Y H:i" }}
                                 {% else %}
-                                <span class="sync-watch-empty">Chua ghi nhan</span>
+                                <span class="sync-watch-empty">Chưa ghi nhận</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -722,9 +665,9 @@
 
     <div class="card sync-history-card">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Lich su dong bo gan day</h5>
+            <h5 class="mb-0">Lịch sử đồng bộ gần đây</h5>
             <a href="{% url 'his_integration:job_list' %}" class="btn btn-sm btn-outline-secondary">
-                Xem tat ca
+                Xem tất cả
             </a>
         </div>
         <div class="card-body p-0">
@@ -732,12 +675,12 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Loai</th>
-                            <th>Trang thai</th>
-                            <th>Tong so</th>
-                            <th>Thanh cong</th>
-                            <th>Loi</th>
-                            <th>Thoi gian</th>
+                            <th>Loại</th>
+                            <th>Trạng thái</th>
+                            <th>Tổng số</th>
+                            <th>Thành công</th>
+                            <th>Lỗi</th>
+                            <th>Thời gian</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -747,13 +690,13 @@
                             <td>{{ job.get_entity_type_display }}</td>
                             <td>
                                 {% if job.status == 'SUCCESS' %}
-                                <span class="badge bg-success">Thanh cong</span>
+                                <span class="badge bg-success">Thành công</span>
                                 {% elif job.status == 'FAILED' %}
-                                <span class="badge bg-danger">Loi</span>
+                                <span class="badge bg-danger">Lỗi</span>
                                 {% elif job.status == 'RUNNING' %}
-                                <span class="badge bg-primary">Dang chay</span>
+                                <span class="badge bg-primary">Đang chạy</span>
                                 {% else %}
-                                <span class="badge bg-secondary">Cho</span>
+                                <span class="badge bg-secondary">Chờ</span>
                                 {% endif %}
                             </td>
                             <td>{{ job.total_records }}</td>
@@ -762,14 +705,14 @@
                             <td>{{ job.created_at|date:"d/m/Y H:i" }}</td>
                             <td>
                                 <a href="{% url 'his_integration:job_detail' job.pk %}" class="btn btn-sm btn-outline-secondary">
-                                    Chi tiet
+                                    Chi tiết
                                 </a>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
                             <td colspan="7" class="text-center text-muted py-4">
-                                Chua co lich su dong bo
+                                Chưa có lịch sử đồng bộ
                             </td>
                         </tr>
                         {% endfor %}
@@ -798,7 +741,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return {
             success: false,
-            error: compact || `Server tra ve HTTP ${response.status}`,
+            error: compact || `Server trả về HTTP ${response.status}`,
         };
     }
 
@@ -810,13 +753,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const titleNode = this.querySelector('.sync-action-title') || this.querySelector('.fw-bold');
             const buttonTitle = titleNode ? titleNode.textContent : syncType;
 
-            if (!confirm(`Ban co chac muon dong bo ${buttonTitle}?`)) {
+            if (!confirm(`Bạn có chắc muốn đồng bộ ${buttonTitle}?`)) {
                 return;
             }
 
             this.disabled = true;
             const originalHTML = this.innerHTML;
-            this.innerHTML = '<div class="d-flex align-items-center gap-2"><i class="fas fa-spinner fa-spin"></i><span>Dang xu ly...</span></div>';
+            this.innerHTML = '<div class="d-flex align-items-center gap-2"><i class="fas fa-spinner fa-spin"></i><span>Đang xử lý...</span></div>';
 
             fetch('{% url "his_integration:trigger_sync" %}', {
                 method: 'POST',
@@ -837,24 +780,24 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(result => {
                 if (result.ok && result.data.success) {
                     if (result.data.inline) {
-                        alert(result.data.message + '\n\nLocal sync da chay xong. Vui long kiem tra lich su dong bo.');
+                        alert(result.data.message + '\n\nLocal sync đã chạy xong. Vui lòng kiểm tra lịch sử đồng bộ.');
                         setTimeout(() => location.reload(), 2000);
                         return;
                     }
                     const stepCount = result.data.step_count || 1;
                     const taskCount = (result.data.task_ids || []).length || 1;
-                    alert(result.data.message + `\n\nDa tao ${taskCount} job cho ${stepCount} nhom sync. Vui long reload de kiem tra bang "Theo doi 12 nhom sync" va lich su dong bo.`);
+                    alert(result.data.message + `\n\nĐã tạo ${taskCount} job cho ${stepCount} nhóm sync. Vui lòng tải lại trang để kiểm tra.`);
                     setTimeout(() => location.reload(), 2000);
                 } else {
                     const detail = result.data && result.data.error ? result.data.error : `HTTP ${result.status}`;
-                    alert('Loi: ' + detail);
+                    alert('Lỗi: ' + detail);
                     this.disabled = false;
                     this.innerHTML = originalHTML;
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert('Co loi xay ra khi ket noi den server: ' + (err && err.message ? err.message : 'Unknown error'));
+                alert('Có lỗi xảy ra khi kết nối đến server: ' + (err && err.message ? err.message : 'Unknown error'));
                 this.disabled = false;
                 this.innerHTML = originalHTML;
             });
