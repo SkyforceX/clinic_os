@@ -18,6 +18,7 @@ from datetime import date, timedelta
 
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncDate, TruncHour, TruncWeek, TruncMonth
+from django.utils import timezone
 
 from apps.contract.policies import ContractPolicy
 
@@ -38,19 +39,15 @@ def _scoped_schedule_configs_qs(*, actor=None):
     return qs
 
 
-def _scoped_checkin_records_qs(*, actor=None, date_from=None, date_to=None):
+def _scoped_checkin_records_base_qs(*, actor=None):
     from apps.reception.models import CheckInRecord
 
     qs = CheckInRecord.objects.all()
-    if date_from and date_to:
-        qs = qs.filter(exam_date__range=[date_from, date_to])
-
     if not _is_sales_actor(actor):
         return qs
 
     scoped_configs = (
         _scoped_schedule_configs_qs(actor=actor)
-        .filter(exam_start_date__lte=date_to, exam_end_date__gte=date_from)
         .select_related("quotation", "quotation__company", "his_package", "his_package__organization", "contract")
     )
 
@@ -84,6 +81,45 @@ def _scoped_checkin_records_qs(*, actor=None, date_from=None, date_to=None):
         )
 
     return qs.filter(scope_filter).distinct()
+
+
+def _scoped_checkin_records_qs(*, actor=None, date_from=None, date_to=None):
+    qs = _scoped_checkin_records_base_qs(actor=actor)
+    if date_from and date_to:
+        qs = qs.filter(exam_date__range=[date_from, date_to])
+    return qs
+
+
+def _local_date(dt):
+    if not dt:
+        return None
+    return timezone.localtime(dt).date()
+
+
+def _count_event_stats(records, date_from, date_to):
+    day_map = defaultdict(lambda: {
+        "checkin": 0, "checkout": 0, "deferred": 0, "companies": set()
+    })
+
+    for rec in records:
+        company_name = rec.get("snapshot_company_name") or "?"
+
+        checked_in_date = _local_date(rec.get("checked_in_at"))
+        if checked_in_date and date_from <= checked_in_date <= date_to:
+            day_map[checked_in_date]["checkin"] += 1
+            day_map[checked_in_date]["companies"].add(company_name)
+
+        checked_out_date = _local_date(rec.get("checked_out_at"))
+        if checked_out_date and date_from <= checked_out_date <= date_to:
+            day_map[checked_out_date]["checkout"] += 1
+            day_map[checked_out_date]["companies"].add(company_name)
+
+        deferred_date = _local_date(rec.get("deferred_at"))
+        if deferred_date and date_from <= deferred_date <= date_to:
+            day_map[deferred_date]["deferred"] += 1
+            day_map[deferred_date]["companies"].add(company_name)
+
+    return day_map
 
 
 def get_active_company_progress(reference_date=None, *, actor=None):
@@ -186,28 +222,10 @@ def get_daily_summary(date_from, date_to, *, actor=None):
         totals: {checkin, checkout, deferred, total}
     }
     """
-    from apps.reception.models import CheckInRecord, CheckInStatus
-
-    records = (
-        _scoped_checkin_records_qs(actor=actor, date_from=date_from, date_to=date_to)
-        .values("exam_date", "status", "snapshot_company_name")
+    records = _scoped_checkin_records_base_qs(actor=actor).values(
+        "checked_in_at", "checked_out_at", "deferred_at", "snapshot_company_name"
     )
-
-    day_map = defaultdict(lambda: {
-        "checkin": 0, "checkout": 0, "deferred": 0, "companies": set()
-    })
-
-    for rec in records:
-        d   = rec["exam_date"]
-        st  = rec["status"]
-        co  = rec["snapshot_company_name"] or "?"
-        day_map[d]["companies"].add(co)
-        if st == CheckInStatus.CHECKED_IN:
-            day_map[d]["checkin"] += 1
-        elif st == CheckInStatus.CHECKED_OUT:
-            day_map[d]["checkout"] += 1
-        elif st == CheckInStatus.DEFERRED:
-            day_map[d]["deferred"] += 1
+    day_map = _count_event_stats(records, date_from, date_to)
 
     # Build sorted date list
     num_days = (date_to - date_from).days + 1
@@ -248,28 +266,32 @@ def get_period_aggregate(*, actor=None):
 
     Returns dict với keys: today, week, month — mỗi key là dict counts.
     """
-    from apps.reception.models import CheckInRecord, CheckInStatus
-
     today      = date.today()
     week_start = today - timedelta(days=today.weekday())
     month_start = today.replace(day=1)
 
-    def counts(qs):
-        ci = qs.filter(status=CheckInStatus.CHECKED_IN).count()
-        co = qs.filter(status=CheckInStatus.CHECKED_OUT).count()
-        df = qs.filter(status=CheckInStatus.DEFERRED).count()
+    def counts(date_from, date_to):
+        day_map = _count_event_stats(
+            _scoped_checkin_records_base_qs(actor=actor).values(
+                "checked_in_at", "checked_out_at", "deferred_at", "snapshot_company_name"
+            ),
+            date_from,
+            date_to,
+        )
+        ci = sum(v["checkin"] for v in day_map.values())
+        co = sum(v["checkout"] for v in day_map.values())
+        df = sum(v["deferred"] for v in day_map.values())
         total = ci + co + df
-        companies = qs.values("snapshot_company_name").distinct().count()
+        companies = len(set().union(*(v["companies"] for v in day_map.values()))) if day_map else 0
         return {
             "checkin": ci, "checkout": co, "deferred": df,
             "total": total, "companies": companies,
         }
 
-    base = _scoped_checkin_records_qs(actor=actor, date_from=month_start, date_to=today)
     return {
-        "today": counts(base.filter(exam_date=today)),
-        "week":  counts(base.filter(exam_date__gte=week_start, exam_date__lte=today)),
-        "month": counts(base.filter(exam_date__gte=month_start, exam_date__lte=today)),
+        "today": counts(today, today),
+        "week":  counts(week_start, today),
+        "month": counts(month_start, today),
     }
 
 
@@ -279,23 +301,21 @@ def get_peak_hours(date_from, date_to, *, actor=None):
     Returns list[{hour, count}] sorted by hour.
     """
     import pytz
-    from apps.reception.models import CheckInRecord, CheckInStatus
 
     local_tz = pytz.timezone("Asia/Ho_Chi_Minh")
 
-    records = _scoped_checkin_records_qs(
+    records = _scoped_checkin_records_base_qs(
         actor=actor,
-        date_from=date_from,
-        date_to=date_to,
     ).filter(
         checked_in_at__isnull=False,
-    ).exclude(status=CheckInStatus.CHECKED_OUT)
+    )
 
     hour_map = defaultdict(int)
     for rec in records.values_list("checked_in_at", flat=True):
         if rec:
             local_time = rec.astimezone(local_tz)
-            hour_map[local_time.hour] += 1
+            if date_from <= local_time.date() <= date_to:
+                hour_map[local_time.hour] += 1
 
     return [{"hour": h, "count": hour_map.get(h, 0)} for h in range(7, 20)]
 
@@ -307,12 +327,12 @@ def get_company_completion_table(date_from, date_to, *, actor=None):
 
     Returns list[{company, planned, arrived, completed, completion_pct, avg_per_day}]
     """
-    from apps.reception.models import CheckInRecord, CheckInStatus
-    from apps.scheduling.models import ContractScheduleConfig
-
-    records = (
-        _scoped_checkin_records_qs(actor=actor, date_from=date_from, date_to=date_to)
-        .values("snapshot_company_name", "status", "schedule_config_id")
+    records = _scoped_checkin_records_base_qs(actor=actor).values(
+        "snapshot_company_name",
+        "schedule_config_id",
+        "checked_in_at",
+        "checked_out_at",
+        "deferred_at",
     )
 
     company_stats = defaultdict(lambda: {
@@ -322,13 +342,16 @@ def get_company_completion_table(date_from, date_to, *, actor=None):
 
     for rec in records:
         name = rec["snapshot_company_name"] or "Không xác định"
-        st   = rec["status"]
         company_stats[name]["config_ids"].add(rec["schedule_config_id"])
-        if st == CheckInStatus.CHECKED_IN:
+        checked_in_date = _local_date(rec["checked_in_at"])
+        checked_out_date = _local_date(rec["checked_out_at"])
+        deferred_date = _local_date(rec["deferred_at"])
+
+        if checked_in_date and date_from <= checked_in_date <= date_to:
             company_stats[name]["checkin"] += 1
-        elif st == CheckInStatus.CHECKED_OUT:
+        if checked_out_date and date_from <= checked_out_date <= date_to:
             company_stats[name]["checkout"] += 1
-        elif st == CheckInStatus.DEFERRED:
+        if deferred_date and date_from <= deferred_date <= date_to:
             company_stats[name]["deferred"] += 1
 
     # Get planned counts from schedule configs
@@ -379,11 +402,9 @@ def get_admin_insights(date_from, date_to, *, actor=None):
     - Số KH hoãn cao nhất trong 1 ngày
     - Trung bình KH/ngày làm việc
     """
-    from apps.reception.models import CheckInRecord, CheckInStatus
-
     records = list(
-        _scoped_checkin_records_qs(actor=actor, date_from=date_from, date_to=date_to)
-        .values("exam_date", "status", "snapshot_company_name", "checked_in_at")
+        _scoped_checkin_records_base_qs(actor=actor)
+        .values("checked_in_at", "checked_out_at", "deferred_at", "snapshot_company_name")
     )
 
     if not records:
@@ -396,13 +417,22 @@ def get_admin_insights(date_from, date_to, *, actor=None):
     total_df     = 0
 
     for rec in records:
-        day_totals[rec["exam_date"]] += 1
-        company_cnt[rec["snapshot_company_name"] or "?"] += 1
-        if rec["status"] == CheckInStatus.CHECKED_IN:
+        company_name = rec["snapshot_company_name"] or "?"
+        checked_in_date = _local_date(rec["checked_in_at"])
+        checked_out_date = _local_date(rec["checked_out_at"])
+        deferred_date = _local_date(rec["deferred_at"])
+
+        if checked_in_date and date_from <= checked_in_date <= date_to:
+            day_totals[checked_in_date] += 1
+            company_cnt[company_name] += 1
             total_ci += 1
-        elif rec["status"] == CheckInStatus.CHECKED_OUT:
+        if checked_out_date and date_from <= checked_out_date <= date_to:
+            day_totals[checked_out_date] += 1
+            company_cnt[company_name] += 1
             total_co += 1
-        elif rec["status"] == CheckInStatus.DEFERRED:
+        if deferred_date and date_from <= deferred_date <= date_to:
+            day_totals[deferred_date] += 1
+            company_cnt[company_name] += 1
             total_df += 1
 
     total_all = total_ci + total_co + total_df

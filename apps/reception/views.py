@@ -1,10 +1,10 @@
 """
 apps/reception/views.py
 ========================
-Views cho cÃ´ng cá»¥ check-in / check-out táº¡i quáº§y lá»… tÃ¢n.
+Views cho cÃƒÂ´ng cÃ¡Â»Â¥ check-in / check-out tÃ¡ÂºÂ¡i quÃ¡ÂºÂ§y lÃ¡Â»â€¦ tÃƒÂ¢n.
 
-XÃ¡c thá»±c riÃªng (session key "reception_operator_id"),
-KHÃ”NG dÃ¹ng @login_required cá»§a staff â€” trÃ¡nh lá»™ dá»¯ liá»‡u ná»™i bá»™.
+XÃƒÂ¡c thÃ¡Â»Â±c riÃƒÂªng (session key "reception_operator_id"),
+KHÃƒâ€NG dÃƒÂ¹ng @login_required cÃ¡Â»Â§a staff Ã¢â‚¬â€ trÃƒÂ¡nh lÃ¡Â»â„¢ dÃ¡Â»Â¯ liÃ¡Â»â€¡u nÃ¡Â»â„¢i bÃ¡Â»â„¢.
 """
 
 import json
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_operator(request):
-    """Láº¥y user operator tá»« session check-in."""
+    """LÃ¡ÂºÂ¥y user operator tÃ¡Â»Â« session check-in."""
     uid = ReceptionPolicy.get_operator_id_from_session(request)
     if not uid:
         return None
@@ -44,14 +44,14 @@ def get_operator(request):
         return None
 
 
-# â”€â”€ Trang chÃ­nh (GET: form login hoáº·c tool, POST: xá»­ lÃ½ login) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Ã¢â€â‚¬Ã¢â€â‚¬ Trang chÃƒÂ­nh (GET: form login hoÃ¡ÂºÂ·c tool, POST: xÃ¡Â»Â­ lÃƒÂ½ login) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 @csrf_protect
 def checkin_tool(request):
     """
-    Trang check-in chÃ­nh.
-    - Náº¿u chÆ°a xÃ¡c thá»±c session â†’ hiá»‡n mini login form.
-    - Náº¿u Ä‘Ã£ xÃ¡c thá»±c â†’ hiá»‡n tool Ä‘áº§y Ä‘á»§.
+    Trang check-in chÃƒÂ­nh.
+    - NÃ¡ÂºÂ¿u chÃ†Â°a xÃƒÂ¡c thÃ¡Â»Â±c session Ã¢â€ â€™ hiÃ¡Â»â€¡n mini login form.
+    - NÃ¡ÂºÂ¿u Ã„â€˜ÃƒÂ£ xÃƒÂ¡c thÃ¡Â»Â±c Ã¢â€ â€™ hiÃ¡Â»â€¡n tool Ã„â€˜Ã¡ÂºÂ§y Ã„â€˜Ã¡Â»Â§.
     """
     operator = get_operator(request)
 
@@ -106,26 +106,26 @@ def _build_existing_record_payload(existing):
     return existing_data
 
 
-# â”€â”€ AJAX: tra cá»©u bá»‡nh nhÃ¢n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Ã¢â€â‚¬Ã¢â€â‚¬ AJAX: tra cÃ¡Â»Â©u bÃ¡Â»â€¡nh nhÃƒÂ¢n Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 @csrf_protect
 def ajax_lookup(request):
     """
     POST { ma_bn: str }
-    â†’ { ok, patient: {...}, existing_record: {...}|null, error }
+    Ã¢â€ â€™ { ok, patient: {...}, existing_record: {...}|null, error }
     """
     operator = get_operator(request)
     if not operator:
-        return JsonResponse({"ok": False, "error": "PhiÃªn lÃ m viá»‡c háº¿t háº¡n. Vui lÃ²ng Ä‘Äƒng nháº­p láº¡i."}, status=401)
+        return JsonResponse({"ok": False, "error": "PhiÃƒÂªn lÃƒÂ m viÃ¡Â»â€¡c hÃ¡ÂºÂ¿t hÃ¡ÂºÂ¡n. Vui lÃƒÂ²ng Ã„â€˜Ã„Æ’ng nhÃ¡ÂºÂ­p lÃ¡ÂºÂ¡i."}, status=401)
 
     try:
         body = json.loads(request.body)
     except (json.JSONDecodeError, TypeError):
-        return JsonResponse({"ok": False, "error": "Dá»¯ liá»‡u khÃ´ng há»£p lá»‡."}, status=400)
+        return JsonResponse({"ok": False, "error": "DÃ¡Â»Â¯ liÃ¡Â»â€¡u khÃƒÂ´ng hÃ¡Â»Â£p lÃ¡Â»â€¡."}, status=400)
 
     ma_bn = (body.get("ma_bn") or "").strip().upper()
     if not ma_bn:
-        return JsonResponse({"ok": False, "error": "Vui lÃ²ng nháº­p mÃ£ bá»‡nh nhÃ¢n."})
+        return JsonResponse({"ok": False, "error": "Vui lÃƒÂ²ng nhÃ¡ÂºÂ­p mÃƒÂ£ bÃ¡Â»â€¡nh nhÃƒÂ¢n."})
 
     try:
         today = date.today()
@@ -142,11 +142,11 @@ def ajax_lookup(request):
 
         exam_range = ""
         if result["exam_start"] and result["exam_end"]:
-            exam_range = f"{result['exam_start'].strftime('%d/%m/%Y')} â€“ {result['exam_end'].strftime('%d/%m/%Y')}"
+            exam_range = f"{result['exam_start'].strftime('%d/%m/%Y')} Ã¢â‚¬â€œ {result['exam_end'].strftime('%d/%m/%Y')}"
         elif result["exam_start"]:
-            exam_range = f"Tá»« {result['exam_start'].strftime('%d/%m/%Y')}"
+            exam_range = f"TÃ¡Â»Â« {result['exam_start'].strftime('%d/%m/%Y')}"
 
-        gioi_tinh_display = {"Nam": "Nam", "Ná»¯": "Ná»¯", "MALE": "Nam", "FEMALE": "Ná»¯"}.get(
+        gioi_tinh_display = {"Nam": "Nam", "NÃ¡Â»Â¯": "NÃ¡Â»Â¯", "MALE": "Nam", "FEMALE": "NÃ¡Â»Â¯"}.get(
             patient.gioi_tinh, patient.gioi_tinh or ""
         )
 
@@ -170,27 +170,27 @@ def ajax_lookup(request):
         logger.exception("Reception ajax_lookup failed for ma_bn=%s", ma_bn)
         return JsonResponse({
             "ok": False,
-            "error": f"Lỗi tra cứu máy chủ [{exc.__class__.__name__}]: {exc}",
+            "error": f"Lá»—i tra cá»©u mÃ¡y chá»§ [{exc.__class__.__name__}]: {exc}",
         }, status=500)
 
 
-# â”€â”€ AJAX: thá»±c hiá»‡n action (check-in / check-out / defer) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Ã¢â€â‚¬Ã¢â€â‚¬ AJAX: thÃ¡Â»Â±c hiÃ¡Â»â€¡n action (check-in / check-out / defer) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 @csrf_protect
 @require_POST
 def ajax_action(request):
     """
     POST { action: "checkin"|"checkout"|"defer", ma_bn, record_id, note }
-    â†’ { ok, message, status, status_label, stats }
+    Ã¢â€ â€™ { ok, message, status, status_label, stats }
     """
     operator = get_operator(request)
     if not operator:
-        return JsonResponse({"ok": False, "error": "PhiÃªn lÃ m viá»‡c háº¿t háº¡n."}, status=401)
+        return JsonResponse({"ok": False, "error": "PhiÃƒÂªn lÃƒÂ m viÃ¡Â»â€¡c hÃ¡ÂºÂ¿t hÃ¡ÂºÂ¡n."}, status=401)
 
     try:
         body = json.loads(request.body)
     except (json.JSONDecodeError, TypeError):
-        return JsonResponse({"ok": False, "error": "Dá»¯ liá»‡u khÃ´ng há»£p lá»‡."}, status=400)
+        return JsonResponse({"ok": False, "error": "DÃ¡Â»Â¯ liÃ¡Â»â€¡u khÃƒÂ´ng hÃ¡Â»Â£p lÃ¡Â»â€¡."}, status=400)
 
     action = body.get("action", "")
     ma_bn = (body.get("ma_bn") or "").strip().upper()
@@ -203,26 +203,26 @@ def ajax_action(request):
             record, err = do_checkin(ma_bn, note, operator, today)
             if err:
                 return JsonResponse({"ok": False, "error": err})
-            msg = f"âœ“ Check-in thÃ nh cÃ´ng: {record.snapshot_ho_ten}"
+            msg = f"Check-in thành công: {record.snapshot_ho_ten}"
 
         elif action == "checkout":
             if not record_id:
-                return JsonResponse({"ok": False, "error": "Thiáº¿u record_id."})
+                return JsonResponse({"ok": False, "error": "ThiÃ¡ÂºÂ¿u record_id."})
             record, err = do_checkout(int(record_id), note, operator)
             if err:
                 return JsonResponse({"ok": False, "error": err})
-            msg = f"âœ“ Check-out thÃ nh cÃ´ng: {record.snapshot_ho_ten}"
+            msg = f"Check-out thành công: {record.snapshot_ho_ten}"
 
         elif action == "defer":
             if not record_id:
-                return JsonResponse({"ok": False, "error": "Thiáº¿u record_id."})
+                return JsonResponse({"ok": False, "error": "ThiÃ¡ÂºÂ¿u record_id."})
             record, err = do_defer(int(record_id), note, operator)
             if err:
                 return JsonResponse({"ok": False, "error": err})
-            msg = f"â†© ÄÃ£ Ä‘Ã¡nh dáº¥u quay láº¡i sau: {record.snapshot_ho_ten}"
+            msg = f"?? ??nh d?u quay l?i sau: {record.snapshot_ho_ten}"
 
         else:
-            return JsonResponse({"ok": False, "error": "Action khÃ´ng há»£p lá»‡."}, status=400)
+            return JsonResponse({"ok": False, "error": "Action khÃƒÂ´ng hÃ¡Â»Â£p lÃ¡Â»â€¡."}, status=400)
 
         company_stats, total_today, _ = get_today_stats(today)
         stats_data = [
@@ -256,17 +256,17 @@ def ajax_action(request):
         )
         return JsonResponse({
             "ok": False,
-            "error": f"Lỗi xử lý máy chủ [{exc.__class__.__name__}]: {exc}",
+            "error": f"Lá»—i xá»­ lÃ½ mÃ¡y chá»§ [{exc.__class__.__name__}]: {exc}",
         }, status=500)
 
 
-# â”€â”€ AJAX: refresh stats panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Ã¢â€â‚¬Ã¢â€â‚¬ AJAX: refresh stats panel Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 def ajax_stats(request):
-    """GET â†’ JSON stats panel data Ä‘á»ƒ auto-refresh."""
+    """GET Ã¢â€ â€™ JSON stats panel data Ã„â€˜Ã¡Â»Æ’ auto-refresh."""
     operator = get_operator(request)
     if not operator:
-        return JsonResponse({"ok": False, "error": "ChÆ°a xÃ¡c thá»±c."}, status=401)
+        return JsonResponse({"ok": False, "error": "ChÃ†Â°a xÃƒÂ¡c thÃ¡Â»Â±c."}, status=401)
 
     today = date.today()
     company_stats, total_today, _ = get_today_stats(today)
@@ -308,3 +308,4 @@ def ajax_stats(request):
         "recent": recent_data,
         "total_today": total_today,
     })
+

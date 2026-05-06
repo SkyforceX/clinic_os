@@ -4,6 +4,8 @@ apps/record_completion/selectors/completion_selectors.py
 
 from datetime import date, timedelta
 
+from django.db import models
+
 from apps.his_integration.selectors import count_active_his_patients_for_organization
 from apps.organizations.models import Company
 from apps.reception.models import CheckInRecord, CheckInStatus
@@ -16,9 +18,15 @@ from apps.record_completion.models import (
 )
 
 
+def _company_checkin_qs(company: Company):
+    return CheckInRecord.objects.filter(
+        models.Q(company=company)
+        | models.Q(company__isnull=True, snapshot_company_name=company.name)
+    )
+
+
 def ensure_completions_for_company(company: Company) -> None:
-    checked_out_qs = CheckInRecord.objects.filter(
-        company=company,
+    checked_out_qs = _company_checkin_qs(company).filter(
         status=CheckInStatus.CHECKED_OUT,
     )
     existing_ids = set(
@@ -41,7 +49,7 @@ def get_checkin_stats_for_company(company: Company) -> dict:
     """
     total_patients = count_active_his_patients_for_organization(organization_id=company.id)
 
-    ci_qs = CheckInRecord.objects.filter(company=company)
+    ci_qs = _company_checkin_qs(company)
 
     checked_in_bns = set(
         ci_qs.filter(
@@ -68,9 +76,15 @@ def get_checkin_stats_for_company(company: Company) -> dict:
 def get_active_companies_summary():
     overdue_threshold = date.today() - timedelta(days=OVERDUE_DAYS)
 
+    checked_out_qs = CheckInRecord.objects.filter(status=CheckInStatus.CHECKED_OUT)
     checked_out_ids = set(
-        CheckInRecord.objects.filter(status=CheckInStatus.CHECKED_OUT)
+        checked_out_qs.exclude(company_id__isnull=True)
         .values_list("company_id", flat=True).distinct()
+    )
+    checked_out_names = set(
+        checked_out_qs.filter(company_id__isnull=True)
+        .exclude(snapshot_company_name="")
+        .values_list("snapshot_company_name", flat=True).distinct()
     )
     incomplete_ids = set(
         RecordCompletion.objects.filter(is_completed=False)
@@ -78,14 +92,17 @@ def get_active_companies_summary():
     )
     all_ids = (checked_out_ids | incomplete_ids) - {None}
 
-    if not all_ids:
+    if not all_ids and not checked_out_names:
         return []
 
     result = []
-    for company in Company.objects.filter(id__in=all_ids).order_by("name"):
+    companies = Company.objects.filter(
+        models.Q(id__in=all_ids) | models.Q(name__in=checked_out_names)
+    ).distinct().order_by("name")
+    for company in companies:
         qs           = RecordCompletion.objects.filter(company=company)
-        without_qs   = CheckInRecord.objects.filter(
-            company=company, status=CheckInStatus.CHECKED_OUT,
+        without_qs   = _company_checkin_qs(company).filter(
+            status=CheckInStatus.CHECKED_OUT,
         ).exclude(record_completion__isnull=False)
 
         total         = qs.count() + without_qs.count()
