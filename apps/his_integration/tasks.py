@@ -157,6 +157,63 @@ def json_safe(data: dict[str, Any]) -> dict[str, Any]:
     return safe
 
 
+@shared_task(bind=True, max_retries=0)
+def run_his_sync_sequence(
+    self,
+    *,
+    sync_type: str,
+    triggered_by_id: int | None = None,
+    reset_cursor: bool = False,
+    patient_batch_size: int = 500,
+    exam_batch_size: int = 300,
+    source: str = SOURCE_HIS_MSSQL,
+):
+    """
+    Run an ordered sync sequence without letting one failed step cancel later steps.
+
+    Production "sync all" uses Celery background execution; if we chain tasks directly,
+    a single retry/failure prevents all remaining entity syncs from running. This
+    wrapper preserves ordering while allowing later steps to continue and log their
+    own HisSyncJob results.
+    """
+    from apps.his_integration.services.sync_orchestration import build_his_sync_steps
+
+    steps = build_his_sync_steps(
+        sync_type=sync_type,
+        triggered_by_id=triggered_by_id,
+        reset_cursor=reset_cursor,
+        patient_batch_size=patient_batch_size,
+        exam_batch_size=exam_batch_size,
+        source=source,
+    )
+
+    results: list[dict[str, Any]] = []
+    failed_steps: list[dict[str, Any]] = []
+
+    for step in steps:
+        result = step.task.apply(kwargs=step.kwargs)
+        error = None if result.successful() else str(result.result)
+        step_result = {
+            "sync_type": step.sync_type,
+            "label": step.label,
+            "task_id": result.id,
+            "success": result.successful(),
+            "error": error,
+        }
+        results.append(step_result)
+        if error:
+            failed_steps.append(step_result)
+
+    return {
+        "sync_type": sync_type,
+        "source": source,
+        "step_count": len(steps),
+        "success": not failed_steps,
+        "results": results,
+        "failed_steps": failed_steps,
+    }
+
+
 @shared_task(bind=True, max_retries=3)
 def sync_patient_types_from_his(self, triggered_by_id=None, source=SOURCE_HIS_MSSQL):
     job = HisSyncJob.objects.create(

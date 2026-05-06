@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from celery import chain
 from django.core.exceptions import ObjectDoesNotExist
 
 from apps.his_integration import tasks
@@ -263,11 +262,21 @@ def dispatch_his_sync(
             "success": True,
         }
 
+    triggered_by_id = steps[0].kwargs.get("triggered_by_id") if steps else _get_triggered_by_id(actor=actor)
+
     if len(steps) == 1:
         async_result = steps[0].task.apply_async(kwargs=steps[0].kwargs)
     else:
-        workflow = chain(*(step.task.si(**step.kwargs) for step in steps))
-        async_result = workflow.apply_async()
+        async_result = tasks.run_his_sync_sequence.apply_async(
+            kwargs={
+                "sync_type": sync_type,
+                "triggered_by_id": triggered_by_id,
+                "reset_cursor": reset_cursor,
+                "patient_batch_size": patient_batch_size,
+                "exam_batch_size": exam_batch_size,
+                "source": source,
+            }
+        )
 
     return {
         "task_id": async_result.id,
