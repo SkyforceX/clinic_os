@@ -1,5 +1,7 @@
 import csv
 import logging
+import re
+import unicodedata
 from collections import defaultdict
 from functools import reduce
 from operator import or_
@@ -23,6 +25,7 @@ from apps.his_integration.models import (
     HisPatientSync,
     HisPatientTypeSync,
     HisDiagnosticImagingSync,
+    HisDiagnosticImagingItemSync,
     HisFunctionalTestSync,
     HisFunctionalTestItemSync,
     HisExamServiceItemSync,
@@ -62,6 +65,51 @@ from apps.his_integration.services import (
 
 
 logger = logging.getLogger(__name__)
+
+
+def _strip_accents(value):
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    return "".join(ch for ch in text if not unicodedata.combining(ch))
+
+
+def _normalize_service_key(name: str) -> str:
+    text = _strip_accents(name).lower().strip()
+    text = re.sub(r"\s*[-/]\s*(nam|nu|nữ)\s*$", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return text
+
+
+def _display_service_name(name: str) -> str:
+    text = str(name or "").strip()
+    text = re.sub(r"\s*[-/]\s*(Nam|Nữ|Nu)\s*$", "", text, flags=re.IGNORECASE)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _is_ultrasound_catalog(service_catalog) -> bool:
+    if not service_catalog:
+        return False
+
+    haystacks = [
+        getattr(service_catalog, "service_item_name", ""),
+        getattr(service_catalog, "service_item_name_order", ""),
+        getattr(service_catalog, "service_group_code", ""),
+        getattr(service_catalog, "service_sub_group_code", ""),
+        getattr(service_catalog, "report_group_code", ""),
+        getattr(service_catalog, "common_group_code", ""),
+    ]
+    normalized = " | ".join(_strip_accents(value).lower() for value in haystacks if value)
+    if not normalized:
+        return False
+
+    if any(keyword in normalized for keyword in ("sieu am", "sieuam", "ultrasound")):
+        return True
+
+    code_tokens = {
+        token
+        for token in re.split(r"[^a-z0-9]+", normalized)
+        if token
+    }
+    return "sa" in code_tokens and ("cdha" in code_tokens or "cls" in code_tokens)
 
 
 _QUALITY_WARNING_TARGETS = {
@@ -735,6 +783,93 @@ class CorporatePackageDetailView(LoginRequiredMixin, DetailView):
         ]
         context['package_service_total'] = sum(len(v) for _, v in sorted_groups)
         context['package_services_by_group'] = {k: v for k, v in sorted_groups}
+
+        included_ultrasound_codes = set()
+        for svc in package_services:
+            if svc.is_outside_package or not svc.service_catalog:
+                continue
+            if _is_ultrasound_catalog(svc.service_catalog):
+                included_ultrasound_codes.add((svc.service_item_code or "").strip())
+
+        extra_imaging_items = list(
+            HisDiagnosticImagingItemSync.objects.filter(
+                is_active=True,
+                imaging_sync__is_active=True,
+                imaging_sync__exam_record_sync__package_sync=package,
+                imaging_sync__exam_record_sync__patient_sync__isnull=False,
+            ).select_related(
+                'imaging_sync',
+                'imaging_sync__exam_record_sync',
+                'imaging_sync__exam_record_sync__patient_sync',
+            ).order_by(
+                'imaging_sync__exam_record_sync__exam_date',
+                'imaging_sync__exam_record_sync__patient_sync__full_name',
+                'service_item_code',
+            )
+        )
+        extra_service_codes = {
+            (item.service_item_code or "").strip()
+            for item in extra_imaging_items
+            if (item.service_item_code or "").strip()
+        }
+        catalog_map = {
+            catalog.service_item_code: catalog
+            for catalog in HisServiceCatalogSync.objects.filter(
+                service_item_code__in=extra_service_codes,
+                is_active=True,
+            )
+        }
+
+        extra_rows_map = {}
+        for item in extra_imaging_items:
+            service_code = (item.service_item_code or "").strip()
+            if not service_code or service_code in included_ultrasound_codes:
+                continue
+
+            service_catalog = catalog_map.get(service_code)
+            if not _is_ultrasound_catalog(service_catalog):
+                continue
+
+            exam_record = item.imaging_sync.exam_record_sync
+            patient = getattr(exam_record, 'patient_sync', None)
+            if not exam_record or not patient:
+                continue
+
+            row_key = exam_record.pk
+            service_name = _display_service_name(
+                getattr(service_catalog, 'service_item_name', '') or service_code
+            )
+            service_key = _normalize_service_key(service_name)
+            row = extra_rows_map.setdefault(
+                row_key,
+                {
+                    'exam_record_id': exam_record.pk,
+                    'patient_code': getattr(patient, 'his_patient_code', ''),
+                    'patient_name': getattr(patient, 'full_name', ''),
+                    'exam_date': getattr(exam_record, 'exam_date', None),
+                    'services': [],
+                    '_service_keys': set(),
+                }
+            )
+            if service_key and service_key not in row['_service_keys']:
+                row['_service_keys'].add(service_key)
+                row['services'].append({
+                    'code': service_code,
+                    'name': service_name,
+                })
+
+        extra_rows = sorted(
+            extra_rows_map.values(),
+            key=lambda row: (
+                row['exam_date'] or '',
+                row['patient_name'] or '',
+                row['patient_code'] or '',
+            ),
+        )
+        for row in extra_rows:
+            row.pop('_service_keys', None)
+
+        context['extra_ultrasound_rows'] = extra_rows
         return context
 
 

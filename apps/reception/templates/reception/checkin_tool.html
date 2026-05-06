@@ -1016,7 +1016,7 @@ async function doLookup(maBN) {
       headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
       body: JSON.stringify({ ma_bn: maBN }),
     });
-    const data = await res.json();
+    const data = await readApiResponse(res);
     hideSpinner();
 
     if (!data.ok) {
@@ -1027,7 +1027,7 @@ async function doLookup(maBN) {
     renderPatientCard(data);
   } catch (e) {
     hideSpinner();
-    showFeedback("error", "Lỗi kết nối. Vui lòng thử lại.");
+    showFeedback("error", formatRequestError(e, "tra cuu"));
   }
 }
 
@@ -1141,7 +1141,7 @@ async function doAction(action) {
       headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
+    const data = await readApiResponse(res);
     setButtonsLoading(false);
 
     if (!data.ok) {
@@ -1165,11 +1165,50 @@ async function doAction(action) {
 
   } catch (e) {
     setButtonsLoading(false);
-    showFeedback("error", "Lỗi kết nối. Vui lòng thử lại.");
+    showFeedback("error", formatRequestError(e, "xu ly"));
   }
 }
 
 /* ── UI helpers ─────────────────────────────────────────────────────── */
+/* ── UI helpers ─────────────────────────────────────────────────────── */
+async function readApiResponse(res) {
+  const rawText = await res.text();
+  let data = null;
+
+  if (rawText) {
+    try {
+      data = JSON.parse(rawText);
+    } catch (err) {
+      const snippet = rawText.replace(/\s+/g, " ").trim().slice(0, 240);
+      throw new Error(
+        `HTTP ${res.status} ${res.statusText || ""}`.trim() +
+        (snippet ? ` | ${snippet}` : "")
+      );
+    }
+  }
+
+  if (data && typeof data === "object") {
+    if (!res.ok && !data.error) {
+      data.error = `HTTP ${res.status} ${res.statusText || ""}`.trim();
+    }
+    return data;
+  }
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} ${res.statusText || ""}`.trim());
+  }
+
+  return { ok: false, error: "Phan hoi tu may chu khong hop le." };
+}
+
+function formatRequestError(error, actionLabel) {
+  const detail = error && error.message ? error.message : String(error || "");
+  if (detail) {
+    return `Loi ${actionLabel}: ${detail}`;
+  }
+  return `Loi ket noi khi ${actionLabel}.`;
+}
+
 function showSpinner() {
   scanSpinner.classList.add("show");
   emptyPrompt.style.display = "none";

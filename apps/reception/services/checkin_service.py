@@ -61,15 +61,25 @@ def lookup_patient(ma_bn: str, exam_date: date = None):
         existing = (
             CheckInRecord.objects
             .filter(
-                snapshot_ma_bn=patient.ma_bn,
-                exam_date__range=[
-                    schedule_config.exam_start_date,
-                    schedule_config.exam_end_date,
-                ],
+                his_patient_sync=patient,
+                schedule_config=schedule_config,
             )
-            .order_by("-exam_date", "-created_at")
+            .order_by("-created_at")
             .first()
         )
+        if not existing:
+            existing = (
+                CheckInRecord.objects
+                .filter(
+                    snapshot_ma_bn=patient.ma_bn,
+                    exam_date__range=[
+                        schedule_config.exam_start_date,
+                        schedule_config.exam_end_date,
+                    ],
+                )
+                .order_by("-exam_date", "-created_at")
+                .first()
+            )
     else:
         # Fallback: không có lịch khám — chỉ kiểm tra hôm nay
         existing = (

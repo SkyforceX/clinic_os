@@ -1001,8 +1001,11 @@ scrollWrapper.addEventListener('touchmove', (e) => {
     html += '<th style="font-size:11px;">Dịch vụ siêu âm theo ngày</th>';
     html += '</tr></thead><tbody>';
     for (const c of companies) {
-      const badges = (c.service_counts || []).map(function (s) {
-        return `<span class="badge me-1 mb-1" style="background:#7c3aed;font-size:10px;">${esc(s.name)}: ${s.count}</span>`;
+      const serviceRows = (c.service_counts || []).map(function (s) {
+        return `<tr>
+          <td style="font-size:11px;">${esc(s.name)}</td>
+          <td style="font-size:11px;text-align:center;width:72px;font-weight:600;">${s.count}</td>
+        </tr>`;
       }).join('');
       html += '<tr>';
       html += `<td style="font-size:11px;"><strong>${esc(c.name)}</strong>`;
@@ -1010,7 +1013,21 @@ scrollWrapper.addEventListener('touchmove', (e) => {
       html += '</td>';
       html += `<td style="font-size:11px;text-align:center;">${c.allocated_slots}</td>`;
       html += `<td style="font-size:11px;text-align:center;font-weight:${c.estimated_us > 0 ? 'bold' : 'normal'};">${c.estimated_us}</td>`;
-      html += `<td>${badges || '<small class="text-muted">Không có SA trong gói</small>'}</td>`;
+      html += `<td>${
+        serviceRows
+          ? `<div class="table-responsive">
+              <table class="table table-sm table-bordered mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="font-size:11px;">Tên siêu âm</th>
+                    <th style="font-size:11px;text-align:center;width:72px;">SL</th>
+                  </tr>
+                </thead>
+                <tbody>${serviceRows}</tbody>
+              </table>
+            </div>`
+          : '<small class="text-muted">Không có SA trong gói</small>'
+      }</td>`;
       html += '</tr>';
     }
     html += '</tbody></table></div>';
@@ -1027,15 +1044,20 @@ scrollWrapper.addEventListener('touchmove', (e) => {
         <th style="font-size:11px;">Siêu âm</th>
       </tr></thead><tbody>`;
     for (const p of patients) {
-      const badges = p.services.map(function (s) {
-        return `<span class="badge me-1" style="background:#7c3aed;font-size:10px;">${esc(s)}</span>`;
+      const serviceRows = p.services.map(function (s) {
+        const serviceName = typeof s === 'string' ? s : (s.name || '');
+        const isExtra = typeof s === 'object' && !!s.is_extra;
+        return `<div style="font-size:11px;line-height:1.4;padding:2px 0;${isExtra ? 'color:#c62828;font-weight:600;' : ''}">
+          ${esc(serviceName)}
+          ${isExtra ? '<span class="badge bg-warning text-dark ms-1" style="font-size:9px;">Extra</span>' : ''}
+        </div>`;
       }).join('');
       t += `<tr>
         <td style="font-size:11px;">${esc(p.code)}</td>
         <td style="font-size:11px;">${esc(p.name)}</td>
         <td style="font-size:11px;">${esc(p.dob)}</td>
         <td style="font-size:11px;">${esc(p.gender)}</td>
-        <td>${badges}</td>
+        <td>${serviceRows}</td>
       </tr>`;
     }
     t += '</tbody></table></div>';

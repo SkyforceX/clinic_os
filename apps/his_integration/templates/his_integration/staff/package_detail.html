@@ -298,5 +298,48 @@
             </div>
         </div>
     </div>
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Danh sách Extra</h5>
+            <span class="badge bg-warning text-dark">{{ extra_ultrasound_rows|length }} BN</span>
+        </div>
+        <div class="card-body p-0">
+            {% if extra_ultrasound_rows %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>STT</th>
+                            <th>Mã HIS</th>
+                            <th>Họ tên</th>
+                            <th>Ngày khám</th>
+                            <th>Dịch vụ siêu âm extra</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in extra_ultrasound_rows %}
+                        <tr>
+                            <td class="text-muted small">{{ forloop.counter }}</td>
+                            <td><code class="text-secondary">{{ row.patient_code|default:"—" }}</code></td>
+                            <td class="fw-semibold">{{ row.patient_name|default:"—" }}</td>
+                            <td class="text-nowrap">{{ row.exam_date|date:"d/m/Y"|default:"—" }}</td>
+                            <td>
+                                {% for service in row.services %}
+                                <div class="py-1">
+                                    <div class="fw-semibold">{{ service.name }}</div>
+                                    <div class="text-muted small"><code>{{ service.code }}</code></div>
+                                </div>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-4">Không có dịch vụ siêu âm extra ngoài gói chung</div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}

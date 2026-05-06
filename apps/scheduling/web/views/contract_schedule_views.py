@@ -14,6 +14,11 @@ from django.views.decorators.http import require_POST
 
 from apps.booking.models import Appointment
 from apps.core.models import SystemGeneralSetting
+from apps.his_integration.models import (
+    HisDiagnosticImagingItemSync,
+    HisPackageServiceSync,
+    HisServiceCatalogSync,
+)
 from apps.scheduling.models import ContractScheduleConfig, ScheduleSlot, SlotType, TimeShift
 from apps.scheduling.policies import SchedulingPolicy
 from apps.scheduling.selectors.schedule_matrix import (
@@ -21,7 +26,10 @@ from apps.scheduling.selectors.schedule_matrix import (
     _build_config_us_plan,
     _get_company_name_from_config,
     _get_us_service_names,
+    _is_ultrasound_service_catalog,
     _is_actor_owned_config,
+    _normalize_service_key,
+    _display_service_name,
     _patient_gender_code,
     build_contract_schedule_matrix,
 )
@@ -231,6 +239,103 @@ def _format_patient_dob(patient):
     return str(dob or "")
 
 
+def _get_package_ultrasound_code_set(his_package):
+    if not his_package:
+        return set()
+
+    codes = set()
+    rows = (
+        HisPackageServiceSync.objects.filter(
+            is_active=True,
+            is_outside_package=False,
+            service_catalog__isnull=False,
+        )
+        .filter(
+            Q(package_sync=his_package)
+            | Q(his_package_code=his_package.his_package_code)
+            | Q(his_package_code__startswith=f"{his_package.his_package_code}.")
+        )
+        .select_related("service_catalog")
+    )
+    for row in rows:
+        if _is_ultrasound_service_catalog(getattr(row, "service_catalog", None)):
+            code = (row.service_item_code or "").strip()
+            if code:
+                codes.add(code)
+    return codes
+
+
+def _build_extra_ultrasound_map(*, his_package, patient_ids, target_date):
+    if not his_package or not patient_ids:
+        return {}
+
+    package_ultrasound_codes = _get_package_ultrasound_code_set(his_package)
+    items = list(
+        HisDiagnosticImagingItemSync.objects.filter(
+            is_active=True,
+            imaging_sync__is_active=True,
+            imaging_sync__exam_record_sync__package_sync=his_package,
+            imaging_sync__exam_record_sync__patient_sync_id__in=patient_ids,
+        )
+        .filter(
+            Q(imaging_sync__exam_record_sync__exam_date=target_date)
+            | Q(imaging_sync__exam_date__date=target_date)
+        )
+        .select_related(
+            "imaging_sync",
+            "imaging_sync__exam_record_sync",
+            "imaging_sync__exam_record_sync__patient_sync",
+        )
+        .order_by("imaging_sync__exam_record_sync__patient_sync_id", "service_item_code")
+    )
+    service_codes = {
+        (item.service_item_code or "").strip()
+        for item in items
+        if (item.service_item_code or "").strip()
+    }
+    catalog_map = {
+        catalog.service_item_code: catalog
+        for catalog in HisServiceCatalogSync.objects.filter(
+            service_item_code__in=service_codes,
+            is_active=True,
+        )
+    }
+
+    extras_by_patient = defaultdict(list)
+    seen_by_patient = defaultdict(set)
+    for item in items:
+        service_code = (item.service_item_code or "").strip()
+        if not service_code:
+            continue
+        catalog = catalog_map.get(service_code)
+        if not _is_ultrasound_service_catalog(catalog):
+            continue
+
+        is_extra = (item.is_package_service is False) or (service_code not in package_ultrasound_codes)
+        if not is_extra:
+            continue
+
+        patient = getattr(getattr(item.imaging_sync, "exam_record_sync", None), "patient_sync", None)
+        patient_id = getattr(patient, "id", None)
+        if not patient_id:
+            continue
+
+        service_name = _display_service_name(
+            getattr(catalog, "service_item_name", "") or service_code
+        )
+        service_key = f"extra::{_normalize_service_key(service_name)}::{service_code}"
+        if service_key in seen_by_patient[patient_id]:
+            continue
+        seen_by_patient[patient_id].add(service_key)
+        extras_by_patient[patient_id].append({
+            "name": service_name,
+            "is_extra": True,
+            "code": service_code,
+        })
+
+    return dict(extras_by_patient)
+
+
 @login_required(login_url="authentication:staff_login")
 def get_us_modal_data(request):
     """AJAX: trả về danh sách BN + siêu âm theo ngày, nhóm theo công ty."""
@@ -301,7 +406,7 @@ def get_us_modal_data(request):
         .distinct()
     )
 
-    def _build_list(slot, us_lines):
+    def _build_list(slot, us_lines, extra_services_by_patient):
         patients = []
         if not slot:
             return patients
@@ -310,7 +415,12 @@ def get_us_modal_data(request):
             if not patient:
                 continue
             gc = _patient_gender_code(patient)
-            services = _get_us_service_names(us_lines, gc)
+            services = [
+                {"name": service_name, "is_extra": False}
+                for service_name in _get_us_service_names(us_lines, gc)
+            ]
+            extras = extra_services_by_patient.get(getattr(patient, "id", None), [])
+            services.extend(extras)
             if not services:
                 continue
             patients.append({
@@ -342,8 +452,21 @@ def get_us_modal_data(request):
         if masked:
             company_name = "Lịch khám đã chốt" if config.is_confirmed else "Lịch khám dự kiến"
 
-        am_patients = _build_list(shift_map.get(TimeShift.MORNING), us_lines)
-        pm_patients = _build_list(shift_map.get(TimeShift.AFTERNOON), us_lines)
+        patient_ids = set()
+        for slot in shift_map.values():
+            for ap in slot.appointments.all():
+                patient = _appointment_patient(ap)
+                patient_id = getattr(patient, "id", None)
+                if patient_id:
+                    patient_ids.add(patient_id)
+        extra_services_by_patient = _build_extra_ultrasound_map(
+            his_package=getattr(config, "his_package", None),
+            patient_ids=patient_ids,
+            target_date=target_date,
+        )
+
+        am_patients = _build_list(shift_map.get(TimeShift.MORNING), us_lines, extra_services_by_patient)
+        pm_patients = _build_list(shift_map.get(TimeShift.AFTERNOON), us_lines, extra_services_by_patient)
         if am_patients or pm_patients:
             total_us += sum(len(p["services"]) for p in am_patients + pm_patients)
             companies.append({
