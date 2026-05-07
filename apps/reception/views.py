@@ -49,6 +49,26 @@ def get_operator(request):
         return None
 
 
+def _serialize_recent_checkin_items(records):
+    recent_data = []
+    import pytz
+
+    local_tz = pytz.timezone("Asia/Ho_Chi_Minh")
+    for rec in records:
+        t = ""
+        if rec.checked_in_at:
+            t = rec.checked_in_at.astimezone(local_tz).strftime("%H:%M")
+        recent_data.append({
+            "ma_bn": rec.snapshot_ma_bn,
+            "ho_ten": rec.snapshot_ho_ten,
+            "company_name": get_checkin_record_company_name(rec),
+            "status": rec.status,
+            "status_label": rec.get_status_display(),
+            "time": t,
+        })
+    return recent_data
+
+
 # Ã¢â€â‚¬Ã¢â€â‚¬ Trang chÃƒÂ­nh (GET: form login hoÃ¡ÂºÂ·c tool, POST: xÃ¡Â»Â­ lÃƒÂ½ login) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 @ensure_csrf_cookie
@@ -81,13 +101,14 @@ def checkin_tool(request):
     today = date.today()
     company_stats, total_today, exam_date = get_today_stats(today)
     recent = get_recent_checkins(today, limit=30)
+    recent_items = _serialize_recent_checkin_items(recent)
 
     return render(request, "reception/checkin_tool.html", {
         "operator": operator,
         "today": today,
         "company_stats": company_stats,
         "total_today": total_today,
-        "recent": recent,
+        "recent_items": recent_items,
         "CheckInStatus": CheckInStatus,
     })
 
@@ -278,22 +299,7 @@ def ajax_stats(request):
     company_stats, total_today, _ = get_today_stats(today)
 
     recent_records = get_recent_checkins(today, limit=30)
-    recent_data = []
-    import pytz
-
-    local_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-    for rec in recent_records:
-        t = ""
-        if rec.checked_in_at:
-            t = rec.checked_in_at.astimezone(local_tz).strftime("%H:%M")
-        recent_data.append({
-            "ma_bn": rec.snapshot_ma_bn,
-            "ho_ten": rec.snapshot_ho_ten,
-            "company_name": get_checkin_record_company_name(rec),
-            "status": rec.status,
-            "status_label": rec.get_status_display(),
-            "time": t,
-        })
+    recent_data = _serialize_recent_checkin_items(recent_records)
 
     stats_data = [
         {
@@ -342,7 +348,7 @@ def ajax_history(request):
     qs = (
         CheckInRecord.objects
         .filter(exam_date__range=(date_from, date_to))
-        .select_related("operator")
+        .select_related("operator", "schedule_config", "schedule_config__his_package", "schedule_config__his_package__organization")
         .order_by("-exam_date", "-checked_in_at")
     )
     if ma_bn_q:

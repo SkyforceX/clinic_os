@@ -21,6 +21,7 @@ class Command(BaseCommand):
         parser.add_argument("--record-id", type=int, help="Only process one CheckInRecord.")
         parser.add_argument("--date-from", type=date.fromisoformat, help="Filter from exam_date YYYY-MM-DD.")
         parser.add_argument("--date-to", type=date.fromisoformat, help="Filter to exam_date YYYY-MM-DD.")
+        parser.add_argument("--show-unresolved", action="store_true", help="Print unresolved record details.")
 
     def handle(self, *args, **options):
         queryset = CheckInRecord.objects.all()
@@ -57,3 +58,11 @@ class Command(BaseCommand):
         self.stdout.write(f"- updated: {result.updated}")
         self.stdout.write(f"- unchanged: {result.unchanged}")
         self.stdout.write(f"- unresolved: {result.unresolved}")
+        if options.get("show_unresolved") and result.unresolved_details:
+            self.stdout.write("Unresolved records:")
+            for item in result.unresolved_details:
+                self.stdout.write(
+                    f"  - id={item['id']} patient_code={item['patient_code']} "
+                    f"exam_date={item['exam_date']} his_patient_sync_id={item['his_patient_sync_id']} "
+                    f"schedule_config_id={item['schedule_config_id']} company_id={item['company_id']}"
+                )

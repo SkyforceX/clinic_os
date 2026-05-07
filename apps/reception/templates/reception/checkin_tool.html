@@ -986,7 +986,7 @@ body {
         Hoạt động gần nhất
       </div>
       <div class="recent-list" id="recentList">
-        {% for rec in recent %}
+        {% for rec in recent_items %}
         <div class="recent-item">
           <div class="recent-status-dot
             {% if rec.status == 'CHECKED_IN' %}dot-ci
@@ -994,21 +994,21 @@ body {
             {% else %}dot-df{% endif %}">
           </div>
           <div style="flex:1;min-width:0">
-            <div class="recent-name">{{ rec.snapshot_ho_ten }}</div>
-            <div class="recent-company">{{ rec.snapshot_ma_bn }}</div>
+            <div class="recent-name">{{ rec.ho_ten }}</div>
+            <div class="recent-company">{{ rec.ma_bn }}</div>
           </div>
           <div class="recent-company" style="max-width:220px">
-            {{ rec.snapshot_company_name }}
+            {{ rec.company_name|default:"—" }}
           </div>
           <div class="recent-badge
             {% if rec.status == 'CHECKED_IN' %}rb-ci
             {% elif rec.status == 'CHECKED_OUT' %}rb-co
             {% else %}rb-df{% endif %}">
-            {{ rec.get_status_display }}
+            {{ rec.status_label }}
           </div>
-          {% if rec.checked_in_at %}
+          {% if rec.time %}
           <div class="recent-time">
-            {{ rec.checked_in_at|date:"H:i" }}
+            {{ rec.time }}
           </div>
           {% endif %}
         </div>

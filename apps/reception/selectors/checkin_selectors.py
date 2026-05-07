@@ -20,7 +20,7 @@ def _resolve_his_company_name_for_record(record):
 
 
 def get_checkin_record_company_name(record):
-    return _resolve_his_company_name_for_record(record) or (record.snapshot_company_name or "").strip()
+    return _resolve_his_company_name_for_record(record)
 
 
 def get_today_stats(exam_date: date = None):

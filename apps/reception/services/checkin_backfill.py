@@ -82,10 +82,11 @@ class BackfillResult:
     updated: int = 0
     unchanged: int = 0
     unresolved: int = 0
+    unresolved_details: list[dict] | None = None
 
 
 def backfill_checkin_company_data(*, queryset, dry_run: bool = False, force_all: bool = False):
-    result = BackfillResult()
+    result = BackfillResult(unresolved_details=[])
     schedule_cache: dict[str, object] = {}
 
     records = queryset.select_related(
@@ -111,6 +112,16 @@ def backfill_checkin_company_data(*, queryset, dry_run: bool = False, force_all:
 
         if not company_name:
             result.unresolved += 1
+            result.unresolved_details.append(
+                {
+                    "id": record.id,
+                    "patient_code": (record.snapshot_ma_bn or "").strip(),
+                    "exam_date": str(record.exam_date),
+                    "his_patient_sync_id": record.his_patient_sync_id,
+                    "schedule_config_id": record.schedule_config_id,
+                    "company_id": record.company_id,
+                }
+            )
             continue
 
         update_fields = []
