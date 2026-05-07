@@ -564,6 +564,80 @@ body {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: .4; transform: scale(.8); }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   HISTORY MODAL
+═══════════════════════════════════════════════════════════════════ */
+.btn-topbar-history {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.3);
+  color: white;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-topbar-history:hover { background: rgba(255,255,255,.28); }
+
+.hist-period-btn {
+  background: var(--gray-100);
+  border: 1.5px solid var(--gray-200);
+  border-radius: 7px;
+  padding: 5px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all .15s;
+}
+.hist-period-btn:hover  { border-color: var(--brand); color: var(--brand); }
+.hist-period-btn.active { background: var(--brand); border-color: var(--brand); color: white; }
+
+.hist-input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 7px;
+  font-size: 13px;
+  color: var(--gray-800);
+  outline: none;
+  transition: border-color .15s;
+}
+.hist-input:focus { border-color: var(--brand); }
+
+.btn-hist-search {
+  background: var(--brand);
+  border: none;
+  color: white;
+  border-radius: 7px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.btn-hist-search:hover { background: #0a3a6a; }
+
+.hist-th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-600);
+  white-space: nowrap;
+  background: var(--gray-100);
+}
+.hist-td {
+  padding: 8px 10px;
+  vertical-align: middle;
+  font-size: 13px;
+}
 </style>
 </head>
 
@@ -583,6 +657,14 @@ body {
   <div class="topbar-date" id="topbarClock"></div>
 
   {% if operator %}
+  <!-- Nút lịch sử check-in -->
+  <button class="btn-topbar-history" type="button" data-bs-toggle="modal" data-bs-target="#historyModal">
+    <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử
+  </button>
+  <!-- Nút danh sách đăng ký hôm nay -->
+  <button class="btn-topbar-history" type="button" data-bs-toggle="modal" data-bs-target="#regModal" style="background:rgba(22,163,74,.25);border-color:rgba(22,163,74,.5)">
+    <i class="fa-solid fa-list-check"></i> DS đăng ký hôm nay
+  </button>
   <!-- Hiển thị thông tin thư ký đang đăng nhập -->
   <div class="topbar-operator">
     <i class="fa-regular fa-user-circle"></i>
@@ -927,6 +1009,178 @@ body {
   </div><!-- /stats panel -->
 
 </div><!-- /tool-layout -->
+{% endif %}
+
+{% if operator %}
+<!-- ══ MODAL: LỊCH SỬ CHECK-IN ══════════════════════════════════════════ -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--brand);color:white;padding:12px 20px">
+        <h5 class="modal-title" id="historyModalLabel" style="font-size:15px;font-weight:700">
+          <i class="fa-solid fa-clock-rotate-left me-2"></i>Lịch sử Check-in
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="background:#f0f4fa;padding:16px">
+
+        <!-- Bộ lọc -->
+        <div style="background:white;border-radius:10px;padding:16px;margin-bottom:14px;box-shadow:0 1px 6px rgba(0,0,0,.06)">
+          <!-- Nút khoảng thời gian nhanh -->
+          <div style="margin-bottom:12px">
+            <div style="font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:8px">
+              <i class="fa-regular fa-calendar-check me-1"></i>Khoảng thời gian nhanh
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="hist-period-btn active" data-period="today">Hôm nay</button>
+              <button class="hist-period-btn" data-period="yesterday">Hôm qua</button>
+              <button class="hist-period-btn" data-period="7d">7 ngày qua</button>
+              <button class="hist-period-btn" data-period="30d">30 ngày qua</button>
+              <button class="hist-period-btn" data-period="custom">Tùy chọn</button>
+            </div>
+          </div>
+          <!-- Bộ lọc chi tiết -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:end">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:4px">Từ ngày</label>
+              <input type="date" id="histDateFrom" class="hist-input">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:4px">Đến ngày</label>
+              <input type="date" id="histDateTo" class="hist-input">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:4px">Mã bệnh nhân</label>
+              <input type="text" id="histMaBN" class="hist-input" placeholder="VMDBNNHH...">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:4px">Họ và tên</label>
+              <input type="text" id="histHoTen" class="hist-input" placeholder="Tìm theo tên...">
+            </div>
+            <button type="button" id="btnHistSearch" class="btn-hist-search">
+              <i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm
+            </button>
+          </div>
+        </div>
+
+        <!-- Kết quả -->
+        <div style="background:white;border-radius:10px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,.06)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:13px;font-weight:700;color:var(--gray-800)">
+              <i class="fa-solid fa-list me-1"></i>Kết quả
+            </div>
+            <div id="histCount" style="font-size:12px;color:var(--gray-400)"></div>
+          </div>
+          <div id="histLoading" style="display:none;text-align:center;padding:24px;color:var(--gray-400);font-size:13px">
+            <i class="fa-solid fa-circle-notch fa-spin me-2"></i>Đang tải...
+          </div>
+          <div id="histEmpty" style="display:none;text-align:center;padding:32px;color:var(--gray-400);font-size:13px">
+            <i class="fa-solid fa-inbox" style="font-size:28px;opacity:.3;display:block;margin-bottom:8px"></i>
+            Không tìm thấy bản ghi nào
+          </div>
+          <div id="histTableWrap" style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse">
+              <thead>
+                <tr>
+                  <th class="hist-th" style="border-radius:6px 0 0 0">STT</th>
+                  <th class="hist-th">Mã BN</th>
+                  <th class="hist-th">Họ và tên</th>
+                  <th class="hist-th">Công ty</th>
+                  <th class="hist-th">Trạng thái</th>
+                  <th class="hist-th">Giờ CI</th>
+                  <th class="hist-th">Ngày khám</th>
+                  <th class="hist-th">Thư ký</th>
+                  <th class="hist-th" style="border-radius:0 6px 0 0">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody id="histTableBody">
+                <tr>
+                  <td colspan="9" style="text-align:center;padding:28px;color:var(--gray-400);font-size:13px">
+                    Chọn bộ lọc và nhấn Tìm kiếm
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /modal-body -->
+    </div>
+  </div>
+</div>
+<!-- ══ MODAL: DANH SÁCH ĐĂNG KÝ HÔM NAY ════════════════════════════════════ -->
+<div class="modal fade" id="regModal" tabindex="-1" aria-labelledby="regModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--green);color:white;padding:12px 20px">
+        <h5 class="modal-title" id="regModalLabel" style="font-size:15px;font-weight:700">
+          <i class="fa-solid fa-list-check me-2"></i>Danh sách đăng ký khám đoàn hôm nay
+          <span id="regModalDate" style="font-weight:400;font-size:13px;margin-left:10px;opacity:.85"></span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="background:#f0f4fa;padding:16px">
+
+        <!-- Bộ lọc buổi + tổng số -->
+        <div style="background:white;border-radius:10px;padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 6px rgba(0,0,0,.06);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="font-size:12px;font-weight:600;color:var(--gray-600)">
+            <i class="fa-regular fa-clock me-1"></i>Lọc buổi:
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="hist-period-btn active" data-shift="all"  id="regBtnAll">Tất cả</button>
+            <button class="hist-period-btn"         data-shift="AM"   id="regBtnAM">
+              <i class="fa-regular fa-sun me-1" style="color:#d97706"></i>Buổi sáng
+            </button>
+            <button class="hist-period-btn"         data-shift="PM"   id="regBtnPM">
+              <i class="fa-regular fa-moon me-1" style="color:#4f46e5"></i>Buổi chiều
+            </button>
+          </div>
+          <div style="margin-left:auto;font-size:13px;color:var(--gray-600)">
+            Tổng: <strong id="regTotalDisplay">—</strong>
+            &nbsp;|&nbsp; Sáng: <strong id="regAmDisplay">—</strong>
+            &nbsp;|&nbsp; Chiều: <strong id="regPmDisplay">—</strong>
+          </div>
+        </div>
+
+        <!-- Kết quả -->
+        <div style="background:white;border-radius:10px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,.06)">
+          <div id="regLoading" style="display:none;text-align:center;padding:24px;color:var(--gray-400);font-size:13px">
+            <i class="fa-solid fa-circle-notch fa-spin me-2"></i>Đang tải...
+          </div>
+          <div id="regEmpty" style="display:none;text-align:center;padding:32px;color:var(--gray-400);font-size:13px">
+            <i class="fa-solid fa-inbox" style="font-size:28px;opacity:.3;display:block;margin-bottom:8px"></i>
+            Chưa có bệnh nhân đăng ký hôm nay
+          </div>
+          <div id="regTableWrap" style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse">
+              <thead>
+                <tr>
+                  <th class="hist-th">STT</th>
+                  <th class="hist-th">Mã BN</th>
+                  <th class="hist-th">Họ và tên</th>
+                  <th class="hist-th">Giới tính</th>
+                  <th class="hist-th">Ngày sinh</th>
+                  <th class="hist-th">Công ty</th>
+                  <th class="hist-th">Buổi</th>
+                  <th class="hist-th">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody id="regTableBody">
+                <tr>
+                  <td colspan="8" style="text-align:center;padding:28px;color:var(--gray-400);font-size:13px">
+                    Đang tải dữ liệu...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /modal-body -->
+    </div>
+  </div>
+</div>
+
 {% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -1347,6 +1601,219 @@ document.addEventListener("click", function(e) {
   if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "BUTTON") {
     refocusScan();
   }
+});
+
+/* ── History Modal ────────────────────────────────────────────────── */
+const URL_HISTORY  = "{% url 'reception:ajax_history' %}";
+const histDateFrom = document.getElementById("histDateFrom");
+const histDateTo   = document.getElementById("histDateTo");
+const histMaBN     = document.getElementById("histMaBN");
+const histHoTen    = document.getElementById("histHoTen");
+
+function _todayStr() {
+  return new Date().toISOString().split("T")[0];
+}
+function _daysAgoStr(n) {
+  const d = new Date(); d.setDate(d.getDate() - n);
+  return d.toISOString().split("T")[0];
+}
+
+/* Init date inputs */
+histDateFrom.value = _todayStr();
+histDateTo.value   = _todayStr();
+
+/* Period buttons */
+document.querySelectorAll(".hist-period-btn").forEach(btn => {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".hist-period-btn").forEach(b => b.classList.remove("active"));
+    this.classList.add("active");
+    const p = this.dataset.period;
+    if (p === "today")     { histDateFrom.value = _todayStr();    histDateTo.value = _todayStr(); }
+    else if (p === "yesterday") { histDateFrom.value = _daysAgoStr(1); histDateTo.value = _daysAgoStr(1); }
+    else if (p === "7d")   { histDateFrom.value = _daysAgoStr(6); histDateTo.value = _todayStr(); }
+    else if (p === "30d")  { histDateFrom.value = _daysAgoStr(29);histDateTo.value = _todayStr(); }
+    /* "custom" → user picks manually */
+  });
+});
+
+/* Search on button click or Enter in text inputs */
+document.getElementById("btnHistSearch").addEventListener("click", doHistSearch);
+[histMaBN, histHoTen].forEach(inp => {
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") doHistSearch(); });
+});
+
+async function doHistSearch() {
+  const loading = document.getElementById("histLoading");
+  const empty   = document.getElementById("histEmpty");
+  const wrap    = document.getElementById("histTableWrap");
+  const tbody   = document.getElementById("histTableBody");
+  const count   = document.getElementById("histCount");
+
+  loading.style.display = "block";
+  empty.style.display   = "none";
+  wrap.style.display    = "none";
+  count.textContent     = "";
+
+  const params = new URLSearchParams();
+  if (histDateFrom.value) params.set("date_from", histDateFrom.value);
+  if (histDateTo.value)   params.set("date_to",   histDateTo.value);
+  if (histMaBN.value.trim())   params.set("ma_bn",  histMaBN.value.trim());
+  if (histHoTen.value.trim())  params.set("ho_ten", histHoTen.value.trim());
+
+  try {
+    const res  = await fetch(`${URL_HISTORY}?${params.toString()}`);
+    const data = await res.json();
+    loading.style.display = "none";
+
+    if (!data.ok || !data.records || !data.records.length) {
+      empty.style.display = "block";
+      count.textContent   = "0 bản ghi";
+      wrap.style.display  = "none";
+      return;
+    }
+
+    count.textContent = `${data.records.length} bản ghi`;
+    const statusMap = {
+      CHECKED_IN:  { cls: "rb-ci", label: "Check-in" },
+      CHECKED_OUT: { cls: "rb-co", label: "Check-out" },
+      DEFERRED:    { cls: "rb-df", label: "Quay lại sau" },
+    };
+    tbody.innerHTML = data.records.map((r, i) => {
+      const sm = statusMap[r.status] || { cls: "rb-ci", label: r.status };
+      const safeStr = s => (s || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      return `
+        <tr style="border-bottom:1px solid var(--gray-200)">
+          <td class="hist-td" style="color:var(--gray-400)">${i + 1}</td>
+          <td class="hist-td"><code style="font-size:12px;color:var(--brand)">${safeStr(r.ma_bn)}</code></td>
+          <td class="hist-td" style="font-weight:600">${safeStr(r.ho_ten)}</td>
+          <td class="hist-td" style="color:var(--gray-600);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${safeStr(r.company_name)}">${safeStr(r.company_name) || "—"}</td>
+          <td class="hist-td"><span class="recent-badge ${sm.cls}">${sm.label}</span></td>
+          <td class="hist-td" style="font-variant-numeric:tabular-nums">${r.checkin_time || "—"}</td>
+          <td class="hist-td" style="font-variant-numeric:tabular-nums;white-space:nowrap">${r.exam_date || "—"}</td>
+          <td class="hist-td" style="color:var(--gray-600)">${safeStr(r.operator) || "—"}</td>
+          <td class="hist-td" style="color:var(--gray-600);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${safeStr(r.note)}">${safeStr(r.note) || "—"}</td>
+        </tr>`;
+    }).join("");
+    wrap.style.display = "block";
+  } catch (e) {
+    loading.style.display = "none";
+    empty.style.display   = "block";
+    count.textContent     = "Lỗi tải dữ liệu";
+  }
+}
+
+/* Auto-load khi mở modal */
+document.getElementById("historyModal").addEventListener("shown.bs.modal", function() {
+  doHistSearch();
+});
+
+/* Khi đóng modal → refocus scan input */
+document.getElementById("historyModal").addEventListener("hidden.bs.modal", function() {
+  refocusScan();
+});
+
+/* ── Today Registrations Modal ──────────────────────────────────────── */
+const URL_REGISTRATIONS = "{% url 'reception:ajax_today_registrations' %}";
+let _regAllRows = [];
+let _regShiftFilter = "all";
+
+document.querySelectorAll("[data-shift]").forEach(btn => {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll("[data-shift]").forEach(b => b.classList.remove("active"));
+    this.classList.add("active");
+    _regShiftFilter = this.dataset.shift;
+    renderRegTable();
+  });
+});
+
+function renderRegTable() {
+  const tbody = document.getElementById("regTableBody");
+  const wrap  = document.getElementById("regTableWrap");
+  const empty = document.getElementById("regEmpty");
+
+  const filtered = _regShiftFilter === "all"
+    ? _regAllRows
+    : _regAllRows.filter(r => r.shift === _regShiftFilter);
+
+  if (!filtered.length) {
+    empty.style.display = "block";
+    wrap.style.display  = "none";
+    return;
+  }
+  empty.style.display = "none";
+  wrap.style.display  = "block";
+
+  const shiftBadge = { AM: "sáng-badge", PM: "chiều-badge" };
+  const statusStyle = {
+    CONFIRMED:   "background:#dcfce7;color:#16a34a",
+    CHECKED_IN:  "background:#dbeafe;color:#1d4ed8",
+    IN_PROGRESS: "background:#fef3c7;color:#d97706",
+    COMPLETED:   "background:#f3f4f6;color:#6b7280",
+    PENDING:     "background:#fef9c3;color:#854d0e",
+    NO_SHOW:     "background:#fee2e2;color:#dc2626",
+  };
+  const safeReg = s => (s || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  tbody.innerHTML = filtered.map((r, i) => {
+    const shiftStyle = r.shift === "AM"
+      ? "background:#fef3c7;color:#d97706;font-weight:700"
+      : "background:#ede9fe;color:#7c3aed;font-weight:700";
+    const sstyle = statusStyle[r.status] || "background:#f3f4f6;color:#6b7280";
+    return `
+      <tr style="border-bottom:1px solid var(--gray-200)">
+        <td class="hist-td" style="color:var(--gray-400)">${i + 1}</td>
+        <td class="hist-td"><code style="font-size:12px;color:var(--brand)">${safeReg(r.ma_bn)}</code></td>
+        <td class="hist-td" style="font-weight:600">${safeReg(r.ho_ten)}</td>
+        <td class="hist-td" style="text-align:center">${safeReg(r.gioi_tinh) || "—"}</td>
+        <td class="hist-td" style="white-space:nowrap">${safeReg(r.ngay_sinh) || "—"}</td>
+        <td class="hist-td" style="color:var(--gray-600);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${safeReg(r.company_name)}">${safeReg(r.company_name) || "—"}</td>
+        <td class="hist-td"><span style="padding:3px 10px;border-radius:5px;font-size:12px;${shiftStyle}">${safeReg(r.shift_label)}</span></td>
+        <td class="hist-td"><span style="padding:3px 10px;border-radius:5px;font-size:12px;${sstyle}">${safeReg(r.status_label)}</span></td>
+      </tr>`;
+  }).join("");
+}
+
+async function loadRegData() {
+  const loading = document.getElementById("regLoading");
+  const empty   = document.getElementById("regEmpty");
+  const wrap    = document.getElementById("regTableWrap");
+
+  loading.style.display = "block";
+  empty.style.display   = "none";
+  wrap.style.display    = "none";
+
+  try {
+    const res  = await fetch(URL_REGISTRATIONS);
+    const data = await res.json();
+    loading.style.display = "none";
+
+    if (!data.ok) { empty.style.display = "block"; return; }
+
+    document.getElementById("regModalDate").textContent = data.date || "";
+    _regAllRows = data.rows || [];
+
+    const amCount = _regAllRows.filter(r => r.shift === "AM").length;
+    const pmCount = _regAllRows.filter(r => r.shift === "PM").length;
+    document.getElementById("regTotalDisplay").textContent = data.total;
+    document.getElementById("regAmDisplay").textContent    = amCount;
+    document.getElementById("regPmDisplay").textContent    = pmCount;
+
+    renderRegTable();
+  } catch (e) {
+    loading.style.display = "none";
+    empty.style.display   = "block";
+  }
+}
+
+document.getElementById("regModal").addEventListener("shown.bs.modal", function() {
+  _regShiftFilter = "all";
+  document.querySelectorAll("[data-shift]").forEach(b => b.classList.remove("active"));
+  document.querySelector("[data-shift='all']").classList.add("active");
+  loadRegData();
+});
+
+document.getElementById("regModal").addEventListener("hidden.bs.modal", function() {
+  refocusScan();
 });
 
 {% endif %}

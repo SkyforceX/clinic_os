@@ -45,6 +45,48 @@
       .replace(/"/g, '&quot;');
   }
 
+  function buildResponsePreview(text) {
+    return String(text || "").replace(/\s+/g, " ").trim().slice(0, 300);
+  }
+
+  async function parseApiResponse(response) {
+    const contentType = response.headers.get("content-type") || "";
+    const rawText = await response.text();
+    let data = null;
+
+    if (rawText && contentType.includes("application/json")) {
+      try {
+        data = JSON.parse(rawText);
+      } catch (error) {
+        throw new Error(
+          "JSON khong hop le. HTTP " + response.status +
+          ". Preview: " + buildResponsePreview(rawText)
+        );
+      }
+    }
+
+    if (!response.ok) {
+      const message = data && data.error
+        ? data.error
+        : (
+          "HTTP " + response.status +
+          " | content-type: " + (contentType || "unknown") +
+          " | preview: " + buildResponsePreview(rawText)
+        );
+      throw new Error(message);
+    }
+
+    if (data !== null) {
+      return data;
+    }
+
+    throw new Error(
+      "Endpoint tra ve " + (contentType || "unknown") +
+      " thay vi JSON. HTTP " + response.status +
+      ". Preview: " + buildResponsePreview(rawText)
+    );
+  }
+
   async function loadLocalLog() {
     const endpoint = $("logEndpoint");
     const errEl = $("localLogError");
@@ -55,8 +97,14 @@
     if (errEl) errEl.style.display = "none";
 
     try {
-      const res = await fetch(endpoint.textContent.trim(), { credentials: "same-origin" });
-      const data = await res.json();
+      const res = await fetch(endpoint.textContent.trim(), {
+        credentials: "same-origin",
+        headers: {
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+      const data = await parseApiResponse(res);
       if (!data.ok) {
         if (errEl) { errEl.textContent = "Lỗi: " + (data.error || "Không rõ"); errEl.style.display = "block"; }
         if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding:14px 10px;color:#ef4444;text-align:center;">Lỗi tải dữ liệu.</td></tr>';
@@ -83,8 +131,10 @@
       const response = await fetch($("pushEndpoint").textContent.trim(), {
         method: "POST",
         headers: {
+          "Accept": "application/json",
           "Content-Type": "application/json",
           "X-CSRFToken": getCsrfToken(),
+          "X-Requested-With": "XMLHttpRequest",
         },
         credentials: "same-origin",
         body: JSON.stringify({
@@ -92,7 +142,7 @@
           force: $("force_send")?.checked || false,
         }),
       });
-      const data = await response.json();
+      const data = await parseApiResponse(response);
       if (result) result.textContent = JSON.stringify(data, null, 2);
       // Reload log after push (success or fail)
       loadLocalLog();

@@ -309,3 +309,149 @@ def ajax_stats(request):
         "total_today": total_today,
     })
 
+
+# ── AJAX: lịch sử check-in (có filter) ──────────────────────────────────────
+
+def ajax_history(request):
+    """GET ?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&ma_bn=&ho_ten= → JSON records."""
+    operator = get_operator(request)
+    if not operator:
+        return JsonResponse({"ok": False, "error": "Chưa xác thực."}, status=401)
+
+    from datetime import datetime as _dt
+    import pytz as _pytz
+
+    date_from_str = request.GET.get("date_from", "").strip()
+    date_to_str   = request.GET.get("date_to",   "").strip()
+    ma_bn_q       = request.GET.get("ma_bn",  "").strip().upper()
+    ho_ten_q      = request.GET.get("ho_ten", "").strip()
+
+    try:
+        date_from = _dt.strptime(date_from_str, "%Y-%m-%d").date() if date_from_str else date.today()
+        date_to   = _dt.strptime(date_to_str,   "%Y-%m-%d").date() if date_to_str   else date.today()
+    except ValueError:
+        return JsonResponse({"ok": False, "error": "Định dạng ngày không hợp lệ."}, status=400)
+
+    from apps.reception.models import CheckInRecord
+    qs = (
+        CheckInRecord.objects
+        .filter(exam_date__range=(date_from, date_to))
+        .select_related("operator")
+        .order_by("-exam_date", "-checked_in_at")
+    )
+    if ma_bn_q:
+        qs = qs.filter(snapshot_ma_bn__icontains=ma_bn_q)
+    if ho_ten_q:
+        qs = qs.filter(snapshot_ho_ten__icontains=ho_ten_q)
+
+    local_tz = _pytz.timezone("Asia/Ho_Chi_Minh")
+    records = []
+    for rec in qs[:300]:
+        t = ""
+        if rec.checked_in_at:
+            t = rec.checked_in_at.astimezone(local_tz).strftime("%H:%M")
+        op_name = ""
+        if rec.operator:
+            op_name = rec.operator.get_full_name() or rec.operator.username
+        records.append({
+            "ma_bn":        rec.snapshot_ma_bn,
+            "ho_ten":       rec.snapshot_ho_ten,
+            "company_name": rec.snapshot_company_name or "",
+            "status":       rec.status,
+            "checkin_time": t,
+            "exam_date":    rec.exam_date.strftime("%d/%m/%Y") if rec.exam_date else "",
+            "operator":     op_name,
+            "note":         rec.note or "",
+        })
+
+    return JsonResponse({"ok": True, "records": records})
+
+
+# ── AJAX: danh sách đăng ký khám đoàn hôm nay ──────────────────────────────
+
+def ajax_today_registrations(request):
+    """GET → JSON danh sách Appointment của hôm nay (slot type CONTRACT)."""
+    operator = get_operator(request)
+    if not operator:
+        return JsonResponse({"ok": False, "error": "Chưa xác thực."}, status=401)
+
+    from apps.booking.models import Appointment, AppointmentStatus
+    from apps.scheduling.models import SlotType
+
+    today = date.today()
+
+    qs = (
+        Appointment.objects
+        .filter(
+            schedule_slot__date=today,
+            schedule_slot__slot_type=SlotType.CONTRACT,
+        )
+        .exclude(status=AppointmentStatus.CANCELLED)
+        .select_related(
+            "patient",
+            "patient__company",
+            "his_patient_sync",
+            "schedule_slot",
+            "schedule_slot__contract",
+            "schedule_slot__contract__company",
+            "schedule_slot__quotation",
+        )
+        .order_by("schedule_slot__shift", "his_patient_sync__full_name", "patient__ho_ten")
+    )
+
+    status_labels = {s.value: s.label for s in AppointmentStatus}
+    shift_labels  = {"AM": "Sáng", "PM": "Chiều"}
+
+    rows = []
+    for appt in qs:
+        slot = appt.schedule_slot
+
+        # Thông tin BN
+        if appt.his_patient_sync:
+            his = appt.his_patient_sync
+            ma_bn    = his.his_patient_code or ""
+            ho_ten   = his.full_name or ""
+            gender_map = {"NAM": "Nam", "NU": "Nữ", "M": "Nam", "F": "Nữ", "0": "Nam", "1": "Nữ"}
+            gioi_tinh = gender_map.get((his.gender_code or "").upper(), his.gender_code or "")
+            if his.birth_date_text:
+                ngay_sinh = his.birth_date_text
+            elif his.birth_year:
+                ngay_sinh = str(his.birth_year)
+            else:
+                ngay_sinh = ""
+        elif appt.patient:
+            pt = appt.patient
+            ma_bn     = pt.ma_bn or ""
+            ho_ten    = pt.ho_ten or ""
+            gioi_tinh = pt.gioi_tinh or ""
+            ngay_sinh = pt.ngay_sinh.strftime("%d/%m/%Y") if pt.ngay_sinh else ""
+        else:
+            ma_bn = ho_ten = gioi_tinh = ngay_sinh = ""
+
+        # Tên công ty
+        company_name = ""
+        if slot.contract_id and slot.contract and slot.contract.company:
+            company_name = slot.contract.company.name
+        elif slot.quotation_id and slot.quotation:
+            company_name = slot.quotation.company_name or ""
+        if not company_name and appt.patient and appt.patient.company:
+            company_name = appt.patient.company.name
+
+        rows.append({
+            "ma_bn":        ma_bn,
+            "ho_ten":       ho_ten,
+            "gioi_tinh":    gioi_tinh,
+            "ngay_sinh":    ngay_sinh,
+            "company_name": company_name,
+            "shift":        slot.shift,
+            "shift_label":  shift_labels.get(slot.shift, slot.shift),
+            "status":       appt.status,
+            "status_label": status_labels.get(appt.status, appt.status),
+        })
+
+    return JsonResponse({
+        "ok":    True,
+        "date":  today.strftime("%d/%m/%Y"),
+        "rows":  rows,
+        "total": len(rows),
+    })

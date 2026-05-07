@@ -15,6 +15,8 @@ urlpatterns = [
     path("lookup/",    views.ajax_lookup,  name="ajax_lookup"),
     path("action/",    views.ajax_action,  name="ajax_action"),
     path("stats/",     views.ajax_stats,   name="ajax_stats"),
+    path("history/",       views.ajax_history,            name="ajax_history"),
+    path("registrations/", views.ajax_today_registrations, name="ajax_today_registrations"),
 
     # Statistics (staff login required)
     path("thong-ke/",              checkin_stats,     name="checkin_stats"),

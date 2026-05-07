@@ -393,7 +393,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["schedule"],
             )
         )
-        if is_full_access or is_sales:
+        if is_full_access or is_sales or is_manager:
             schedule_items.append(
                 _item(
                     request=request,
@@ -434,7 +434,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["package"],
             )
         )
-    if is_full_access or is_operations or is_medical_director:
+    if is_full_access or is_operations or is_medical_director or is_manager:
         qldn_items.append(
             _item(
                 request=request,

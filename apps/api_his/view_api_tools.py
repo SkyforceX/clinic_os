@@ -1,4 +1,5 @@
 import json
+import logging
 from copy import deepcopy
 
 from django.contrib.auth.decorators import login_required
@@ -6,7 +7,6 @@ from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db import connections
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.generic import TemplateView
@@ -15,6 +15,7 @@ from apps.booking.models import Appointment
 from apps.booking.services import push_appointment_to_his
 
 _HIS_LOCAL_PG_ALIAS = "his_local_pg"
+logger = logging.getLogger(__name__)
 
 
 def _ensure_local_pg_alias():
@@ -131,17 +132,29 @@ class BookingHisPushSendView(View):
         if not appointment_id:
             return JsonResponse({"ok": False, "error": "Thiếu appointment_id."}, status=400)
 
-        appointment = get_object_or_404(
+        appointment = (
             Appointment.objects.select_related(
                 "patient",
                 "his_patient_sync",
                 "schedule_slot",
                 "schedule_slot__contract__company",
                 "schedule_slot__quotation__company",
-            ),
-            pk=appointment_id,
+            )
+            .filter(pk=appointment_id)
+            .first()
         )
-        result = push_appointment_to_his(appointment, force=bool(payload.get("force")))
+        if not appointment:
+            return JsonResponse(
+                {"ok": False, "error": f"KhÃ´ng tÃ¬m tháº¥y appointment_id={appointment_id}."},
+                status=404,
+            )
+
+        try:
+            result = push_appointment_to_his(appointment, force=bool(payload.get("force")))
+        except Exception as exc:
+            logger.exception("Failed to push appointment_id=%s to HIS.", appointment_id)
+            return JsonResponse({"ok": False, "error": str(exc)}, status=500)
+
         return JsonResponse(
             {
                 "ok": result.success,

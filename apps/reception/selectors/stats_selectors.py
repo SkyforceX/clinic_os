@@ -24,6 +24,8 @@ from apps.contract.policies import ContractPolicy
 
 
 def _is_sales_actor(actor) -> bool:
+    if actor and getattr(actor, "is_superuser", False):
+        return False
     return ContractPolicy.is_sales(actor)
 
 
