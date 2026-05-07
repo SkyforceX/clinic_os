@@ -3,6 +3,25 @@
 {% block title %}Danh sách gói khám đoàn{% endblock %}
 
 {% block content %}
+<style>
+    .schedule-warning-note {
+        display: inline-block;
+        margin-top: 4px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.3;
+    }
+    .schedule-warning-note.danger {
+        color: #b91c1c;
+        background: #fee2e2;
+    }
+    .schedule-warning-note.warning {
+        color: #b45309;
+        background: #fef3c7;
+    }
+</style>
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
@@ -43,7 +62,12 @@
                                 <span class="text-muted">N/A</span>
                                 {% endif %}
                             </td>
-                            <td>{{ pkg.exam_count }}</td>
+                            <td>
+                                {{ pkg.real_stats.total|default:pkg.exam_count }}
+                                {% if pkg.real_stats.cancelled %}
+                                <small class="text-danger">(-{{ pkg.real_stats.cancelled }} hủy)</small>
+                                {% endif %}
+                            </td>
                             <!-- <td>
                                 <span class="badge bg-success">{{ pkg.completed_count }}</span> /
                                 <span class="badge bg-secondary">{{ pkg.total_patients }}</span>
@@ -76,6 +100,17 @@
                                         <span class="badge bg-info text-dark">
                                             {{ config.exam_start_date|date:"d/m/Y" }} - {{ config.exam_end_date|date:"d/m/Y" }}
                                         </span>
+                                        {% if pkg.real_stats.total is not None %}
+                                            {% if config.planned_employee_count < pkg.real_stats.total %}
+                                            <div>
+                                                <span class="schedule-warning-note danger">Số slot khám nhỏ hơn số BN thực tế trong gói HIS</span>
+                                            </div>
+                                            {% elif config.planned_employee_count > pkg.real_stats.total %}
+                                            <div>
+                                                <span class="schedule-warning-note warning">Số slot khám lớn hơn số BN thực tế từ gói HIS</span>
+                                            </div>
+                                            {% endif %}
+                                        {% endif %}
                                     </div>
                                     {% endfor %}
                                     {% if linked_schedules|length > 2 %}

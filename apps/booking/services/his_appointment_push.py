@@ -357,21 +357,29 @@ def push_appointment_to_his(appointment, *, force=False):
             response_text = response.text[:4000]
         response.raise_for_status()
 
+        his_code = response_data.get("code") if isinstance(response_data, dict) else None
+        his_success = his_code == 0
+        his_error = ""
+        if not his_success and isinstance(response_data, dict):
+            his_error = response_data.get("msg") or f"HIS trả lỗi code={his_code}"
+
         logger.info(
-            "Pushed appointment %s to HIS appointment API. status=%s response=%s",
+            "Pushed appointment %s to HIS appointment API. status=%s his_code=%s response=%s",
             getattr(appointment, "id", None),
             response.status_code,
+            his_code,
             json.dumps(response_data, ensure_ascii=False) if response_data is not None else response_text,
         )
         return HisAppointmentPushResult(
             enabled=True,
             attempted=True,
-            success=True,
+            success=his_success,
             endpoint=endpoint,
             status_code=response.status_code,
             payload=payload,
             response_data=response_data,
             response_text=response_text,
+            error=his_error,
         )
     except requests.RequestException as exc:
         response = getattr(exc, "response", None)

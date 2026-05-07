@@ -721,6 +721,9 @@ class CorporatePackageListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         flags = _package_list_role_flags(self.request.user)
+        packages = context.get("packages") or context.get("object_list") or []
+        for pkg in packages:
+            pkg.real_stats = get_package_exam_record_stats(package=pkg)
         context.update(flags)
         context["available_contracts_for_link"] = list_contracts_available_for_his_package_link()
         context["available_schedule_configs_for_link"] = list_schedule_configs_available_for_his_package_link()

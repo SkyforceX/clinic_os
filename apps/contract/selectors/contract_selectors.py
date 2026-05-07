@@ -1,5 +1,6 @@
 from apps.contract.models.quotation import QuotationDraft
 from apps.contract.policies import ContractPolicy
+from apps.his_integration.selectors import get_package_exam_record_stats
 from apps.scheduling.models import ContractScheduleConfig, SlotType
 from apps.scheduling.policies import SchedulingPolicy
 
@@ -39,6 +40,7 @@ def list_schedule_configs_for_user(user):
             "contract__contract",
             "contract__contract__implementation_plan",
             "registered_by",
+            "his_package",
         )
         .order_by("-updated_at", "-id")
     )
@@ -58,6 +60,25 @@ def list_schedule_configs_for_user(user):
             and not config.is_ended
             and SchedulingPolicy.can_end_schedule(user, owner_user_id)
         )
+        config.his_actual_total = None
+        config.his_cancelled = 0
+        config.slot_warning_level = ""
+        config.slot_warning_message = ""
+
+        his_package = getattr(config, "his_package", None)
+        if his_package:
+            stats = get_package_exam_record_stats(package=his_package)
+            config.his_actual_total = stats.get("total", 0)
+            config.his_cancelled = stats.get("cancelled", 0)
+
+            planned_count = int(getattr(config, "planned_employee_count", 0) or 0)
+            actual_total = int(config.his_actual_total or 0)
+            if planned_count < actual_total:
+                config.slot_warning_level = "danger"
+                config.slot_warning_message = "Số slot khám nhỏ hơn số BN thực tế trong gói HIS"
+            elif planned_count > actual_total:
+                config.slot_warning_level = "warning"
+                config.slot_warning_message = "Số slot khám lớn hơn số BN thực tế từ gói HIS"
 
     return configs
 

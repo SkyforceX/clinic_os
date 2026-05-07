@@ -26,6 +26,29 @@
   color:#fff;
   text-align:center;
 }
+.slot-warning-row-danger{
+  box-shadow: inset 3px 0 0 #dc2626;
+}
+.slot-warning-row-warning{
+  box-shadow: inset 3px 0 0 #d97706;
+}
+.slot-warning-note{
+  display:block;
+  margin-top:6px;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:600;
+  line-height:1.3;
+}
+.slot-warning-note.danger{
+  color:#b91c1c;
+  background:#fee2e2;
+}
+.slot-warning-note.warning{
+  color:#b45309;
+  background:#fef3c7;
+}
 </style>
 
 <div class="reg-list-hero">
@@ -59,7 +82,7 @@
         </thead>
         <tbody>
           {% for config in contracts %}
-          <tr>
+          <tr class="{% if config.slot_warning_level == 'danger' %}slot-warning-row-danger{% elif config.slot_warning_level == 'warning' %}slot-warning-row-warning{% endif %}">
             <td class="text-center">{{ forloop.counter }}</td>
 
             <td class="text-center">
@@ -85,7 +108,13 @@
             </td>
 
             <td class="text-center">
-              {{ config.planned_employee_count }}
+              <div>{{ config.planned_employee_count }}</div>
+              {% if config.his_actual_total is not None %}
+              <div class="text-muted small">Gói HIS: {{ config.his_actual_total }}</div>
+              {% endif %}
+              {% if config.slot_warning_message %}
+              <span class="slot-warning-note {{ config.slot_warning_level }}">{{ config.slot_warning_message }}</span>
+              {% endif %}
             </td>
 
             <td class="text-center">
