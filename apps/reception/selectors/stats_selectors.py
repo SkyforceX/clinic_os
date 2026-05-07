@@ -46,6 +46,14 @@ def _resolve_config_company_name(cfg):
     )
 
 
+def _resolve_his_config_company_name(cfg):
+    his_package = getattr(cfg, "his_package", None)
+    return _display_company_name(
+        getattr(his_package, "company_name", "")
+        or getattr(getattr(his_package, "organization", None), "name", "")
+    )
+
+
 def _is_sales_actor(actor) -> bool:
     if actor and getattr(actor, "is_superuser", False):
         return False
@@ -136,7 +144,7 @@ def _count_event_stats(records, date_from, date_to):
     return day_map
 
 
-def get_active_company_progress(reference_date=None, *, actor=None):
+def _legacy_get_active_company_progress(reference_date=None, *, actor=None):
     """
     Lấy danh sách công ty đang có lịch khám (chưa kết thúc),
     gồm: tổng KH đăng ký, đã check-in, đã check-out, hoãn, chưa đến.
@@ -184,19 +192,21 @@ def get_active_company_progress(reference_date=None, *, actor=None):
         else:
             base_qs = CheckInRecord.objects.filter(schedule_config=cfg)
 
-        ci_count  = base_qs.filter(status=CheckInStatus.CHECKED_IN).count()
-        co_count  = base_qs.filter(status=CheckInStatus.CHECKED_OUT).count()
-        df_count  = base_qs.filter(status=CheckInStatus.DEFERRED).count()
+        ci_count        = base_qs.filter(status=CheckInStatus.CHECKED_IN).count()
+        co_count        = base_qs.filter(status=CheckInStatus.CHECKED_OUT).count()
+        df_count        = base_qs.filter(status=CheckInStatus.DEFERRED).count()
+        cancelled_count = base_qs.filter(status=CheckInStatus.CANCELLED).count()
+        total_real    = max(0, planned - cancelled_count)
         total_arrived = ci_count + co_count + df_count
-        not_arrived   = max(0, planned - total_arrived)
+        not_arrived   = max(0, total_real - total_arrived)
 
         # Ngày còn lại trong lịch khám
         remaining_days = max(0, (cfg.exam_end_date - ref).days)
         is_today = cfg.exam_start_date <= ref <= cfg.exam_end_date
         is_upcoming = cfg.exam_start_date > ref
 
-        completion_pct = round(co_count / planned * 100) if planned > 0 else 0
-        arrival_pct    = round(total_arrived / planned * 100) if planned > 0 else 0
+        completion_pct = round(co_count / total_real * 100) if total_real > 0 else 0
+        arrival_pct    = round(total_arrived / total_real * 100) if total_real > 0 else 0
 
         result.append({
             "config_id":       cfg.pk,
@@ -204,6 +214,8 @@ def get_active_company_progress(reference_date=None, *, actor=None):
             "exam_start":      cfg.exam_start_date,
             "exam_end":        cfg.exam_end_date,
             "planned":         planned,
+            "cancelled":       cancelled_count,
+            "total_real":      total_real,
             "checked_in":      ci_count,
             "checked_out":     co_count,
             "deferred":        df_count,
@@ -214,6 +226,106 @@ def get_active_company_progress(reference_date=None, *, actor=None):
             "remaining_days":  remaining_days,
             "is_active_today": is_today,
             "is_upcoming":     is_upcoming,
+        })
+    return result
+
+
+def get_active_company_progress(reference_date=None, *, actor=None):
+    """
+    HIS-only version for the "Công ty đang khám" block.
+
+    Planned/registered counts come from active HIS exam-record lists for each
+    linked package, then subtract patients cancelled in reception check-in data.
+    """
+    from apps.his_integration.selectors.sync_selectors import list_exam_records_for_package
+    from apps.reception.models import CheckInRecord, CheckInStatus
+
+    ref = reference_date or date.today()
+
+    configs = (
+        _scoped_schedule_configs_qs(actor=actor)
+        .filter(exam_end_date__gte=ref, his_package__isnull=False)
+        .select_related("quotation", "quotation__company", "his_package", "his_package__organization")
+        .order_by("exam_start_date")
+    )
+
+    result = []
+    for cfg in configs:
+        his_package = getattr(cfg, "his_package", None)
+        if not his_package:
+            continue
+
+        company_name = _resolve_his_config_company_name(cfg)
+        patient_ids = list(
+            list_exam_records_for_package(package=his_package)
+            .exclude(patient_sync_id__isnull=True)
+            .values_list("patient_sync_id", flat=True)
+            .distinct()
+        )
+        planned_raw = len(patient_ids)
+
+        latest_status_by_patient = {}
+        if patient_ids:
+            for row in (
+                CheckInRecord.objects
+                .filter(
+                    his_patient_sync_id__in=patient_ids,
+                    exam_date__range=[cfg.exam_start_date, cfg.exam_end_date],
+                )
+                .order_by("his_patient_sync_id", "-created_at", "-id")
+                .values("his_patient_sync_id", "status")
+            ):
+                patient_id = row["his_patient_sync_id"]
+                if patient_id not in latest_status_by_patient:
+                    latest_status_by_patient[patient_id] = row["status"]
+
+        cancelled_count = sum(
+            1 for status in latest_status_by_patient.values()
+            if status == CheckInStatus.CANCELLED
+        )
+        ci_count = sum(
+            1 for status in latest_status_by_patient.values()
+            if status == CheckInStatus.CHECKED_IN
+        )
+        co_count = sum(
+            1 for status in latest_status_by_patient.values()
+            if status == CheckInStatus.CHECKED_OUT
+        )
+        df_count = sum(
+            1 for status in latest_status_by_patient.values()
+            if status == CheckInStatus.DEFERRED
+        )
+
+        planned = max(0, planned_raw - cancelled_count)
+        total_real = planned
+        total_arrived = ci_count + co_count + df_count
+        not_arrived = max(0, total_real - total_arrived)
+
+        remaining_days = max(0, (cfg.exam_end_date - ref).days)
+        is_today = cfg.exam_start_date <= ref <= cfg.exam_end_date
+        is_upcoming = cfg.exam_start_date > ref
+
+        completion_pct = round(co_count / total_real * 100) if total_real > 0 else 0
+        arrival_pct = round(total_arrived / total_real * 100) if total_real > 0 else 0
+
+        result.append({
+            "config_id": cfg.pk,
+            "company_name": company_name,
+            "exam_start": cfg.exam_start_date,
+            "exam_end": cfg.exam_end_date,
+            "planned": planned,
+            "cancelled": cancelled_count,
+            "total_real": total_real,
+            "checked_in": ci_count,
+            "checked_out": co_count,
+            "deferred": df_count,
+            "total_arrived": total_arrived,
+            "not_arrived": not_arrived,
+            "completion_pct": completion_pct,
+            "arrival_pct": arrival_pct,
+            "remaining_days": remaining_days,
+            "is_active_today": is_today,
+            "is_upcoming": is_upcoming,
         })
     return result
 
@@ -339,16 +451,26 @@ def get_company_completion_table(date_from, date_to, *, actor=None):
         "checked_in_at",
         "checked_out_at",
         "deferred_at",
+        "status",
+        "created_at",
     )
 
     company_stats = defaultdict(lambda: {
-        "checkin": 0, "checkout": 0, "deferred": 0,
+        "checkin": 0, "checkout": 0, "deferred": 0, "cancelled": 0,
         "config_ids": set(),
     })
 
     for rec in records:
         name = _display_company_name(rec["snapshot_company_name"])
         company_stats[name]["config_ids"].add(rec["schedule_config_id"])
+
+        from apps.reception.models import CheckInStatus as _CIS
+        if rec["status"] == _CIS.CANCELLED:
+            cancelled_date = _local_date(rec.get("created_at"))
+            if cancelled_date and date_from <= cancelled_date <= date_to:
+                company_stats[name]["cancelled"] += 1
+            continue
+
         checked_in_date = _local_date(rec["checked_in_at"])
         checked_out_date = _local_date(rec["checked_out_at"])
         deferred_date = _local_date(rec["deferred_at"])
@@ -382,17 +504,21 @@ def get_company_completion_table(date_from, date_to, *, actor=None):
         normalized_name = _display_company_name(name)
         arrived   = data["checkin"] + data["checkout"] + data["deferred"]
         completed = data["checkout"]
+        cancelled = data.get("cancelled", 0)
         planned   = planned_map.get(normalized_name, 0)
-        arrival_pct    = round(arrived / planned * 100)   if planned > 0 else 0
-        completion_pct = round(completed / arrived * 100) if arrived  > 0 else 0
+        total_real = max(0, planned - cancelled)
+        arrival_pct    = round(arrived / total_real * 100)  if total_real > 0 else 0
+        completion_pct = round(completed / arrived * 100)   if arrived   > 0 else 0
         result.append({
             "company":         normalized_name,
             "planned":         planned,
+            "cancelled":       cancelled,
+            "total_real":      total_real,
             "arrived":         arrived,
             "checked_in":      data["checkin"],
             "checked_out":     completed,
             "deferred":        data["deferred"],
-            "not_arrived":     max(0, planned - arrived),
+            "not_arrived":     max(0, total_real - arrived),
             "arrival_pct":     arrival_pct,
             "completion_pct":  completion_pct,
             "avg_per_day":     round(arrived / num_days, 1),
@@ -501,6 +627,7 @@ def get_patient_checkin_list(company_name, date_from, date_to, *, actor=None):
         CheckInStatus.CHECKED_IN:  ("Đang khám",     "ci"),
         CheckInStatus.CHECKED_OUT: ("Đã hoàn thành", "co"),
         CheckInStatus.DEFERRED:    ("Quay lại sau",   "df"),
+        CheckInStatus.CANCELLED:   ("Đã hủy khám",    "ca"),
     }
 
     # ── 1. Bệnh nhân đã check-in (từ snapshot) ──────────────────────
@@ -584,12 +711,13 @@ def get_patient_checkin_list(company_name, date_from, date_to, *, actor=None):
     except Exception:
         pass  # graceful fallback nếu model chưa available
 
-    # ── 3. Sắp xếp: Chưa đến → Hoãn → Đang khám → Hoàn thành ───────
+    # ── 3. Sắp xếp: Chưa đến → Hoãn → Đã hủy → Đang khám → Hoàn thành ──
     ORDER = {
-        "NOT_ARRIVED": 0,
+        "NOT_ARRIVED":             0,
         CheckInStatus.DEFERRED:    1,
-        CheckInStatus.CHECKED_IN:  2,
-        CheckInStatus.CHECKED_OUT: 3,
+        CheckInStatus.CANCELLED:   2,
+        CheckInStatus.CHECKED_IN:  3,
+        CheckInStatus.CHECKED_OUT: 4,
     }
     result.sort(key=lambda x: (ORDER.get(x["status"], 9), x.get("ho_ten", "")))
 

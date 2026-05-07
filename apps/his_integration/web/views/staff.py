@@ -3,6 +3,7 @@ import logging
 import re
 import unicodedata
 from collections import defaultdict
+from datetime import date
 from functools import reduce
 from operator import or_
 from urllib.parse import urlencode
@@ -726,23 +727,86 @@ class CorporatePackageListView(LoginRequiredMixin, ListView):
         return context
 
 
+def _find_latest_checkin_for_patient(patient, schedule_config, exam_record):
+    """Tìm CheckInRecord gần nhất của BN trong kỳ khám (dùng cùng logic với lookup_patient)."""
+    from apps.reception.models import CheckInRecord
+
+    if not patient:
+        return None
+
+    if schedule_config:
+        existing = (
+            CheckInRecord.objects
+            .filter(his_patient_sync=patient, schedule_config=schedule_config)
+            .order_by("-created_at")
+            .first()
+        )
+        if not existing:
+            existing = (
+                CheckInRecord.objects
+                .filter(
+                    snapshot_ma_bn=patient.his_patient_code,
+                    exam_date__range=[schedule_config.exam_start_date, schedule_config.exam_end_date],
+                )
+                .order_by("-exam_date", "-created_at")
+                .first()
+            )
+        return existing
+
+    if getattr(exam_record, "exam_date", None):
+        return (
+            CheckInRecord.objects
+            .filter(snapshot_ma_bn=patient.his_patient_code, exam_date=exam_record.exam_date)
+            .order_by("-created_at")
+            .first()
+        )
+    return None
+
+
 class CorporatePackageDetailView(LoginRequiredMixin, DetailView):
     model = HisCorporatePackageSync
     template_name = 'his_integration/staff/package_detail.html'
     context_object_name = 'package'
-    
+
     def get_object(self):
         return get_object_or_404(
             corporate_package_detail_queryset(),
             pk=self.kwargs['pk']
         )
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         package = self.object
-        context['exam_records'] = list_exam_records_for_package(package=package)
+        exam_records = list(list_exam_records_for_package(package=package))
+        context['exam_records'] = exam_records
         context['stats'] = get_package_exam_record_stats(package=package)
+
+        # ── Trạng thái checkin của từng BN ──────────────────────────────
+        from apps.reception.models import CheckInRecord, CheckInStatus
+        patient_sync_ids = [r.patient_sync_id for r in exam_records if r.patient_sync_id]
+        checkin_status_by_patient = {}
+        if patient_sync_ids:
+            for ci in (
+                CheckInRecord.objects
+                .filter(his_patient_sync_id__in=patient_sync_ids)
+                .order_by("his_patient_sync_id", "-created_at")
+                .values("his_patient_sync_id", "status")
+            ):
+                pid = ci["his_patient_sync_id"]
+                if pid not in checkin_status_by_patient:
+                    checkin_status_by_patient[pid] = ci["status"]
+
+        context["cancelled_patient_pks"] = {
+            pid for pid, s in checkin_status_by_patient.items() if s == CheckInStatus.CANCELLED
+        }
+        context["checkedin_patient_pks"] = {
+            pid for pid, s in checkin_status_by_patient.items() if s == CheckInStatus.CHECKED_IN
+        }
+        context["checkedout_patient_pks"] = {
+            pid for pid, s in checkin_status_by_patient.items() if s == CheckInStatus.CHECKED_OUT
+        }
+        context["is_it_admin_user"] = _is_it_admin(self.request.user)
 
         pkg_code = package.his_package_code or ''
         package_services = (
@@ -1084,3 +1148,123 @@ def unlink_package_schedule(request, pk):
         messages.error(request, str(exc))
 
     return redirect("his_integration:package_list")
+
+
+# ── Hủy khám / Gỡ hủy / Gỡ check-in từ trang package_detail ────────────────
+
+@login_required(login_url="authentication:staff_login")
+@require_POST
+def cancel_exam_record(request, pk):
+    """Hủy khám cho BN trong gói — tạo hoặc cập nhật CheckInRecord sang CANCELLED."""
+    from apps.reception.models import CheckInRecord, CheckInStatus
+    from apps.scheduling.models import ContractScheduleConfig
+
+    record = get_object_or_404(HisExamRecordSync, pk=pk)
+    package = record.package_sync
+    patient = record.patient_sync
+
+    if not patient:
+        messages.error(request, "Không tìm thấy thông tin bệnh nhân.")
+        return redirect("his_integration:package_detail", pk=package.pk)
+
+    schedule_config = (
+        ContractScheduleConfig.objects.filter(his_package=package).first()
+        if package else None
+    )
+    existing = _find_latest_checkin_for_patient(patient, schedule_config, record)
+
+    if existing and existing.status == CheckInStatus.CHECKED_OUT:
+        messages.error(request, f"{patient.full_name} đã hoàn thành khám, không thể hủy.")
+    elif existing and existing.status == CheckInStatus.CHECKED_IN:
+        messages.error(request, f"{patient.full_name} đang check-in. Chỉ IT Admin / Superuser có thể gỡ check-in.")
+    elif existing and existing.status == CheckInStatus.CANCELLED:
+        messages.info(request, f"{patient.full_name} đã ở trạng thái hủy khám rồi.")
+    elif existing and existing.status == CheckInStatus.DEFERRED:
+        existing.status = CheckInStatus.CANCELLED
+        existing.operator = request.user
+        existing.save(update_fields=["status", "operator", "updated_at"])
+        messages.success(request, f"Đã hủy khám cho {patient.full_name}.")
+    else:
+        exam_dt = getattr(record, "exam_date", None) or date.today()
+        company_name = getattr(package, "company_name", "") if package else ""
+        CheckInRecord.objects.create(
+            his_patient_sync=patient,
+            schedule_config=schedule_config,
+            snapshot_ma_bn=patient.his_patient_code,
+            snapshot_ho_ten=patient.full_name,
+            snapshot_gioi_tinh=patient.gioi_tinh or "",
+            snapshot_ngay_sinh=patient.ngay_sinh,
+            snapshot_company_name=company_name,
+            snapshot_exam_start=getattr(schedule_config, "exam_start_date", None),
+            snapshot_exam_end=getattr(schedule_config, "exam_end_date", None),
+            exam_date=exam_dt,
+            status=CheckInStatus.CANCELLED,
+            operator=request.user,
+        )
+        messages.success(request, f"Đã hủy khám cho {patient.full_name}.")
+
+    return redirect("his_integration:package_detail", pk=package.pk)
+
+
+@login_required(login_url="authentication:staff_login")
+@require_POST
+def uncancel_exam_record(request, pk):
+    """Gỡ hủy khám — IT Admin / Superuser only."""
+    if not _is_it_admin(request.user):
+        messages.error(request, "Chỉ IT Admin / Superuser mới có quyền gỡ hủy khám.")
+        record = get_object_or_404(HisExamRecordSync, pk=pk)
+        return redirect("his_integration:package_detail", pk=record.package_sync.pk)
+
+    from apps.reception.models import CheckInRecord, CheckInStatus
+
+    record = get_object_or_404(HisExamRecordSync, pk=pk)
+    patient = record.patient_sync
+    package = record.package_sync
+
+    if not patient:
+        messages.error(request, "Không tìm thấy thông tin bệnh nhân.")
+        return redirect("his_integration:package_detail", pk=package.pk)
+
+    deleted_count, _ = CheckInRecord.objects.filter(
+        his_patient_sync=patient,
+        status=CheckInStatus.CANCELLED,
+    ).delete()
+
+    if deleted_count:
+        messages.success(request, f"Đã gỡ hủy khám cho {patient.full_name}.")
+    else:
+        messages.info(request, "Không tìm thấy bản ghi hủy khám.")
+
+    return redirect("his_integration:package_detail", pk=package.pk)
+
+
+@login_required(login_url="authentication:staff_login")
+@require_POST
+def uncheckin_exam_record(request, pk):
+    """Gỡ check-in — IT Admin / Superuser only."""
+    if not _is_it_admin(request.user):
+        messages.error(request, "Chỉ IT Admin / Superuser mới có quyền gỡ check-in.")
+        record = get_object_or_404(HisExamRecordSync, pk=pk)
+        return redirect("his_integration:package_detail", pk=record.package_sync.pk)
+
+    from apps.reception.models import CheckInRecord, CheckInStatus
+
+    record = get_object_or_404(HisExamRecordSync, pk=pk)
+    patient = record.patient_sync
+    package = record.package_sync
+
+    if not patient:
+        messages.error(request, "Không tìm thấy thông tin bệnh nhân.")
+        return redirect("his_integration:package_detail", pk=package.pk)
+
+    deleted_count, _ = CheckInRecord.objects.filter(
+        his_patient_sync=patient,
+        status=CheckInStatus.CHECKED_IN,
+    ).delete()
+
+    if deleted_count:
+        messages.success(request, f"Đã gỡ check-in cho {patient.full_name}.")
+    else:
+        messages.info(request, "Không tìm thấy bản ghi check-in.")
+
+    return redirect("his_integration:package_detail", pk=package.pk)

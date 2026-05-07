@@ -6,6 +6,7 @@ Truy vấn dữ liệu check-in cho sidebar thống kê.
 
 from datetime import date
 
+from apps.his_integration.selectors import list_active_schedule_configs_for_his_patient
 from apps.reception.models import CheckInRecord, CheckInStatus
 
 
@@ -19,8 +20,56 @@ def _resolve_his_company_name_for_record(record):
     return (company_name or "").strip()
 
 
-def get_checkin_record_company_name(record):
-    return _resolve_his_company_name_for_record(record)
+def _resolve_his_company_name_for_patient_code(*, patient_code, exam_date=None, cache=None):
+    normalized_code = (patient_code or "").strip().upper()
+    if not normalized_code:
+        return ""
+
+    cache = cache if cache is not None else {}
+    cache_key = (normalized_code, exam_date.isoformat() if exam_date else "")
+    if cache_key in cache:
+        return cache[cache_key]
+
+    schedule_configs = list(
+        list_active_schedule_configs_for_his_patient(patient_code=normalized_code)
+    )
+    target_config = None
+
+    if exam_date:
+        for cfg in schedule_configs:
+            start_date = getattr(cfg, "exam_start_date", None)
+            end_date = getattr(cfg, "exam_end_date", None)
+            if start_date and end_date and start_date <= exam_date <= end_date:
+                target_config = cfg
+                break
+
+    if target_config is None and schedule_configs:
+        target_config = schedule_configs[0]
+
+    if target_config is None:
+        cache[cache_key] = ""
+        return cache[cache_key]
+
+    cache[cache_key] = _resolve_his_company_name_for_record(
+        type("RecordLike", (), {"schedule_config": target_config})()
+    )
+    return cache[cache_key]
+
+
+def get_checkin_record_company_name(record, cache=None):
+    company_name = _resolve_his_company_name_for_record(record)
+    if company_name:
+        return company_name
+
+    patient_code = (
+        getattr(getattr(record, "his_patient_sync", None), "his_patient_code", "")
+        or getattr(record, "snapshot_ma_bn", "")
+    )
+    return _resolve_his_company_name_for_patient_code(
+        patient_code=patient_code,
+        exam_date=getattr(record, "exam_date", None),
+        cache=cache,
+    )
 
 
 def get_today_stats(exam_date: date = None):
@@ -45,14 +94,15 @@ def get_today_stats(exam_date: date = None):
     records = (
         CheckInRecord.objects
         .filter(exam_date=exam_date)
-        .select_related("schedule_config", "schedule_config__his_package", "schedule_config__his_package__organization")
+        .select_related("his_patient_sync", "schedule_config", "schedule_config__his_package", "schedule_config__his_package__organization")
         .order_by("snapshot_company_name", "-checked_in_at")
     )
 
     # Group by company
     company_map = {}
+    company_cache = {}
     for rec in records:
-        key = get_checkin_record_company_name(rec) or "Không xác định"
+        key = get_checkin_record_company_name(rec, cache=company_cache) or "Không xác định"
         if key not in company_map:
             company_map[key] = {
                 "company_name":    key,
@@ -83,6 +133,6 @@ def get_recent_checkins(exam_date: date = None, limit: int = 20):
     return (
         CheckInRecord.objects
         .filter(exam_date=exam_date)
-        .select_related("schedule_config", "schedule_config__his_package", "schedule_config__his_package__organization")
+        .select_related("his_patient_sync", "schedule_config", "schedule_config__his_package", "schedule_config__his_package__organization")
         .order_by("-created_at")[:limit]
     )

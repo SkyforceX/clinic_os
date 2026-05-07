@@ -71,8 +71,8 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
-                            <span class="text-muted">Tổng số</span>
-                            <span class="fw-bold">{{ stats.total }}</span>
+                            <span class="text-muted">Tổng thực tế</span>
+                            <span class="fw-bold">{{ stats.total }}{% if stats.cancelled %} <small class="text-danger">({{ stats.cancelled }} hủy)</small>{% endif %}</span>
                         </div>
                         <div class="progress" style="height: 5px;">
                             <div class="progress-bar bg-secondary" style="width: 100%"></div>
@@ -84,7 +84,7 @@
                             <span class="text-success fw-bold">{{ stats.completed }}</span>
                         </div>
                         <div class="progress" style="height: 5px;">
-                            <div class="progress-bar bg-success" style="width: {% widthratio stats.completed stats.total 100 %}%"></div>
+                            <div class="progress-bar bg-success" style="width: {% if stats.total %}{% widthratio stats.completed stats.total 100 %}{% else %}0{% endif %}%"></div>
                         </div>
                     </div>
                 </div>
@@ -262,26 +262,65 @@
                             <th>Ngày khám</th>
                             <th>Chẩn đoán</th>
                             <th>Trạng thái</th>
-                            <th></th>
+                            <th>Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for record in exam_records %}
-                        <tr>
+                        <tr{% if record.patient_sync.pk in cancelled_patient_pks %} class="table-secondary text-muted"{% endif %}>
                             <td class="text-muted small">{{ forloop.counter }}</td>
                             <td><code class="text-secondary">{{ record.patient_sync.his_patient_code }}</code></td>
                             <td class="fw-semibold">{{ record.patient_sync.full_name }}</td>
                             <td class="text-nowrap">{{ record.exam_date|date:"d/m/Y"|default:"—" }}</td>
                             <td class="text-muted small">{{ record.diagnosis|truncatewords:10|default:"—" }}</td>
                             <td>
-                                {% if record.is_complete %}
-                                <span class="badge bg-success">Hoàn thành</span>
+                                {% if record.patient_sync.pk in cancelled_patient_pks %}
+                                    <span class="badge bg-danger">Đã hủy khám</span>
+                                {% elif record.is_complete %}
+                                    <span class="badge bg-success">Hoàn thành</span>
+                                {% elif record.patient_sync.pk in checkedout_patient_pks %}
+                                    <span class="badge bg-success">Check-out</span>
+                                {% elif record.patient_sync.pk in checkedin_patient_pks %}
+                                    <span class="badge bg-info text-dark">Đang khám</span>
                                 {% else %}
-                                <span class="badge bg-warning text-dark">Chưa xong</span>
+                                    <span class="badge bg-warning text-dark">Chưa xong</span>
                                 {% endif %}
                             </td>
-                            <td>
-                                <a href="{% url 'his_integration:exam_record_detail' record.pk %}" class="btn btn-sm btn-outline-primary">
+                            <td class="text-nowrap">
+                                {% if record.patient_sync %}
+                                    {% with pid=record.patient_sync.pk %}
+                                    {% if pid in cancelled_patient_pks %}
+                                        {% if is_it_admin_user %}
+                                        <form method="post" action="{% url 'his_integration:uncancel_exam_record' record.pk %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                    onclick="return confirm('Gỡ hủy khám cho {{ record.patient_sync.full_name|escapejs }}?')">
+                                                Gỡ hủy
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    {% elif pid in checkedin_patient_pks %}
+                                        {% if is_it_admin_user %}
+                                        <form method="post" action="{% url 'his_integration:uncheckin_exam_record' record.pk %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-warning"
+                                                    onclick="return confirm('Gỡ check-in cho {{ record.patient_sync.full_name|escapejs }}?')">
+                                                Gỡ check-in
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    {% elif pid not in checkedout_patient_pks %}
+                                        <form method="post" action="{% url 'his_integration:cancel_exam_record' record.pk %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Hủy khám cho {{ record.patient_sync.full_name|escapejs }}?')">
+                                                Hủy khám
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                                <a href="{% url 'his_integration:exam_record_detail' record.pk %}" class="btn btn-sm btn-outline-primary ms-1">
                                     Chi tiết
                                 </a>
                             </td>

@@ -17,6 +17,7 @@ class CheckInStatus(models.TextChoices):
     CHECKED_IN  = "CHECKED_IN",  "Đã check-in"
     CHECKED_OUT = "CHECKED_OUT", "Đã check-out"
     DEFERRED    = "DEFERRED",    "Quay lại sau"
+    CANCELLED   = "CANCELLED",   "Đã hủy khám"
 
 
 class CheckInRecord(models.Model):

@@ -563,12 +563,32 @@ def list_exam_records_for_package(*, package):
 
 def get_package_exam_record_stats(*, package) -> dict[str, int]:
     records = list_exam_records_for_package(package=package)
-    total = records.values("patient_sync_id").distinct().count()
+    total_raw = records.values("patient_sync_id").distinct().count()
+
+    from apps.reception.models import CheckInRecord, CheckInStatus
+    patient_ids = list(
+        records.exclude(patient_sync_id__isnull=True)
+        .values_list("patient_sync_id", flat=True)
+        .distinct()
+    )
+    cancelled = 0
+    if patient_ids:
+        cancelled = (
+            CheckInRecord.objects
+            .filter(his_patient_sync_id__in=patient_ids, status=CheckInStatus.CANCELLED)
+            .values("his_patient_sync_id")
+            .distinct()
+            .count()
+        )
+
+    total = max(0, total_raw - cancelled)
     completed = records.filter(is_complete=True).values("patient_sync_id").distinct().count()
     return {
-        "total": total,
+        "total":     total,
+        "total_raw": total_raw,
+        "cancelled": cancelled,
         "completed": completed,
-        "pending": total - completed,
+        "pending":   max(0, total - completed),
     }
 
 

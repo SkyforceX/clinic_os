@@ -123,8 +123,11 @@ def lookup_patient(ma_bn: str, exam_date: date = None):
         "already_checked_in":  existing is not None and existing.status == CheckInStatus.CHECKED_IN,
         "already_checked_out": existing is not None and existing.status == CheckInStatus.CHECKED_OUT,
         "is_deferred":         existing is not None and existing.status == CheckInStatus.DEFERRED,
-        # True nếu BN đã hoàn thành (checkout) trong kỳ hợp đồng — block mọi check-in mới
-        "contract_done":       existing is not None and existing.status == CheckInStatus.CHECKED_OUT,
+        "already_cancelled":   existing is not None and existing.status == CheckInStatus.CANCELLED,
+        # True nếu BN không thể check-in lại (đã xong hoặc đã hủy)
+        "contract_done": existing is not None and existing.status in (
+            CheckInStatus.CHECKED_OUT, CheckInStatus.CANCELLED
+        ),
     }, None
 
 
@@ -146,6 +149,8 @@ def do_checkin(ma_bn: str, note: str, operator, exam_date: date = None):
         return None, "Khách hàng này đã check-in rồi."
     if result["already_checked_out"]:
         return None, "Khách hàng này đã hoàn thành khám rồi, không thể check-in lại."
+    if result["already_cancelled"]:
+        return None, "Khách hàng này đã hủy khám. Liên hệ bộ phận tiếp nhận để gỡ hủy."
 
     now = datetime.now(tz=timezone.utc)
     record = CheckInRecord.objects.create(
