@@ -9,7 +9,8 @@ from django.utils import timezone
 
 from apps.authentication.selectors.session_selectors import get_current_patient_from_session
 from apps.authentication.utils import patient_access_required
-from apps.booking.services import push_appointment_to_his
+from apps.booking.models import HisAppointmentPushLog
+from apps.booking.tasks import push_appointment_to_his_task
 from apps.scheduling.models import ScheduleSlot
 from apps.scheduling.selectors.schedule_selectors import (
     build_patient_registration_calendar,
@@ -114,13 +115,12 @@ def submit_registration(request):
             messages.info(request, "Bạn đã đăng ký ca này trước đó.")
             return redirect("booking:register_schedule")
 
-        his_push_result = push_appointment_to_his(result["appointment"])
-        request.session["booking_his_push_ctx"] = {
-            "success": his_push_result.success,
-            "status_code": his_push_result.status_code,
-            "skipped_reason": his_push_result.skipped_reason,
-            "error": his_push_result.error,
-        }
+        # Tạo log entry QUEUED, dispatch Celery task — không block request
+        push_log = HisAppointmentPushLog.objects.create(
+            appointment=result["appointment"],
+            status=HisAppointmentPushLog.PushStatus.QUEUED,
+        )
+        push_appointment_to_his_task.delay(result["appointment"].id, log_id=push_log.id)
 
         query_string = urlencode({
             "schedule_id": result["schedule"].id,
@@ -163,7 +163,6 @@ def show_thank_you(request):
         request.session["thankyou_ctx"] = {
             "schedule_id": schedule.id,
             "is_update":   is_update,
-            "his_push":    request.session.pop("booking_his_push_ctx", None),
         }
         return redirect("booking:show_thank_you")
 
@@ -195,8 +194,6 @@ def show_thank_you(request):
             "schedule":   schedule,
             "patient":    patient,
             "is_update":  ctx.get("is_update", False),
-            "his_push":   ctx.get("his_push"),
-            "show_his_push_debug": bool(getattr(settings, "DEBUG", False)),
             "title_page": "Đăng ký thành công",
         },
     )

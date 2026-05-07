@@ -14,12 +14,17 @@ from datetime import date
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
 
 from apps.reception.models import CheckInStatus
 from apps.reception.policies import ReceptionPolicy
-from apps.reception.selectors.checkin_selectors import get_recent_checkins, get_today_stats
+from apps.reception.selectors.checkin_selectors import (
+    get_checkin_record_company_name,
+    get_recent_checkins,
+    get_today_stats,
+)
 from apps.reception.services.checkin_service import (
     authenticate_operator,
     do_checkin,
@@ -46,6 +51,7 @@ def get_operator(request):
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Trang chÃƒÂ­nh (GET: form login hoÃ¡ÂºÂ·c tool, POST: xÃ¡Â»Â­ lÃƒÂ½ login) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
+@ensure_csrf_cookie
 @csrf_protect
 def checkin_tool(request):
     """
@@ -283,7 +289,7 @@ def ajax_stats(request):
         recent_data.append({
             "ma_bn": rec.snapshot_ma_bn,
             "ho_ten": rec.snapshot_ho_ten,
-            "company_name": rec.snapshot_company_name or "",
+            "company_name": get_checkin_record_company_name(rec),
             "status": rec.status,
             "status_label": rec.get_status_display(),
             "time": t,
@@ -356,7 +362,7 @@ def ajax_history(request):
         records.append({
             "ma_bn":        rec.snapshot_ma_bn,
             "ho_ten":       rec.snapshot_ho_ten,
-            "company_name": rec.snapshot_company_name or "",
+            "company_name": get_checkin_record_company_name(rec),
             "status":       rec.status,
             "checkin_time": t,
             "exam_date":    rec.exam_date.strftime("%d/%m/%Y") if rec.exam_date else "",
@@ -376,9 +382,31 @@ def ajax_today_registrations(request):
         return JsonResponse({"ok": False, "error": "Chưa xác thực."}, status=401)
 
     from apps.booking.models import Appointment, AppointmentStatus
+    from apps.his_integration.selectors import list_active_schedule_configs_for_his_patient
     from apps.scheduling.models import SlotType
 
     today = date.today()
+    company_name_cache = {}
+
+    def resolve_his_company_name_for_patient(*, patient_code):
+        normalized_code = (patient_code or "").strip().upper()
+        if not normalized_code:
+            return ""
+        if normalized_code in company_name_cache:
+            return company_name_cache[normalized_code]
+
+        schedule_config = (
+            list_active_schedule_configs_for_his_patient(patient_code=normalized_code)
+            .filter(exam_start_date__lte=today, exam_end_date__gte=today)
+            .first()
+        )
+        his_package = getattr(schedule_config, "his_package", None) if schedule_config else None
+        company_name = (
+            getattr(his_package, "company_name", "")
+            or getattr(getattr(his_package, "organization", None), "name", "")
+        )
+        company_name_cache[normalized_code] = company_name or ""
+        return company_name_cache[normalized_code]
 
     qs = (
         Appointment.objects
@@ -428,14 +456,8 @@ def ajax_today_registrations(request):
         else:
             ma_bn = ho_ten = gioi_tinh = ngay_sinh = ""
 
-        # Tên công ty
-        company_name = ""
-        if slot.contract_id and slot.contract and slot.contract.company:
-            company_name = slot.contract.company.name
-        elif slot.quotation_id and slot.quotation:
-            company_name = slot.quotation.company_name or ""
-        if not company_name and appt.patient and appt.patient.company:
-            company_name = appt.patient.company.name
+        # Tên công ty: chỉ lấy từ his_integration
+        company_name = resolve_his_company_name_for_patient(patient_code=ma_bn)
 
         rows.append({
             "ma_bn":        ma_bn,

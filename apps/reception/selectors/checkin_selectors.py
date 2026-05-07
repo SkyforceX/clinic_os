@@ -6,9 +6,21 @@ Truy vấn dữ liệu check-in cho sidebar thống kê.
 
 from datetime import date
 
-from django.db.models import Count, Q
-
 from apps.reception.models import CheckInRecord, CheckInStatus
+
+
+def _resolve_his_company_name_for_record(record):
+    schedule_config = getattr(record, "schedule_config", None)
+    his_package = getattr(schedule_config, "his_package", None) if schedule_config else None
+    company_name = (
+        getattr(his_package, "company_name", "")
+        or getattr(getattr(his_package, "organization", None), "name", "")
+    )
+    return (company_name or "").strip()
+
+
+def get_checkin_record_company_name(record):
+    return _resolve_his_company_name_for_record(record) or (record.snapshot_company_name or "").strip()
 
 
 def get_today_stats(exam_date: date = None):
@@ -33,13 +45,14 @@ def get_today_stats(exam_date: date = None):
     records = (
         CheckInRecord.objects
         .filter(exam_date=exam_date)
+        .select_related("schedule_config", "schedule_config__his_package", "schedule_config__his_package__organization")
         .order_by("snapshot_company_name", "-checked_in_at")
     )
 
     # Group by company
     company_map = {}
     for rec in records:
-        key = rec.snapshot_company_name or "Không xác định"
+        key = get_checkin_record_company_name(rec) or "Không xác định"
         if key not in company_map:
             company_map[key] = {
                 "company_name":    key,
@@ -70,5 +83,6 @@ def get_recent_checkins(exam_date: date = None, limit: int = 20):
     return (
         CheckInRecord.objects
         .filter(exam_date=exam_date)
+        .select_related("schedule_config", "schedule_config__his_package", "schedule_config__his_package__organization")
         .order_by("-created_at")[:limit]
     )

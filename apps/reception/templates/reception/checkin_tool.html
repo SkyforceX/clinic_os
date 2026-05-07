@@ -461,7 +461,15 @@ body {
   gap: 10px;
   border-bottom: 1px solid var(--gray-200);
 }
-.csc-name  { font-weight: 700; font-size: 13.5px; color: var(--gray-800); flex: 1; min-width: 0; }
+.csc-name  {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--gray-800);
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+  word-break: break-word;
+}
 .csc-range { font-size: 11px; color: var(--gray-400); white-space: nowrap; }
 .csc-body  { padding: 10px 14px; display: flex; gap: 12px; }
 .csc-stat  { text-align: center; }
@@ -503,7 +511,13 @@ body {
 .dot-co { background: var(--brand); }
 .dot-df { background: var(--orange); }
 .recent-name { flex: 1; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.recent-company { font-size: 11.5px; color: var(--gray-400); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+.recent-company {
+  font-size: 11.5px;
+  color: var(--gray-400);
+  min-width: 0;
+  white-space: normal;
+  word-break: break-word;
+}
 .recent-time { font-size: 11.5px; color: var(--gray-400); white-space: nowrap; }
 .recent-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
 .rb-ci { background: var(--green-light); color: var(--green); }
@@ -983,8 +997,8 @@ body {
             <div class="recent-name">{{ rec.snapshot_ho_ten }}</div>
             <div class="recent-company">{{ rec.snapshot_ma_bn }}</div>
           </div>
-          <div class="recent-company" style="max-width:100px">
-            {{ rec.snapshot_company_name|truncatechars:16 }}
+          <div class="recent-company" style="max-width:220px">
+            {{ rec.snapshot_company_name }}
           </div>
           <div class="recent-badge
             {% if rec.status == 'CHECKED_IN' %}rb-ci
@@ -1191,10 +1205,17 @@ body {
 ════════════════════════════════════════════════════════════════════════ */
 {% if operator %}
 
-const CSRF = "{{ csrf_token }}";
 const URL_LOOKUP = "{% url 'reception:ajax_lookup' %}";
 const URL_ACTION = "{% url 'reception:ajax_action' %}";
 const URL_STATS  = "{% url 'reception:ajax_stats' %}";
+
+function getCsrfToken() {
+  const cookie = document.cookie
+    .split(";")
+    .map(function(row) { return row.trim(); })
+    .find(function(row) { return row.startsWith("csrftoken="); });
+  return cookie ? decodeURIComponent(cookie.split("=")[1]) : "";
+}
 
 /* ── State ─────────────────────────────────────────────────────────── */
 let currentMaBN    = "";
@@ -1267,7 +1288,12 @@ async function doLookup(maBN) {
   try {
     const res = await fetch(URL_LOOKUP, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCsrfToken(),
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      credentials: "same-origin",
       body: JSON.stringify({ ma_bn: maBN }),
     });
     const data = await readApiResponse(res);
@@ -1392,7 +1418,12 @@ async function doAction(action) {
   try {
     const res = await fetch(URL_ACTION, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCsrfToken(),
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      credentials: "same-origin",
       body: JSON.stringify(payload),
     });
     const data = await readApiResponse(res);
@@ -1570,7 +1601,7 @@ async function autoRefreshStats() {
             <div class="recent-name">${r.ho_ten}</div>
             <div class="recent-company">${r.ma_bn}</div>
           </div>
-          <div class="recent-company" style="max-width:100px">${r.company_name.substring(0,16)}</div>
+          <div class="recent-company" style="max-width:220px">${r.company_name || "—"}</div>
           <div class="recent-badge ${sm.badge}">${sm.label}</div>
           ${r.time ? `<div class="recent-time">${r.time}</div>` : ''}
         </div>`;
@@ -1686,7 +1717,7 @@ async function doHistSearch() {
           <td class="hist-td" style="color:var(--gray-400)">${i + 1}</td>
           <td class="hist-td"><code style="font-size:12px;color:var(--brand)">${safeStr(r.ma_bn)}</code></td>
           <td class="hist-td" style="font-weight:600">${safeStr(r.ho_ten)}</td>
-          <td class="hist-td" style="color:var(--gray-600);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${safeStr(r.company_name)}">${safeStr(r.company_name) || "—"}</td>
+          <td class="hist-td" style="color:var(--gray-600);white-space:normal;word-break:break-word" title="${safeStr(r.company_name)}">${safeStr(r.company_name) || "—"}</td>
           <td class="hist-td"><span class="recent-badge ${sm.cls}">${sm.label}</span></td>
           <td class="hist-td" style="font-variant-numeric:tabular-nums">${r.checkin_time || "—"}</td>
           <td class="hist-td" style="font-variant-numeric:tabular-nums;white-space:nowrap">${r.exam_date || "—"}</td>
@@ -1766,7 +1797,7 @@ function renderRegTable() {
         <td class="hist-td" style="font-weight:600">${safeReg(r.ho_ten)}</td>
         <td class="hist-td" style="text-align:center">${safeReg(r.gioi_tinh) || "—"}</td>
         <td class="hist-td" style="white-space:nowrap">${safeReg(r.ngay_sinh) || "—"}</td>
-        <td class="hist-td" style="color:var(--gray-600);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${safeReg(r.company_name)}">${safeReg(r.company_name) || "—"}</td>
+        <td class="hist-td" style="color:var(--gray-600);white-space:normal;word-break:break-word" title="${safeReg(r.company_name)}">${safeReg(r.company_name) || "—"}</td>
         <td class="hist-td"><span style="padding:3px 10px;border-radius:5px;font-size:12px;${shiftStyle}">${safeReg(r.shift_label)}</span></td>
         <td class="hist-td"><span style="padding:3px 10px;border-radius:5px;font-size:12px;${sstyle}">${safeReg(r.status_label)}</span></td>
       </tr>`;

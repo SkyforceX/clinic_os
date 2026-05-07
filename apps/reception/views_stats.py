@@ -86,7 +86,8 @@ def checkin_stats(request):
     company_table = get_company_completion_table(date_from, date_to, actor=request.user)
 
     # 7. Admin insights
-    insights = get_admin_insights(date_from, date_to, actor=request.user)
+    show_insights = bool(getattr(request.user, "is_superuser", False))
+    insights = get_admin_insights(date_from, date_to, actor=request.user) if show_insights else {}
 
     # Format date_from/to để truyền vào template cho custom picker
     date_from_str = date_from.strftime("%Y-%m-%d")
@@ -107,6 +108,7 @@ def checkin_stats(request):
         "peak_hours_json":    json.dumps(peak_hours, ensure_ascii=False),
         "company_table":      company_table,
         "insights":           insights,
+        "show_insights":      show_insights,
     })
 
 
@@ -123,7 +125,8 @@ def checkin_stats_api(request):
     period_agg = get_period_aggregate(actor=request.user)
     chart_data = get_chart_data(daily["rows"])
     peak_hours = get_peak_hours(date_from, date_to, actor=request.user)
-    insights   = get_admin_insights(date_from, date_to, actor=request.user)
+    show_insights = bool(getattr(request.user, "is_superuser", False))
+    insights   = get_admin_insights(date_from, date_to, actor=request.user) if show_insights else {}
 
     return JsonResponse({
         "ok":         True,
@@ -132,6 +135,7 @@ def checkin_stats_api(request):
         "totals":     daily["totals"],
         "period_agg": period_agg,
         "insights":   insights,
+        "show_insights": show_insights,
     })
 
 

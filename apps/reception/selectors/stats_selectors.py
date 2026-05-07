@@ -23,6 +23,29 @@ from django.utils import timezone
 from apps.contract.policies import ContractPolicy
 
 
+def _normalize_company_name(value):
+    return " ".join(str(value or "").split()).strip()
+
+
+def _display_company_name(value):
+    normalized = _normalize_company_name(value)
+    return normalized or "Không xác định"
+
+
+def _resolve_config_company_name(cfg):
+    his_package = getattr(cfg, "his_package", None)
+    quotation = getattr(cfg, "quotation", None)
+    contract_profile = getattr(cfg, "contract", None)
+
+    return _display_company_name(
+        getattr(his_package, "company_name", "")
+        or getattr(getattr(his_package, "organization", None), "name", "")
+        or getattr(quotation, "company_name", "")
+        or getattr(getattr(quotation, "company", None), "name", "")
+        or getattr(contract_profile, "company_name_snapshot", "")
+    )
+
+
 def _is_sales_actor(actor) -> bool:
     if actor and getattr(actor, "is_superuser", False):
         return False
@@ -57,19 +80,8 @@ def _scoped_checkin_records_base_qs(*, actor=None):
     company_ranges: list[tuple[str, date, date]] = []
     for cfg in scoped_configs:
         config_ids.append(cfg.pk)
-
-        his_package = getattr(cfg, "his_package", None)
-        quotation = getattr(cfg, "quotation", None)
-        contract_profile = getattr(cfg, "contract", None)
-
-        company_name = (
-            getattr(his_package, "company_name", "")
-            or getattr(getattr(his_package, "organization", None), "name", "")
-            or getattr(quotation, "company_name", "")
-            or getattr(getattr(quotation, "company", None), "name", "")
-            or getattr(contract_profile, "company_name_snapshot", "")
-        )
-        if company_name:
+        company_name = _resolve_config_company_name(cfg)
+        if company_name and company_name != "Không xác định":
             company_ranges.append((company_name, cfg.exam_start_date, cfg.exam_end_date))
 
     if not config_ids and not company_ranges:
@@ -78,7 +90,7 @@ def _scoped_checkin_records_base_qs(*, actor=None):
     scope_filter = Q(schedule_config_id__in=config_ids)
     for company_name, start_date, end_date in company_ranges:
         scope_filter |= Q(
-            snapshot_company_name=company_name,
+            snapshot_company_name__iexact=company_name,
             exam_date__range=[start_date, end_date],
         )
 
@@ -104,7 +116,7 @@ def _count_event_stats(records, date_from, date_to):
     })
 
     for rec in records:
-        company_name = rec.get("snapshot_company_name") or "?"
+        company_name = _display_company_name(rec.get("snapshot_company_name"))
 
         checked_in_date = _local_date(rec.get("checked_in_at"))
         if checked_in_date and date_from <= checked_in_date <= date_to:
@@ -145,16 +157,8 @@ def get_active_company_progress(reference_date=None, *, actor=None):
 
     result = []
     for cfg in configs:
-        q = cfg.quotation
         his_package = getattr(cfg, "his_package", None)
-        company_name = ""
-        if his_package:
-            company_name = (
-                his_package.company_name
-                or getattr(getattr(his_package, "organization", None), "name", "")
-            )
-        if not company_name and q:
-            company_name = getattr(q, "company_name", "") or (q.company.name if q.company else "")
+        company_name = _resolve_config_company_name(cfg)
 
         planned = (
             getattr(his_package, "total_patients", 0)
@@ -173,7 +177,7 @@ def get_active_company_progress(reference_date=None, *, actor=None):
             base_qs = CheckInRecord.objects.filter(
                 Q(schedule_config=cfg)
                 | Q(
-                    snapshot_company_name=company_name,
+                    snapshot_company_name__iexact=company_name,
                     exam_date__range=[cfg.exam_start_date, cfg.exam_end_date],
                 )
             ).distinct()
@@ -343,7 +347,7 @@ def get_company_completion_table(date_from, date_to, *, actor=None):
     })
 
     for rec in records:
-        name = rec["snapshot_company_name"] or "Không xác định"
+        name = _display_company_name(rec["snapshot_company_name"])
         company_stats[name]["config_ids"].add(rec["schedule_config_id"])
         checked_in_date = _local_date(rec["checked_in_at"])
         checked_out_date = _local_date(rec["checked_out_at"])
@@ -364,23 +368,25 @@ def get_company_completion_table(date_from, date_to, *, actor=None):
     planned_map = {}
     if all_config_ids:
         for cfg in _scoped_schedule_configs_qs(actor=actor).filter(pk__in=all_config_ids):
-            q = cfg.quotation
-            name = getattr(q, "company_name", "") if q else ""
-            if not name and q and q.company:
-                name = q.company.name
-            if name:
-                planned_map[name] = planned_map.get(name, 0) + (cfg.planned_employee_count or 0)
+            name = _resolve_config_company_name(cfg)
+            if name and name != "Không xác định":
+                planned_map[name] = planned_map.get(name, 0) + (
+                    getattr(getattr(cfg, "his_package", None), "total_patients", 0)
+                    or cfg.planned_employee_count
+                    or 0
+                )
 
     num_days = max(1, (date_to - date_from).days + 1)
     result = []
     for name, data in company_stats.items():
+        normalized_name = _display_company_name(name)
         arrived   = data["checkin"] + data["checkout"] + data["deferred"]
         completed = data["checkout"]
-        planned   = planned_map.get(name, 0)
+        planned   = planned_map.get(normalized_name, 0)
         arrival_pct    = round(arrived / planned * 100)   if planned > 0 else 0
         completion_pct = round(completed / arrived * 100) if arrived  > 0 else 0
         result.append({
-            "company":         name,
+            "company":         normalized_name,
             "planned":         planned,
             "arrived":         arrived,
             "checked_in":      data["checkin"],
@@ -419,7 +425,7 @@ def get_admin_insights(date_from, date_to, *, actor=None):
     total_df     = 0
 
     for rec in records:
-        company_name = rec["snapshot_company_name"] or "?"
+        company_name = _display_company_name(rec["snapshot_company_name"])
         checked_in_date = _local_date(rec["checked_in_at"])
         checked_out_date = _local_date(rec["checked_out_at"])
         deferred_date = _local_date(rec["deferred_at"])
@@ -498,10 +504,14 @@ def get_patient_checkin_list(company_name, date_from, date_to, *, actor=None):
     }
 
     # ── 1. Bệnh nhân đã check-in (từ snapshot) ──────────────────────
+    normalized_company_name = _normalize_company_name(company_name)
+    if not normalized_company_name:
+        return []
+
     checkin_qs = (
         _scoped_checkin_records_qs(actor=actor, date_from=date_from, date_to=date_to)
-        .filter(snapshot_company_name=company_name)
-        .order_by("snapshot_ma_bn", "-checked_in_at")
+        .filter(snapshot_company_name__iexact=normalized_company_name)
+        .order_by("snapshot_ma_bn", "-checked_in_at", "-checked_out_at", "-deferred_at", "-id")
     )
 
     seen_mabn = set()
@@ -528,23 +538,20 @@ def get_patient_checkin_list(company_name, date_from, date_to, *, actor=None):
     # Tìm bệnh nhân thuộc gói HIS có schedule config đang trong kỳ
     try:
         from apps.his_integration.models import HisExamRecordSync
-        from apps.scheduling.models import ContractScheduleConfig
-
         configs = (
             _scoped_schedule_configs_qs(actor=actor)
             .filter(
                 exam_start_date__lte=date_to,
                 exam_end_date__gte=date_from,
             )
-            .filter(
-                Q(his_package__company_name=company_name)
-                | Q(his_package__organization__name=company_name)
-                | Q(quotation__company__name=company_name)
-                | Q(quotation__company_name=company_name)
-            )
-            .values_list("his_package_id", flat=True)
+            .select_related("his_package", "his_package__organization", "quotation", "quotation__company", "contract")
         )
-        package_ids = [package_id for package_id in configs if package_id]
+        package_ids = []
+        for cfg in configs:
+            if _resolve_config_company_name(cfg).lower() != normalized_company_name.lower():
+                continue
+            if cfg.his_package_id:
+                package_ids.append(cfg.his_package_id)
 
         if package_ids:
             not_arrived_qs = (
@@ -560,19 +567,20 @@ def get_patient_checkin_list(company_name, date_from, date_to, *, actor=None):
             )
             for record in not_arrived_qs:
                 p = record.patient_sync
-                if p.his_patient_code in seen_mabn:
+                patient_code = getattr(p, "his_patient_code", "") or getattr(p, "ma_bn", "")
+                if not patient_code or patient_code in seen_mabn:
                     continue
                 result.append({
-                    "ma_bn":          p.ma_bn,
-                    "ho_ten":         p.ho_ten,
-                    "ngay_sinh":      p.ngay_sinh.strftime("%d/%m/%Y") if p.ngay_sinh else "—",
-                    "gioi_tinh":      p.gioi_tinh or "—",
+                    "ma_bn":          patient_code,
+                    "ho_ten":         getattr(p, "full_name", "") or getattr(p, "ho_ten", ""),
+                    "ngay_sinh":      getattr(p, "birth_date_display", "") or (p.ngay_sinh.strftime("%d/%m/%Y") if p.ngay_sinh else "—"),
+                    "gioi_tinh":      getattr(p, "gioi_tinh", "") or "—",
                     "status":         "NOT_ARRIVED",
                     "status_display": "Chưa đến",
                     "status_class":   "na",
-                    "exam_date":      "—",
+                    "exam_date":      record.exam_date.strftime("%d/%m/%Y") if record.exam_date else "—",
                 })
-                seen_mabn.add(p.ma_bn)
+                seen_mabn.add(patient_code)
     except Exception:
         pass  # graceful fallback nếu model chưa available
 

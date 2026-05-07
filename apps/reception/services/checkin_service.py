@@ -17,6 +17,16 @@ from apps.reception.models import CheckInRecord, CheckInStatus
 from apps.reception.policies import ReceptionPolicy
 
 
+def _get_his_company_context(schedule_config):
+    his_package = getattr(schedule_config, "his_package", None) if schedule_config else None
+    company = getattr(his_package, "organization", None) if his_package else None
+    company_name = (
+        getattr(his_package, "company_name", "")
+        or getattr(company, "name", "")
+    )
+    return company, company_name
+
+
 def authenticate_operator(username: str, password: str):
     """
     Xác thực thư ký y khoa để truy cập công cụ check-in.
@@ -100,22 +110,7 @@ def lookup_patient(ma_bn: str, exam_date: date = None):
     if schedule_config:
         exam_start = schedule_config.exam_start_date
         exam_end   = schedule_config.exam_end_date
-        his_package = getattr(schedule_config, "his_package", None)
-        quotation = getattr(schedule_config, "quotation", None)
-        contract_profile = getattr(schedule_config, "contract", None)
-        contract = getattr(contract_profile, "contract", None) if contract_profile else None
-
-        company = (
-            getattr(his_package, "organization", None)
-            or getattr(quotation, "company", None)
-            or getattr(contract, "company", None)
-        )
-        company_name = (
-            getattr(his_package, "company_name", "")
-            or getattr(company, "name", "")
-            or getattr(quotation, "company_name", "")
-            or getattr(contract_profile, "company_name_snapshot", "")
-        )
+        company, company_name = _get_his_company_context(schedule_config)
 
     return {
         "patient":         patient,

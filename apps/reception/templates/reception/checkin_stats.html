@@ -11,13 +11,24 @@
 /* ── Period filter bar ──────────────────────────────────────────── */
 .period-bar {
   display: flex;
+  align-items: stretch;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.04);
+}
+.period-presets {
+  display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
 }
 .period-btn {
-  padding: 7px 16px;
+  padding: 8px 14px;
   border-radius: 20px;
   border: 1.5px solid #e2e8f0;
   background: white;
@@ -34,32 +45,63 @@
   border-color: #0f4c81;
   color: white;
 }
+.period-custom-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
+  justify-content: flex-end;
+}
+.period-caption {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
 .custom-range-form {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-wrap: wrap;
+  padding: 4px 5px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
 }
 .custom-range-form input[type="date"] {
-  padding: 6px 10px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  font-size: 12px;
+  line-height: 1.2;
   color: #1e293b;
   outline: none;
+  background: #f8fafc;
+  min-width: 132px;
 }
 .custom-range-form input[type="date"]:focus { border-color: #0f4c81; }
 .btn-apply {
-  padding: 6px 14px;
+  padding: 5px 10px;
   background: #0f4c81;
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: 7px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  line-height: 1.2;
 }
 .btn-apply:hover { background: #0d3f6e; }
+.period-current-range {
+  font-size: 11.5px;
+  color: #64748b;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  white-space: nowrap;
+}
 
 /* ── Metric cards ───────────────────────────────────────────────── */
 .metric-grid {
@@ -173,6 +215,22 @@
 .si-teal   { background: #e0f2fe; color: #0891b2; }
 .section-title { font-size: 14px; font-weight: 700; color: #1e293b; flex: 1; }
 .section-body  { padding: 16px 20px; }
+.active-companies-scroll {
+  max-height: 720px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.active-companies-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.active-companies-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+.active-companies-scroll::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 999px;
+}
 
 /* ── Chart canvas ───────────────────────────────────────────────── */
 .chart-wrap { position: relative; height: 260px; }
@@ -199,7 +257,16 @@
 }
 .dot-active   { background: #16a34a; box-shadow: 0 0 0 3px #dcfce7; }
 .dot-upcoming { background: #0891b2; box-shadow: 0 0 0 3px #e0f2fe; }
-.cpc-name  { font-size: 14px; font-weight: 700; color: #1e293b; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cpc-name  {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+  overflow: visible;
+  word-break: break-word;
+}
 .cpc-date  { font-size: 12px; color: #94a3b8; white-space: nowrap; }
 .cpc-badge {
   font-size: 11px; font-weight: 700; padding: 2px 8px;
@@ -249,6 +316,23 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+}
+.company-table-wrap {
+  overflow-x: auto;
+}
+.company-stats-table {
+  min-width: 1180px;
+}
+.company-stats-table th,
+.company-stats-table td {
+  white-space: nowrap;
+}
+.company-stats-table th:first-child,
+.company-stats-table td:first-child {
+  min-width: 320px;
+  width: 34%;
+  white-space: normal;
+  word-break: break-word;
 }
 .stats-table th {
   background: #f8fafc;
@@ -452,6 +536,26 @@
   .period-summary-row { grid-template-columns: 1fr; }
   .cpc-body           { grid-template-columns: repeat(3,1fr); }
   .metric-grid        { grid-template-columns: repeat(2,1fr); }
+  .active-companies-scroll {
+    max-height: 520px;
+    padding-right: 2px;
+  }
+  .company-stats-table {
+    min-width: 980px;
+  }
+  .company-stats-table th:first-child,
+  .company-stats-table td:first-child {
+    min-width: 260px;
+  }
+  .period-custom-wrap {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+  .period-current-range {
+    width: 100%;
+    white-space: normal;
+  }
 }
 </style>
 {% endblock %}
@@ -475,35 +579,40 @@
 
   <!-- ══ Period filter ════════════════════════════════════════════ -->
   <div class="period-bar">
-    <a href="?period=today"
-       class="period-btn {% if period == 'today' %}active{% endif %}">
-      <i class="fa-regular fa-calendar-day me-1"></i>Hôm nay
-    </a>
-    <a href="?period=week"
-       class="period-btn {% if period == 'week' %}active{% endif %}">
-      <i class="fa-regular fa-calendar-week me-1"></i>7 ngày qua
-    </a>
-    <a href="?period=month"
-       class="period-btn {% if period == 'month' %}active{% endif %}">
-      <i class="fa-regular fa-calendar me-1"></i>Tháng này
-    </a>
+    <div class="period-presets">
+      <a href="?period=today"
+         class="period-btn {% if period == 'today' %}active{% endif %}">
+        <i class="fa-regular fa-calendar-day me-1"></i>Hôm nay
+      </a>
+      <a href="?period=week"
+         class="period-btn {% if period == 'week' %}active{% endif %}">
+        <i class="fa-regular fa-calendar-week me-1"></i>7 ngày
+      </a>
+      <a href="?period=month"
+         class="period-btn {% if period == 'month' %}active{% endif %}">
+        <i class="fa-regular fa-calendar me-1"></i>Tháng này
+      </a>
+    </div>
 
-    <form method="get" class="custom-range-form">
-      <input type="hidden" name="period" value="custom">
-      <input type="date" name="date_from"
-             value="{{ date_from_str }}"
-             max="{{ today|date:'Y-m-d' }}">
-      <span style="font-size:13px;color:#94a3b8">–</span>
-      <input type="date" name="date_to"
-             value="{{ date_to_str }}"
-             max="{{ today|date:'Y-m-d' }}">
-      <button type="submit" class="btn-apply">Áp dụng</button>
-    </form>
+    <div class="period-custom-wrap">
+      <div class="period-caption">Khoảng ngày</div>
+      <form method="get" class="custom-range-form">
+        <input type="hidden" name="period" value="custom">
+        <input type="date" name="date_from"
+               value="{{ date_from_str }}"
+               max="{{ today|date:'Y-m-d' }}">
+        <span style="font-size:13px;color:#94a3b8">–</span>
+        <input type="date" name="date_to"
+               value="{{ date_to_str }}"
+               max="{{ today|date:'Y-m-d' }}">
+        <button type="submit" class="btn-apply">Áp dụng</button>
+      </form>
 
-    <div style="margin-left:auto; font-size:12.5px; color:#94a3b8">
-      <i class="fa-solid fa-calendar-range me-1"></i>
-      {{ date_from|date:"d/m/Y" }}
-      {% if date_from != date_to %}– {{ date_to|date:"d/m/Y" }}{% endif %}
+      <div class="period-current-range">
+        <i class="fa-solid fa-calendar-range me-1"></i>
+        {{ date_from|date:"d/m/Y" }}
+        {% if date_from != date_to %}– {{ date_to|date:"d/m/Y" }}{% endif %}
+      </div>
     </div>
   </div>
 
@@ -600,7 +709,7 @@
   <div class="row g-3">
 
     <!-- ══ CỘT CHÍNH ══════════════════════════════════════════════ -->
-    <div class="col-12 col-xl-8">
+    <div class="col-12">
 
       <!-- ── Biểu đồ xu hướng theo ngày ─────────────────────────── -->
       <div class="section-card">
@@ -735,8 +844,8 @@
           </div>
         </div>
         <div class="section-body" style="padding:0">
-          <div style="overflow-x:auto">
-            <table class="stats-table">
+          <div class="company-table-wrap">
+            <table class="stats-table company-stats-table">
               <thead>
                 <tr>
                   <th>Công ty</th>
@@ -755,7 +864,7 @@
                 {% for row in company_table %}
                 <tr>
                   <td class="fw-semibold"
-                      style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                      style="white-space:normal;word-break:break-word"
                       title="{{ row.company }}">{{ row.company }}</td>
                   <td class="right" style="color:#64748b">
                     {% if row.planned %}{{ row.planned }}{% else %}—{% endif %}
@@ -812,7 +921,7 @@
     </div><!-- /col-xl-8 -->
 
     <!-- ══ CỘT PHỤ ════════════════════════════════════════════════ -->
-    <div class="col-12 col-xl-4">
+    <div class="col-12">
 
       <!-- ── Công ty đang có lịch khám ─────────────────────────────── -->
       <div class="section-card">
@@ -823,7 +932,7 @@
           <div class="section-title">Công ty đang khám</div>
           <span class="badge bg-primary" style="font-size:.7rem">{{ active_companies|length }}</span>
         </div>
-        <div class="section-body" style="padding:12px">
+        <div class="section-body active-companies-scroll" style="padding:12px">
           {% for co in active_companies %}
           <div class="company-progress-card">
             <div class="cpc-header">
@@ -890,82 +999,6 @@
         </div>
       </div>
 
-      <!-- ── Admin insights ──────────────────────────────────────── -->
-      {% if insights %}
-      <div class="section-card mb-3"> 
-        <div class="section-header">
-          <div class="section-icon si-orange">
-            <i class="fa-solid fa-lightbulb"></i>
-          </div>
-          <div class="section-title">Insights</div>
-        </div>
-        <div class="section-body">
-          <div class="insight-grid">
-            <div class="insight-card">
-              <div class="insight-icon" style="background:#dcfce7;color:#16a34a">
-                <i class="fa-solid fa-users"></i>
-              </div>
-              <div>
-                <div class="insight-val">{{ insights.total }}</div>
-                <div class="insight-label">Tổng lượt tiếp nhận</div>
-              </div>
-            </div>
-            <div class="insight-card">
-              <div class="insight-icon" style="background:#dbeafe;color:#0f4c81">
-                <i class="fa-solid fa-percent"></i>
-              </div>
-              <div>
-                <div class="insight-val">{{ insights.checkout_rate }}%</div>
-                <div class="insight-label">Tỷ lệ check-out</div>
-              </div>
-            </div>
-            <div class="insight-card">
-              <div class="insight-icon" style="background:#fef3c7;color:#d97706">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-              </div>
-              <div>
-                <div class="insight-val">{{ insights.deferred_rate }}%</div>
-                <div class="insight-label">Tỷ lệ hoãn</div>
-              </div>
-            </div>
-            <div class="insight-card">
-              <div class="insight-icon" style="background:#ede9fe;color:#7c3aed">
-                <i class="fa-solid fa-chart-simple"></i>
-              </div>
-              <div>
-                <div class="insight-val">{{ insights.avg_per_day }}</div>
-                <div class="insight-label">TB lượt/ngày có KH</div>
-              </div>
-            </div>
-            {% if insights.busiest_day %}
-            <div class="insight-card" style="grid-column: span 2">
-              <div class="insight-icon" style="background:#fee2e2;color:#dc2626">
-                <i class="fa-solid fa-fire"></i>
-              </div>
-              <div>
-                <div class="insight-val">{{ insights.busiest_day|date:"d/m/Y" }}</div>
-                <div class="insight-label">Ngày bận nhất — {{ insights.busiest_day_count }} lượt</div>
-              </div>
-            </div>
-            {% endif %}
-            {% if insights.top_company %}
-            <div class="insight-card" style="grid-column: span 2">
-              <div class="insight-icon" style="background:#e0f2fe;color:#0891b2">
-                <i class="fa-solid fa-building"></i>
-              </div>
-              <div>
-                <div class="insight-val"
-                     style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px"
-                     title="{{ insights.top_company }}">{{ insights.top_company }}</div>
-                <div class="insight-label">Công ty nhiều KH nhất — {{ insights.top_company_count }} lượt</div>
-              </div>
-            </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
       <!-- ── Phân bổ theo giờ ────────────────────────────────────── -->
       <div class="section-card mb-3">
         <div class="section-header">
@@ -986,6 +1019,82 @@
 
     </div><!-- /col-xl-4 -->
   </div><!-- /row -->
+
+  {% if show_insights and insights %}
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon si-orange">
+        <i class="fa-solid fa-lightbulb"></i>
+      </div>
+      <div class="section-title">Insights quản trị</div>
+      <div style="font-size:12px;color:#94a3b8">Chỉ hiển thị cho superuser</div>
+    </div>
+    <div class="section-body">
+      <div class="insight-grid">
+        <div class="insight-card">
+          <div class="insight-icon" style="background:#dcfce7;color:#16a34a">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <div>
+            <div class="insight-val">{{ insights.total }}</div>
+            <div class="insight-label">Tổng lượt tiếp nhận</div>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-icon" style="background:#dbeafe;color:#0f4c81">
+            <i class="fa-solid fa-percent"></i>
+          </div>
+          <div>
+            <div class="insight-val">{{ insights.checkout_rate }}%</div>
+            <div class="insight-label">Tỷ lệ check-out</div>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-icon" style="background:#fef3c7;color:#d97706">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </div>
+          <div>
+            <div class="insight-val">{{ insights.deferred_rate }}%</div>
+            <div class="insight-label">Tỷ lệ hoãn</div>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-icon" style="background:#ede9fe;color:#7c3aed">
+            <i class="fa-solid fa-chart-simple"></i>
+          </div>
+          <div>
+            <div class="insight-val">{{ insights.avg_per_day }}</div>
+            <div class="insight-label">TB lượt/ngày có KH</div>
+          </div>
+        </div>
+        {% if insights.busiest_day %}
+        <div class="insight-card" style="grid-column: span 2">
+          <div class="insight-icon" style="background:#fee2e2;color:#dc2626">
+            <i class="fa-solid fa-fire"></i>
+          </div>
+          <div>
+            <div class="insight-val">{{ insights.busiest_day|date:"d/m/Y" }}</div>
+            <div class="insight-label">Ngày bận nhất — {{ insights.busiest_day_count }} lượt</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if insights.top_company %}
+        <div class="insight-card" style="grid-column: span 2">
+          <div class="insight-icon" style="background:#e0f2fe;color:#0891b2">
+            <i class="fa-solid fa-building"></i>
+          </div>
+          <div>
+            <div class="insight-val"
+                 style="font-size:14px;white-space:normal;word-break:break-word"
+                 title="{{ insights.top_company }}">{{ insights.top_company }}</div>
+            <div class="insight-label">Công ty nhiều KH nhất — {{ insights.top_company_count }} lượt</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div><!-- /stats-page -->
 
 <!-- ══════════════════════════════════════════════════════════════

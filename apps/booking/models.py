@@ -228,3 +228,61 @@ class IndividualBooking(models.Model):
 
     def __str__(self):
         return f"{self.full_name} ({self.phone}) @ {self.schedule_slot}"
+
+
+class HisAppointmentPushLog(models.Model):
+    """
+    Ghi nhận từng lần push lịch hẹn lên HIS AppService.
+
+    Tạo ngay khi dispatch Celery task (status=QUEUED),
+    cập nhật khi task chạy xong (SUCCESS / FAILED / SKIPPED).
+    """
+
+    class PushStatus(models.TextChoices):
+        QUEUED  = "QUEUED",  _("Đã xếp hàng")
+        SUCCESS = "SUCCESS", _("Thành công")
+        FAILED  = "FAILED",  _("Thất bại")
+        SKIPPED = "SKIPPED", _("Bỏ qua")
+
+    appointment = models.ForeignKey(
+        "booking.Appointment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="his_push_logs",
+        verbose_name=_("Lịch hẹn"),
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=PushStatus.choices,
+        default=PushStatus.QUEUED,
+        db_index=True,
+        verbose_name=_("Trạng thái"),
+    )
+    attempt = models.PositiveSmallIntegerField(
+        default=1,
+        verbose_name=_("Lần thử"),
+    )
+    endpoint = models.CharField(max_length=500, blank=True, verbose_name=_("Endpoint"))
+    payload = models.JSONField(null=True, blank=True, verbose_name=_("Payload gửi đi"))
+    http_status_code = models.IntegerField(null=True, blank=True, verbose_name=_("HTTP status"))
+    response_data = models.JSONField(null=True, blank=True, verbose_name=_("Response JSON"))
+    response_text = models.TextField(blank=True, verbose_name=_("Response text"))
+    error = models.TextField(blank=True, verbose_name=_("Lỗi"))
+    skipped_reason = models.TextField(blank=True, verbose_name=_("Lý do bỏ qua"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Tạo lúc"))
+    pushed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Push xong lúc"))
+
+    class Meta:
+        db_table = "booking_his_push_log"
+        ordering = ["-created_at"]
+        verbose_name = _("HIS Push Log")
+        verbose_name_plural = _("HIS Push Logs")
+        indexes = [
+            models.Index(fields=["status", "created_at"], name="bk_hislog_status_creat_idx"),
+            models.Index(fields=["appointment", "created_at"], name="bk_hislog_appt_creat_idx"),
+        ]
+
+    def __str__(self):
+        appt_id = self.appointment_id or "—"
+        return f"PushLog #{self.pk} appt={appt_id} [{self.status}] @ {self.created_at:%d/%m/%Y %H:%M}"
