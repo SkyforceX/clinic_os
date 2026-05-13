@@ -18,7 +18,6 @@ from .serializers import AppointmentBriefSerializer
 def _extract_schedule_date(sch) -> date | None:
     """
     Lấy ngày hẹn khám từ AppointmentSchedule với các tên field phổ biến.
-    Sửa lại phần dưới nếu project bạn dùng field khác.
     """
     if not sch:
         return None

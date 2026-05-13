@@ -32,6 +32,8 @@ class HisAppointmentPushResult:
 
 
 def _get_push_config():
+    # Đọc cấu hình cho nhánh push HIS server thật từ settings/env.
+    # Khi debug timeout hoặc sai endpoint, kiểm tra block config này trước.
     return getattr(settings, "HIS_APPOINTMENT_PUSH", {}) or {}
 
 
@@ -128,6 +130,8 @@ def _safe_json_response(response):
 
 
 def build_his_appointment_push_body(appointment):
+    # Chuẩn hóa dữ liệu Appointment nội bộ thành payload HIS theo spec
+    # `API_DanhSachLichHen.Insert`.
     cfg = _get_push_config()
     patient_source = _get_patient_source(appointment)
     schedule_slot = getattr(appointment, "schedule_slot", None)
@@ -152,6 +156,8 @@ def build_his_appointment_push_body(appointment):
     content_default = cfg.get("DEFAULT_CONTENT", "Đăng ký khám đoàn từ Clinic OS")
     content = content_default if not company_name else f"{content_default} - {company_name}"
 
+    # Đây là object HIS sẽ dùng để map xuống DB của nó.
+    # Khi đối chiếu với tài liệu field HIS, nhìn trực tiếp block này.
     lichhen = {
         "NgayBatDau": _format_datetime_for_his(schedule_slot.date, start_time),
         "NgayKetThuc": _format_datetime_for_his(schedule_slot.date, end_time),
@@ -178,6 +184,7 @@ def build_his_appointment_push_body(appointment):
         "NgayThang": birth_text,
         "IDLichHenWeb": appointment.id,
     }
+    # Payload hoàn chỉnh sẽ được gửi qua HTTP ở nhánh production.
     return {
         "sid": None,
         "cmd": cfg.get("CMD", "API_DanhSachLichHen.Insert"),
@@ -192,6 +199,8 @@ _HIS_LOCAL_PG_ALIAS = "his_local_pg"
 
 
 def _ensure_his_local_pg_alias():
+    # Tạo DB alias động cho local mode.
+    # Nhánh này chỉ phục vụ dev/debug, không gọi HIS server thật.
     if _HIS_LOCAL_PG_ALIAS in connections.databases:
         return
     pg_cfg = settings.HIS_LOCAL_PG
@@ -227,6 +236,8 @@ def _push_appointment_to_local_pg(appointment):
     )
 
     try:
+        # Local mode vẫn build đúng payload chuẩn HIS để debug mapping field
+        # giống production, chỉ khác đích ghi dữ liệu.
         payload = build_his_appointment_push_body(appointment)
         lichhen = payload["data"]["lichhen"]
         _ensure_his_local_pg_alias()
@@ -281,6 +292,8 @@ def _push_appointment_to_local_pg(appointment):
             _json.dumps(payload, ensure_ascii=False),
         ]
 
+        # Ghi trực tiếp vào PostgreSQL local để kiểm tra payload/mapping
+        # mà không phụ thuộc network hay AppService HIS.
         with connections[_HIS_LOCAL_PG_ALIAS].cursor() as cursor:
             cursor.execute(insert_sql, params)
             row = cursor.fetchone()
@@ -320,9 +333,17 @@ def _push_appointment_to_local_pg(appointment):
 
 
 def push_appointment_to_his(appointment, *, force=False):
+    # Entry point chính của call flow push lịch hẹn sang HIS.
+    # Cả tool demo trong `app api_his` và Celery task đều gọi vào đây.
+
+    # Nhánh local/dev:
+    # Nếu bật `HIS_LOCAL_SYNC_ENABLED`, hệ thống không bắn HTTP ra ngoài
+    # mà insert payload vào bảng local để debug.
     if getattr(settings, "HIS_LOCAL_SYNC_ENABLED", False):
         return _push_appointment_to_local_pg(appointment)
 
+    # Nhánh production/staging thật:
+    # Từ đây trở xuống là luồng gọi HTTP sang HIS AppService.
     cfg = _get_push_config()
     endpoint = str(cfg.get("URL", "") or "").strip()
     enabled = bool(cfg.get("ENABLED")) or force
@@ -348,8 +369,12 @@ def push_appointment_to_his(appointment, *, force=False):
             payload=payload,
         )
 
-    timeout = int(cfg.get("TIMEOUT", 8) or 8)
+    # Timeout cho request tới HIS server thật.
+    # `ConnectTimeout`: chưa nối được host/port.
+    # `ReadTimeout`: đã nối được nhưng HIS phản hồi quá chậm.
+    timeout = int(cfg.get("TIMEOUT", 20) or 20)
     try:
+        # Điểm bắn HTTP request thật sang HIS AppService.
         response = requests.post(endpoint, json=payload, timeout=timeout)
         response_data = _safe_json_response(response)
         response_text = ""
@@ -357,6 +382,7 @@ def push_appointment_to_his(appointment, *, force=False):
             response_text = response.text[:4000]
         response.raise_for_status()
 
+        # HIS có thể trả HTTP 200 nhưng business vẫn fail qua `code != 0`.
         his_code = response_data.get("code") if isinstance(response_data, dict) else None
         his_success = his_code == 0
         his_error = ""
@@ -382,6 +408,8 @@ def push_appointment_to_his(appointment, *, force=False):
             error=his_error,
         )
     except requests.RequestException as exc:
+        # Gom các lỗi network/timeout/HTTP vào một result để view/task
+        # có thể log và hiển thị thống nhất khi debug.
         response = getattr(exc, "response", None)
         response_data = _safe_json_response(response) if response is not None else None
         response_text = ""

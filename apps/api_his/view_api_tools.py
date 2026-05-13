@@ -132,6 +132,8 @@ class BookingHisPushSendView(View):
         if not appointment_id:
             return JsonResponse({"ok": False, "error": "Thiếu appointment_id."}, status=400)
 
+        # Tool endpoint nội bộ chỉ nhận `appointment_id`,
+        # rồi nạp đủ quan hệ để service build payload HIS.
         appointment = (
             Appointment.objects.select_related(
                 "patient",
@@ -145,16 +147,19 @@ class BookingHisPushSendView(View):
         )
         if not appointment:
             return JsonResponse(
-                {"ok": False, "error": f"KhÃ´ng tÃ¬m tháº¥y appointment_id={appointment_id}."},
+                {"ok": False, "error": f"Không tìm thấy appointment_id={appointment_id}."},
                 status=404,
             )
 
         try:
+            # Từ đây call flow chuyển sang service `push_appointment_to_his()`,
+            # service sẽ tự rẽ nhánh local hoặc server HIS thật.
             result = push_appointment_to_his(appointment, force=bool(payload.get("force")))
         except Exception as exc:
             logger.exception("Failed to push appointment_id=%s to HIS.", appointment_id)
             return JsonResponse({"ok": False, "error": str(exc)}, status=500)
 
+        # Trả nguyên kết quả service ra JSON để debug dễ hơn trên UI/Postman.
         return JsonResponse(
             {
                 "ok": result.success,
