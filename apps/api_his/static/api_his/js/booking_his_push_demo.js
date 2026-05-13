@@ -65,6 +65,10 @@
       }
     }
 
+    if (!response.ok && data !== null) {
+      return data;
+    }
+
     if (!response.ok) {
       const message = data && data.error
         ? data.error
@@ -143,7 +147,9 @@
         }),
       });
       const data = await parseApiResponse(response);
-      if (result) result.textContent = JSON.stringify(data, null, 2);
+      if (result) {
+        result.textContent = JSON.stringify(data, null, 2);
+      }
       // Reload log after push (success or fail)
       loadLocalLog();
     } catch (error) {

@@ -153,7 +153,7 @@ def build_his_appointment_push_body(appointment):
     birth_year = _get_birth_year(patient_source)
     note_default = cfg.get("DEFAULT_NOTE", "")
     note = note_default or f"Clinic OS appointment #{appointment.id}"
-    content_default = cfg.get("DEFAULT_CONTENT", "Đăng ký khám đoàn từ Clinic OS")
+    content_default = cfg.get("DEFAULT_CONTENT", "Khám đoàn")
     content = content_default if not company_name else f"{content_default} - {company_name}"
 
     # Đây là object HIS sẽ dùng để map xuống DB của nó.
