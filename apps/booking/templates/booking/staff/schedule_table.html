@@ -98,7 +98,7 @@
     .company-col-confirmed   { border-left: 4px solid #2e7d32 !important; }
     .company-col-unconfirmed { border-left: 4px solid #5c6bc0 !important; }
     .schedule-table-wrapper {
-      font-size: 15px !important;
+      font-size: 14px !important;
     }
     @media (max-width: 991.98px) {
       .schedule-table-wrapper {
@@ -171,7 +171,7 @@
                 {% elif forloop.counter0 in holiday_indexes %}
                   <td class="col-holiday"></td>
                 {% else %}
-                  <td style="font-size: 11px; color: #1e88e5;">{{ am }}</td>
+                  <td style="color: #1e88e5;">{{ am }}</td>
                 {% endif %}
               {% endfor %}
             </tr>
@@ -182,7 +182,7 @@
                 {% elif forloop.counter0 in holiday_indexes %}
                   <td class="col-holiday"></td>
                 {% else %}
-                  <td style="font-size: 11px; color: #fb8c00;">{{ pm }}</td>
+                  <td style="color: #fb8c00;">{{ pm }}</td>
                 {% endif %}
               {% endfor %}
             </tr>
@@ -438,13 +438,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // định dạng bảng - màu cho ngày đăng ký của CTY
   document.addEventListener("DOMContentLoaded", function () {
     const today = new Date();
-    const todayFormatted = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}`;
-    
-    const ths = document.querySelectorAll(".schedule-table thead th");
+    const todayIso = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+    const headerCells = document.querySelectorAll(".schedule-table thead tr:first-child th, .schedule-table thead tr:first-child td");
     let todayColIndex = -1;
 
-    ths.forEach((th, index) => {
-      if (th.innerText.trim() === todayFormatted) {
+    headerCells.forEach((th, index) => {
+      if (th.dataset.date === todayIso) {
         th.classList.add("today-highlight");
         todayColIndex = index;
       }
@@ -454,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const rows = document.querySelectorAll(".schedule-table tbody tr");
       rows.forEach(row => {
         const cells = row.querySelectorAll("td");
-        if (cells.length === ths.length) {
+        if (cells.length === headerCells.length - 1) {
           cells[todayColIndex - 1]?.classList.add("today-highlight");
         }
       });
@@ -484,9 +483,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // btn chạy đến ngày hiện tại
 function scrollToToday() {
-  const todayCell = document.querySelector('.today-highlight');
-  if (todayCell) {
-    todayCell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+  const wrapper = document.getElementById('js-schedule-table-wrapper');
+  const todayCell = document.querySelector('.schedule-table thead .today-highlight');
+  if (wrapper && todayCell) {
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const cellRect = todayCell.getBoundingClientRect();
+    const offset = cellRect.left - wrapperRect.left - (wrapper.clientWidth / 2) + (todayCell.offsetWidth / 2);
+    wrapper.scrollLeft += offset;
   }
 }
 </script>
@@ -524,6 +527,10 @@ document.addEventListener('DOMContentLoaded', function () {
       cumulativeTop += tr.getBoundingClientRect().height;
     });
   })();
+
+  requestAnimationFrame(function () {
+    scrollToToday();
+  });
 });
 
 document.addEventListener('DOMContentLoaded', function () {
