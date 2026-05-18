@@ -261,33 +261,39 @@
     position: sticky;
     bottom: 0;
     z-index: 5;
-    padding: 12px;
+    padding: 10px 12px;
     border-top: 1px solid var(--sidebar-border);
     background: rgba(15, 23, 42, 0.96);
     backdrop-filter: blur(10px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
   }
 
   .user-info {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    margin-bottom: 10px;
-    border-radius: 14px;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px 10px;
+    margin-bottom: 0;
+    border-radius: 12px;
     background: rgba(255, 255, 255, 0.05);
     color: var(--sidebar-text);
-    font-size: 14px;
+    font-size: 13px;
     transition: all 0.2s ease;
   }
 
   .user-info i {
-    font-size: 18px;
+    font-size: 16px;
     color: #93c5fd;
     flex-shrink: 0;
   }
 
   .user-name {
     min-width: 0;
+    line-height: 1.2;
     transition: opacity 0.18s ease, transform 0.18s ease;
     white-space: nowrap;
     overflow: hidden;
@@ -298,17 +304,21 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
     justify-content: center;
-    min-height: 42px;
-    border-radius: 14px;
+    min-height: 38px;
+    width: 38px;
+    min-width: 38px;
+    padding: 0;
+    border-radius: 12px;
     background: rgba(239, 68, 68, 0.12);
     color: #fca5a5;
     text-decoration: none;
+    font-size: 14px;
     font-weight: 600;
     transition: all 0.2s ease;
     border: 1px solid rgba(239, 68, 68, 0.18);
     overflow: hidden;
+    flex-shrink: 0;
   }
 
   .logout-link:hover {
@@ -317,7 +327,7 @@
   }
 
   .logout-text {
-    transition: opacity 0.18s ease, transform 0.18s ease;
+    display: none;
   }
 
   /* Desktop collapsed */
@@ -500,6 +510,21 @@
       padding-right: 12px;
     }
 
+    .logout-link {
+      width: auto;
+      padding: 0 12px;
+      gap: 8px;
+    }
+
+    .logout-text {
+      display: inline;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .user-actions {
+      grid-template-columns: 1fr;
+    }
+
     body.sidebar-collapsed .menu-link::after,
     body.sidebar-collapsed .sidebar-brand-link::after,
     body.sidebar-collapsed .logout-link::after,
@@ -531,7 +556,7 @@
       <!-- <div class="sidebar-brand-logo">VMD</div> -->
       <div class="sidebar-brand-text">
         <div class="sidebar-brand-title">Vietmedi</div>
-        <div class="sidebar-brand-subtitle">Hệ thống nội bộ</div>
+        <div class="sidebar-brand-subtitle">Hệ thống nội bộ ClinicOS</div>
       </div>
     </a>
   </div>

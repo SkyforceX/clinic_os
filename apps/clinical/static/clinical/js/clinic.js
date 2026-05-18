@@ -516,7 +516,8 @@ function selectPatient(patient_id, form_type) {
     });
 }
 
-const today = new Date().toISOString().split("T")[0];
+const now = new Date();
+const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 const printDateEl = document.getElementById("printDate");
 if (printDateEl) {
   printDateEl.value = today || "";
@@ -587,6 +588,10 @@ document.addEventListener("DOMContentLoaded", function () {
                   savedAtInput.value = stamp;
                 }
               }
+              const printDateInput = document.getElementById("printDate");
+              if (printDateInput && !printDateInput.value) {
+                printDateInput.value = stamp.replace(" ", "T").slice(0, 16);
+              }
             }
             in_phieu();
           } else {
@@ -641,6 +646,10 @@ document.addEventListener("DOMContentLoaded", function () {
                   savedAtInput.value = stamp;
                 }
               }
+              const printDateInput = document.getElementById("printDate");
+              if (printDateInput && !printDateInput.value) {
+                printDateInput.value = stamp.replace(" ", "T").slice(0, 16);
+              }
             }
           } else {
             showCustomToast(data.message || "Lưu dữ liệu thất bại!");
@@ -680,13 +689,6 @@ function in_phieu() {
       return new Date(year, month - 1, day, hour, minute, Number.isNaN(second) ? 0 : second);
     }
 
-    function dateOnlyText(dateObj) {
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const year = dateObj.getFullYear();
-      return `${year}-${month}-${day}`;
-    }
-
     function formatPrintDate(dateObj) {
       const day = String(dateObj.getDate()).padStart(2, "0");
       const month = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -698,35 +700,8 @@ function in_phieu() {
 
     const createdAt = parseDbDateTime(createdAtInput);
     const updatedAt = parseDbDateTime(latestSavedAtInput);
-    let chosenDate = null;
-    if (printDateInput) {
-      const [year, month, day] = printDateInput.split("-").map(Number);
-      if (![year, month, day].some(Number.isNaN)) {
-        chosenDate = new Date(year, month - 1, day);
-      }
-    }
-
-    const chosenDateText = chosenDate ? dateOnlyText(chosenDate) : "";
-    let printDateSource = null;
-
-    if (updatedAt && chosenDateText && dateOnlyText(updatedAt) === chosenDateText) {
-      printDateSource = updatedAt;
-    } else if (createdAt && chosenDateText && dateOnlyText(createdAt) === chosenDateText) {
-      printDateSource = createdAt;
-    } else if (chosenDate) {
-      const nowForPrint = new Date();
-      printDateSource = new Date(
-        chosenDate.getFullYear(),
-        chosenDate.getMonth(),
-        chosenDate.getDate(),
-        nowForPrint.getHours(),
-        nowForPrint.getMinutes(),
-        nowForPrint.getSeconds()
-      );
-    } else {
-      printDateSource = updatedAt || createdAt || new Date();
-    }
-
+    const chosenDate = parseDbDateTime(printDateInput);
+    const printDateSource = chosenDate || updatedAt || createdAt || new Date();
     printDateFormatted = formatPrintDate(printDateSource);
 
     const upperTeeth = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
@@ -796,11 +771,36 @@ function in_phieu() {
       if (cell) cell.textContent = val;
     });
 
-    const printWindow = window.open("", "_blank", "width=1000, height=1000, scrollbars=yes");
-    printWindow.document.write(`
+    const printFrame = document.createElement("iframe");
+    printFrame.setAttribute("aria-hidden", "true");
+    printFrame.style.position = "fixed";
+    printFrame.style.right = "0";
+    printFrame.style.bottom = "0";
+    printFrame.style.width = "0";
+    printFrame.style.height = "0";
+    printFrame.style.border = "0";
+    document.body.appendChild(printFrame);
+
+    const frameWindow = printFrame.contentWindow;
+    const frameDocument = frameWindow ? frameWindow.document : null;
+    if (!frameWindow || !frameDocument) {
+      if (printFrame.parentNode) {
+        printFrame.parentNode.removeChild(printFrame);
+      }
+      throw new Error("Khong khoi tao duoc khung in.");
+    }
+
+    const cleanupPrintFrame = function () {
+      if (printFrame.parentNode) {
+        printFrame.parentNode.removeChild(printFrame);
+      }
+    };
+
+    frameDocument.open();
+    frameDocument.write(`
       <html>
       <head>
-        <title>Phiếu khám RHM</title>
+        <title>Phieu kham RHM</title>
         <link rel="stylesheet" href="${window.location.origin}/static/clinical/css/dental_print.css">
       </head>
       <body>
@@ -812,15 +812,15 @@ function in_phieu() {
       </body>
       </html>
     `);
+    frameDocument.close();
 
-    printWindow.document.close();
-    printWindow.onload = function () {
-      printWindow.focus();
-      printWindow.print();
-      printWindow.onafterprint = function () {
-        // printWindow.close();
-      };
+    printFrame.onload = function () {
+      frameWindow.focus();
+      frameWindow.print();
     };
+
+    frameWindow.onafterprint = cleanupPrintFrame;
+    setTimeout(cleanupPrintFrame, 60000);
   } catch (e) {
     alert("Đã xảy ra lỗi khi tạo phiếu in:\n" + e.message);
     console.error("Print error:", e);
@@ -1291,3 +1291,4 @@ function initListCompanyPatientActions() {
     });
   }
 }
+
