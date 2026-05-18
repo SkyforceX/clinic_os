@@ -11,6 +11,7 @@ from django.utils import timezone
 from apps.authentication.selectors.session_selectors import get_current_patient_from_session
 from apps.authentication.utils import patient_access_required
 from apps.booking.models import HisAppointmentPushLog
+from apps.booking.services import push_appointment_to_his
 from apps.booking.tasks import push_appointment_to_his_task
 from apps.scheduling.models import ScheduleSlot
 from apps.scheduling.selectors.schedule_selectors import (
@@ -36,29 +37,25 @@ def _dispatch_his_push_for_appointment(*, appointment):
     )
 
     try:
-        push_appointment_to_his_task.delay(appointment.id, log_id=push_log.id)
-        return
-    except Exception:
-        logger.exception(
-            "Failed to dispatch Celery HIS push for appointment_id=%s. Falling back to direct push.",
-            getattr(appointment, "id", None),
-        )
-
-    from apps.booking.services import push_appointment_to_his
-
-    try:
         result = push_appointment_to_his(appointment)
     except Exception as exc:
+        logger.exception(
+            "Direct HIS push failed for appointment_id=%s. Falling back to Celery retry.",
+            getattr(appointment, "id", None),
+        )
         HisAppointmentPushLog.objects.filter(pk=push_log.id).update(
             status=HisAppointmentPushLog.PushStatus.FAILED,
             attempt=1,
             error=str(exc),
             pushed_at=timezone.now(),
         )
-        logger.exception(
-            "Direct fallback HIS push failed for appointment_id=%s.",
-            getattr(appointment, "id", None),
-        )
+        try:
+            push_appointment_to_his_task.delay(appointment.id, log_id=push_log.id, initial_attempts=1)
+        except Exception:
+            logger.exception(
+                "Failed to enqueue Celery retry for appointment_id=%s after direct push error.",
+                getattr(appointment, "id", None),
+            )
         return
 
     if result.skipped_reason:
@@ -80,6 +77,15 @@ def _dispatch_his_push_for_appointment(*, appointment):
         skipped_reason=result.skipped_reason or "",
         pushed_at=timezone.now(),
     )
+
+    if final_status == HisAppointmentPushLog.PushStatus.FAILED:
+        try:
+            push_appointment_to_his_task.delay(appointment.id, log_id=push_log.id, initial_attempts=1)
+        except Exception:
+            logger.exception(
+                "Failed to enqueue Celery retry for appointment_id=%s after failed direct push result.",
+                getattr(appointment, "id", None),
+            )
 
 
 @patient_access_required

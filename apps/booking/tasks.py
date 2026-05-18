@@ -18,7 +18,12 @@ logger = logging.getLogger(__name__)
     default_retry_delay=60,
     acks_late=True,
 )
-def push_appointment_to_his_task(self, appointment_id: int, log_id: int | None = None):
+def push_appointment_to_his_task(
+    self,
+    appointment_id: int,
+    log_id: int | None = None,
+    initial_attempts: int = 0,
+):
     """
     Async push lịch hẹn lên HIS AppService.
 
@@ -29,7 +34,7 @@ def push_appointment_to_his_task(self, appointment_id: int, log_id: int | None =
     from apps.booking.services import push_appointment_to_his
 
     PushStatus = HisAppointmentPushLog.PushStatus
-    attempt_no = self.request.retries + 1
+    attempt_no = int(initial_attempts or 0) + self.request.retries + 1
 
     appointment = (
         Appointment.objects

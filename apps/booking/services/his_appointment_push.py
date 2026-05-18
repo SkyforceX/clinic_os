@@ -399,8 +399,11 @@ def push_appointment_to_his(appointment, *, force=False):
         his_code = response_data.get("code") if isinstance(response_data, dict) else None
         his_success = _is_his_success_response(response_data)
         his_error = ""
-        if not his_success and isinstance(response_data, dict):
-            his_error = response_data.get("msg") or f"HIS trả lỗi code={his_code}"
+        if not his_success:
+            if isinstance(response_data, dict):
+                his_error = response_data.get("msg") or f"HIS trả lỗi code={his_code}"
+            else:
+                his_error = "Unexpected non-JSON response from HIS endpoint."
 
         logger.info(
             "Pushed appointment %s to HIS appointment API. status=%s his_code=%s response=%s",
