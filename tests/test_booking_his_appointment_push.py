@@ -31,6 +31,7 @@ def _build_appointment():
 
 
 @override_settings(
+    HIS_LOCAL_SYNC_ENABLED=False,
     HIS_APPOINTMENT_PUSH={
         "ENABLED": True,
         "URL": "http://example.test/api/AppService",
@@ -68,7 +69,7 @@ class BookingHisAppointmentPushTests(SimpleTestCase):
     def test_push_appointment_success(self, mock_post):
         response = Mock()
         response.status_code = 200
-        response.json.return_value = {"ok": True}
+        response.json.return_value = {"code": 1, "msg": "OK", "data": [{"ID": 2865}]}
         response.raise_for_status.return_value = None
         mock_post.return_value = response
 
@@ -77,10 +78,13 @@ class BookingHisAppointmentPushTests(SimpleTestCase):
         self.assertTrue(result.success)
         self.assertTrue(result.attempted)
         self.assertEqual(result.status_code, 200)
-        self.assertEqual(result.response_data, {"ok": True})
+        self.assertEqual(result.response_data, {"code": 1, "msg": "OK", "data": [{"ID": 2865}]})
         mock_post.assert_called_once()
 
-    @override_settings(HIS_APPOINTMENT_PUSH={"ENABLED": False, "URL": "http://example.test/api/AppService"})
+    @override_settings(
+        HIS_LOCAL_SYNC_ENABLED=False,
+        HIS_APPOINTMENT_PUSH={"ENABLED": False, "URL": "http://example.test/api/AppService"},
+    )
     def test_push_appointment_skips_when_disabled(self):
         result = push_appointment_to_his(_build_appointment())
 

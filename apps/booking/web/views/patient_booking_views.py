@@ -1,4 +1,5 @@
 import json
+import logging
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -24,6 +25,61 @@ from apps.scheduling.services.appointment_commands import (
     SchedulingRegistrationError,
     register_or_move_patient_appointment,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def _dispatch_his_push_for_appointment(*, appointment):
+    push_log = HisAppointmentPushLog.objects.create(
+        appointment=appointment,
+        status=HisAppointmentPushLog.PushStatus.QUEUED,
+    )
+
+    try:
+        push_appointment_to_his_task.delay(appointment.id, log_id=push_log.id)
+        return
+    except Exception:
+        logger.exception(
+            "Failed to dispatch Celery HIS push for appointment_id=%s. Falling back to direct push.",
+            getattr(appointment, "id", None),
+        )
+
+    from apps.booking.services import push_appointment_to_his
+
+    try:
+        result = push_appointment_to_his(appointment)
+    except Exception as exc:
+        HisAppointmentPushLog.objects.filter(pk=push_log.id).update(
+            status=HisAppointmentPushLog.PushStatus.FAILED,
+            attempt=1,
+            error=str(exc),
+            pushed_at=timezone.now(),
+        )
+        logger.exception(
+            "Direct fallback HIS push failed for appointment_id=%s.",
+            getattr(appointment, "id", None),
+        )
+        return
+
+    if result.skipped_reason:
+        final_status = HisAppointmentPushLog.PushStatus.SKIPPED
+    elif result.success:
+        final_status = HisAppointmentPushLog.PushStatus.SUCCESS
+    else:
+        final_status = HisAppointmentPushLog.PushStatus.FAILED
+
+    HisAppointmentPushLog.objects.filter(pk=push_log.id).update(
+        status=final_status,
+        attempt=1,
+        endpoint=result.endpoint or "",
+        payload=result.payload,
+        http_status_code=result.status_code,
+        response_data=result.response_data,
+        response_text=(result.response_text or "")[:4000],
+        error=result.error or "",
+        skipped_reason=result.skipped_reason or "",
+        pushed_at=timezone.now(),
+    )
 
 
 @patient_access_required
@@ -116,11 +172,7 @@ def submit_registration(request):
             return redirect("booking:register_schedule")
 
         # Tạo log entry QUEUED, dispatch Celery task — không block request
-        push_log = HisAppointmentPushLog.objects.create(
-            appointment=result["appointment"],
-            status=HisAppointmentPushLog.PushStatus.QUEUED,
-        )
-        push_appointment_to_his_task.delay(result["appointment"].id, log_id=push_log.id)
+        _dispatch_his_push_for_appointment(appointment=result["appointment"])
 
         query_string = urlencode({
             "schedule_id": result["schedule"].id,

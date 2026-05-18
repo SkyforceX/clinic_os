@@ -129,6 +129,19 @@ def _safe_json_response(response):
         return None
 
 
+def _is_his_success_response(response_data):
+    if not isinstance(response_data, dict):
+        return False
+
+    his_code = response_data.get("code")
+    if his_code == 0:
+        return True
+
+    message = str(response_data.get("msg") or "").strip().upper()
+    data = response_data.get("data")
+    return his_code == 1 and message == "OK" and data not in (None, "", [], {})
+
+
 def build_his_appointment_push_body(appointment):
     # Chuẩn hóa dữ liệu Appointment nội bộ thành payload HIS theo spec
     # `API_DanhSachLichHen.Insert`.
@@ -384,7 +397,7 @@ def push_appointment_to_his(appointment, *, force=False):
 
         # HIS có thể trả HTTP 200 nhưng business vẫn fail qua `code != 0`.
         his_code = response_data.get("code") if isinstance(response_data, dict) else None
-        his_success = his_code == 0
+        his_success = _is_his_success_response(response_data)
         his_error = ""
         if not his_success and isinstance(response_data, dict):
             his_error = response_data.get("msg") or f"HIS trả lỗi code={his_code}"
