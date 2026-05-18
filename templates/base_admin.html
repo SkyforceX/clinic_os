@@ -912,9 +912,10 @@ body.ai-widget-on #notif-toast-container { bottom: 90px; }
 <script src="{% static 'js/global.js' %}"></script>
 <script src="{% static 'authentication/js/scripts.js' %}"></script>
 
-{% if request.user.is_authenticated %}
+{% if request.user.is_authenticated and notifications_ws_enabled %}
 {% unread_notification_count as notif_cnt %}
 <script>
+  window.__NOTIF_WS_ENABLED__ = true;
   window.__NOTIF_UNREAD_COUNT__ = {{ notif_cnt|default:0 }};
 </script>
 <script src="{% static 'notifications/js/notification.js' %}"></script>

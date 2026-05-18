@@ -78,6 +78,7 @@ HIS_LOCAL_PG = {
     "SCHEMA": os.getenv("HIS_LOCAL_PG_SCHEMA", "dbo"),
 }
 HIS_LOCAL_SYNC_ENABLED = DEBUG and env.bool("HIS_LOCAL_SYNC_ENABLED", default=False)
+NOTIFICATIONS_WS_ENABLED = env.bool("NOTIFICATIONS_WS_ENABLED", default=False)
 HIS_APPOINTMENT_PUSH = {
     "ENABLED": env.bool("HIS_APPOINTMENT_PUSH_ENABLED", default=False),
     "URL": env("HIS_APPOINTMENT_PUSH_URL", default=""),
@@ -219,6 +220,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.core.context_processors.runtime_flags",
                 "apps.ai_assistant.context_processors.ai_assistant",
             ],
         },

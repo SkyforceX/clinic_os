@@ -14,6 +14,10 @@
 (function () {
   "use strict";
 
+  if (window.__NOTIF_WS_ENABLED__ !== true) {
+    return;
+  }
+
   // ── Config ────────────────────────────────────────────────────────────────
   const WS_PATH    = "/ws/notifications/";
   const TOAST_DURATION = 6000;   // ms tự ẩn toast
