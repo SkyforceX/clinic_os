@@ -332,15 +332,6 @@ h3 {
 
 /* Tiêu đề "Bác sĩ khám" — không có trong template cũ,
    nhưng thêm để rõ ràng hơn. Nếu không cần thì xóa block này. */
-.signature::before {
-  content: "Bác sĩ khám";
-  display: block;
-  font-size: 9pt;
-  font-weight: 700;
-  text-transform: uppercase;
-  margin-bottom: 2pt;
-}
-
 /* Vùng chứa ảnh chữ ký — giữ chỗ để ký tay khi không có ảnh */
 .signature-image-area {
   min-height: 70pt;

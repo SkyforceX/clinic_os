@@ -171,6 +171,16 @@ def build_dental_result_payload(*, patient_id=None, exam_id=None):
             if dental_exam and dental_exam.created_at
             else ""
         ),
+        "created_at_value": (
+            dental_exam.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            if dental_exam and dental_exam.created_at
+            else ""
+        ),
+        "latest_saved_at": (
+            dental_exam.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+            if dental_exam and dental_exam.updated_at
+            else ""
+        ),
         "tooth_details": {},
     }
 

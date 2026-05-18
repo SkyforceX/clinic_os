@@ -188,6 +188,7 @@
     .de-btn-save:hover { background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 18px rgba(37,99,235,.35); }
     .de-btn-print { background:#fff;color:#0f766e;border:1.5px solid #0d9488;box-shadow:0 1px 4px rgba(13,148,136,.12); }
     .de-btn-print:hover { background:#f0fdf4;border-color:#0f766e; }
+    .de-btn-print.hidden { display:none; }
     .de-btn-history { background:#fff;color:#7c3aed;border:1.5px solid #a78bfa; }
     .de-btn-history:hover { background:#faf5ff;border-color:#7c3aed; }
     .de-btn-history:disabled { opacity:.45;cursor:not-allowed; }
@@ -308,6 +309,8 @@
       <input type="hidden" name="patient_id"    id="patient_id"    value="">
       <input type="hidden" name="company_id"    id="company_id"    value="">
       <input type="hidden" name="dental_exam_id" id="dental_exam_id" value="">
+      <input type="hidden" name="dental_exam_created_at" id="dental_exam_created_at" value="">
+      <input type="hidden" name="dental_exam_saved_at" id="dental_exam_saved_at" value="">
 
       <!-- ── 1. Thông tin hành chính ──────────────────────────── -->
       <div class="de-card">
@@ -481,11 +484,9 @@
             <span id="btnSaveText">Lưu phiếu khám</span>
           </button>
 
-          {% if already_saved %}
-          <button type="button" class="de-btn de-btn-print" id="btnPrint" onclick="triggerPrint()">
+          <button type="button" class="de-btn de-btn-print{% if not already_saved %} hidden{% endif %}" id="btnPrint" onclick="triggerPrint()">
             <i class="fa-solid fa-print"></i> In phiếu
           </button>
-          {% endif %}
 
           <input type="date" id="printDate" name="printDate" class="de-date-input"
                  title="Ngày hiển thị trên phiếu in"
@@ -660,6 +661,10 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
     if (cid) cid.value = "";
     var did = document.getElementById("dental_exam_id");
     if (did) did.value = "";
+    var dca = document.getElementById("dental_exam_created_at");
+    if (dca) dca.value = "";
+    var dsa = document.getElementById("dental_exam_saved_at");
+    if (dsa) dsa.value = "";
 
     /* Xoá bảng răng */
     clearAllTeeth();
@@ -672,6 +677,7 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
 
     unlockPatientFields();
     updateHistoryBtn();
+    syncPrintButtonState();
   };
 
   /* ═══════════════════════════════════════════════════════════
@@ -767,6 +773,13 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
     if (btn) btn.disabled = !pid;
   }
 
+  function syncPrintButtonState() {
+    var btn = document.getElementById("btnPrint");
+    var examId = ((document.getElementById("dental_exam_id") || {}).value || "").trim();
+    if (!btn) return;
+    btn.classList.toggle("hidden", !examId);
+  }
+
   window.openHistoryModal = function () {
     var pid  = (document.getElementById("patient_id") || {}).value;
     var name = (document.getElementById("full_name")  || {}).value;
@@ -844,6 +857,8 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
 
     /* Gán qua setter thông thường (patient_id dùng cách đặc biệt bên dưới) */
     set("dental_exam_id",        p.dental_exam_id    || "");
+    set("dental_exam_created_at", p.created_at_value || "");
+    set("dental_exam_saved_at",  p.latest_saved_at   || "");
     set("full_name",             p.full_name);
     set("dob",                   p.dob);
     set("gender",                p.gender);
@@ -870,6 +885,7 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
     }
 
     updateHistoryBtn();
+    syncPrintButtonState();
   }
 
   /* ── Auto-print khi mở từ link In trong modal ─────────────── */
@@ -886,11 +902,16 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
   document.addEventListener("DOMContentLoaded", function () {
     applyServerPrefill();
     updateHistoryBtn();
+    syncPrintButtonState();
     checkAutoprint();
     bindToothFocus();      
     bindNotationClick();
     /* Lắng nghe custom event 'patientLoaded' nếu clinic.js phát */
     document.addEventListener("patientLoaded", function () { updateHistoryBtn(); });
+    document.addEventListener("clinicalPatientDataLoaded", function (event) {
+      if (!event.detail || event.detail.formType !== "dental") return;
+      syncPrintButtonState();
+    });
   });
 
 }());

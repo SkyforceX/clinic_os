@@ -342,6 +342,8 @@ function selectPatient(patient_id, form_type) {
         if (form_type === "dental") {
           const dentalFields = {
             dental_exam_id: data.dental_exam_id,
+            dental_exam_created_at: data.created_at_value,
+            dental_exam_saved_at: data.latest_saved_at,
             other_oral_conditions: data.other_oral_conditions,
             chewing_ability: data.chewing_ability,
             conclusion: data.conclusion,
@@ -496,6 +498,14 @@ function selectPatient(patient_id, form_type) {
             container.appendChild(div);
           });
         }
+        document.dispatchEvent(
+          new CustomEvent("clinicalPatientDataLoaded", {
+            detail: {
+              formType: form_type,
+              data: data,
+            },
+          })
+        );
       } else {
         alert(result.message || "Không tìm thấy dữ liệu.");
       }
@@ -559,6 +569,24 @@ document.addEventListener("DOMContentLoaded", function () {
               if (dentalExamIdInput) {
                 dentalExamIdInput.value = data.data.id;
               }
+              const createdAtInput = document.getElementById("dental_exam_created_at");
+              const savedAtInput = document.getElementById("dental_exam_saved_at");
+              if (createdAtInput || savedAtInput) {
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, "0");
+                const dd = String(now.getDate()).padStart(2, "0");
+                const hh = String(now.getHours()).padStart(2, "0");
+                const mi = String(now.getMinutes()).padStart(2, "0");
+                const ss = String(now.getSeconds()).padStart(2, "0");
+                const stamp = `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+                if (createdAtInput && !createdAtInput.value) {
+                  createdAtInput.value = stamp;
+                }
+                if (savedAtInput) {
+                  savedAtInput.value = stamp;
+                }
+              }
             }
             in_phieu();
           } else {
@@ -595,6 +623,24 @@ document.addEventListener("DOMContentLoaded", function () {
               if (dentalExamIdInput) {
                 dentalExamIdInput.value = data.data.id;
               }
+              const createdAtInput = document.getElementById("dental_exam_created_at");
+              const savedAtInput = document.getElementById("dental_exam_saved_at");
+              if (createdAtInput || savedAtInput) {
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, "0");
+                const dd = String(now.getDate()).padStart(2, "0");
+                const hh = String(now.getHours()).padStart(2, "0");
+                const mi = String(now.getMinutes()).padStart(2, "0");
+                const ss = String(now.getSeconds()).padStart(2, "0");
+                const stamp = `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+                if (createdAtInput && !createdAtInput.value) {
+                  createdAtInput.value = stamp;
+                }
+                if (savedAtInput) {
+                  savedAtInput.value = stamp;
+                }
+              }
             }
           } else {
             showCustomToast(data.message || "Lưu dữ liệu thất bại!");
@@ -623,18 +669,65 @@ function in_phieu() {
     const health_classification = document.querySelector('[name="health_classification"]')?.value || "";
     
     const printDateInput = document.getElementById("printDate")?.value || "";
-    let printDateFormatted = "";
-
-    if (printDateInput) {
-      const [year, month, day] = printDateInput.split("-");
-      printDateFormatted = `Ngày ${day} tháng ${month} năm ${year}`;
-    } else {
-      const now = new Date();
-      const ngay = now.getDate().toString().padStart(2, "0");
-      const thang = (now.getMonth() + 1).toString().padStart(2, "0");
-      const nam = now.getFullYear();
-      printDateFormatted = `Ngày ${ngay} tháng ${thang} năm ${nam}`;
+    const createdAtInput = document.getElementById("dental_exam_created_at")?.value || "";
+    const latestSavedAtInput = document.getElementById("dental_exam_saved_at")?.value || "";
+    function parseDbDateTime(value) {
+      if (!value) return null;
+      const parts = String(value).trim().split(/[- :]/);
+      if (parts.length < 5) return null;
+      const [year, month, day, hour, minute, second = "00"] = parts.map(Number);
+      if ([year, month, day, hour, minute].some(Number.isNaN)) return null;
+      return new Date(year, month - 1, day, hour, minute, Number.isNaN(second) ? 0 : second);
     }
+
+    function dateOnlyText(dateObj) {
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const year = dateObj.getFullYear();
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatPrintDate(dateObj) {
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const year = dateObj.getFullYear();
+      const hour = String(dateObj.getHours()).padStart(2, "0");
+      const minute = String(dateObj.getMinutes()).padStart(2, "0");
+      return `${hour} giờ ${minute} phút, ngày ${day} tháng ${month} năm ${year}`;
+    }
+
+    const createdAt = parseDbDateTime(createdAtInput);
+    const updatedAt = parseDbDateTime(latestSavedAtInput);
+    let chosenDate = null;
+    if (printDateInput) {
+      const [year, month, day] = printDateInput.split("-").map(Number);
+      if (![year, month, day].some(Number.isNaN)) {
+        chosenDate = new Date(year, month - 1, day);
+      }
+    }
+
+    const chosenDateText = chosenDate ? dateOnlyText(chosenDate) : "";
+    let printDateSource = null;
+
+    if (updatedAt && chosenDateText && dateOnlyText(updatedAt) === chosenDateText) {
+      printDateSource = updatedAt;
+    } else if (createdAt && chosenDateText && dateOnlyText(createdAt) === chosenDateText) {
+      printDateSource = createdAt;
+    } else if (chosenDate) {
+      const nowForPrint = new Date();
+      printDateSource = new Date(
+        chosenDate.getFullYear(),
+        chosenDate.getMonth(),
+        chosenDate.getDate(),
+        nowForPrint.getHours(),
+        nowForPrint.getMinutes(),
+        nowForPrint.getSeconds()
+      );
+    } else {
+      printDateSource = updatedAt || createdAt || new Date();
+    }
+
+    printDateFormatted = formatPrintDate(printDateSource);
 
     const upperTeeth = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
     const lowerTeeth = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];

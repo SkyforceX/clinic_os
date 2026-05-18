@@ -55,21 +55,39 @@ def save_dental_examination(*, his_patient_id=None, patient_id=None, payload):
             company = Company.objects.filter(id=payload.get("company_id")).first()
 
     now = timezone.now()
+    exam_id = str(payload.get("dental_exam_id") or "").strip()
+    exam_fields = {
+        "patient": patient,
+        "his_patient": his_patient,
+        "company": company,
+        "patient_snapshot": patient_snapshot,
+        "additional_notes": payload.get("additional_notes", ""),
+        "tooth_data": payload.get("tooth_data") or {},
+        "tooth_loss_classification": payload.get("tooth_loss_classification", ""),
+        "other_oral_conditions": payload.get("other_oral_conditions", ""),
+        "chewing_ability": _normalize_decimal(payload.get("chewing_ability")),
+        "health_classification": payload.get("health_classification", ""),
+        "conclusion": payload.get("conclusion", ""),
+        "updated_at": now,
+    }
+
+    if exam_id:
+        try:
+            exam = DentalExamination.objects.select_for_update().get(id=int(exam_id))
+        except (TypeError, ValueError, DentalExamination.DoesNotExist):
+            raise ValueError("KhÃ´ng tÃ¬m tháº¥y phiáº¿u khÃ¡m Ä‘á»ƒ cáº­p nháº­t.")
+
+        if his_patient and exam.his_patient_id and exam.his_patient_id != his_patient.id:
+            raise ValueError("Phiáº¿u khÃ¡m khÃ´ng thuá»™c bá»‡nh nhÃ¢n Ä‘ang chá»n.")
+
+        for field_name, field_value in exam_fields.items():
+            setattr(exam, field_name, field_value)
+        exam.save()
+        return exam
 
     exam = DentalExamination.objects.create(
-        patient=patient,
-        his_patient=his_patient,
-        company=company,
-        patient_snapshot=patient_snapshot,
-        additional_notes=payload.get("additional_notes", ""),
-        tooth_data=payload.get("tooth_data") or {},
-        tooth_loss_classification=payload.get("tooth_loss_classification", ""),
-        other_oral_conditions=payload.get("other_oral_conditions", ""),
-        chewing_ability=_normalize_decimal(payload.get("chewing_ability")),
-        health_classification=payload.get("health_classification", ""),
-        conclusion=payload.get("conclusion", ""),
+        **exam_fields,
         created_at=now,
-        updated_at=now,
     )
 
     return exam
