@@ -682,7 +682,7 @@ function in_phieu() {
     const latestSavedAtInput = document.getElementById("dental_exam_saved_at")?.value || "";
     function parseDbDateTime(value) {
       if (!value) return null;
-      const parts = String(value).trim().split(/[- :]/);
+      const parts = String(value).trim().split(/[T\- :]/);
       if (parts.length < 5) return null;
       const [year, month, day, hour, minute, second = "00"] = parts.map(Number);
       if ([year, month, day, hour, minute].some(Number.isNaN)) return null;
@@ -702,7 +702,7 @@ function in_phieu() {
     const updatedAt = parseDbDateTime(latestSavedAtInput);
     const chosenDate = parseDbDateTime(printDateInput);
     const printDateSource = chosenDate || updatedAt || createdAt || new Date();
-    printDateFormatted = formatPrintDate(printDateSource);
+    const printDateFormatted = formatPrintDate(printDateSource);
 
     const upperTeeth = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
     const lowerTeeth = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
