@@ -79,8 +79,16 @@ def get_active_implementation_plans(today=None):
 
 def get_corporate_bookings_by_week(week_start, week_end):
     """
-    Trả về list 7 item (Mon→Sun):
-    { date, day_label, is_today, companies: [{name, pax, contract_id}], total_pax }
+    Trả về dữ liệu lịch khám theo ngày trong tuần và tổng tuần đã khử trùng lặp.
+
+    - `days`: list 7 item (Mon→Sun):
+      { date, day_label, is_today, companies: [{name, pax, contract_id, config_id}], total_pax }
+    - `summary`:
+      {
+        "schedule_count": số lịch khám duy nhất có ngày thuộc tuần,
+        "company_count": số công ty duy nhất có lịch trong tuần,
+        "planned_pax": tổng planned_employee_count, mỗi lịch chỉ tính 1 lần,
+      }
     """
     from apps.scheduling.models.schedule import ContractScheduleConfig
 
@@ -98,6 +106,8 @@ def get_corporate_bookings_by_week(week_start, week_end):
     today = date.today()
     vn_day_labels = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"]
     result = []
+    weekly_schedule_map = {}
+    weekly_company_keys = set()
 
     for offset in range(7):
         day = week_start + timedelta(days=offset)
@@ -112,10 +122,23 @@ def get_corporate_bookings_by_week(week_start, week_end):
                     company_name = profile.company_name_snapshot
                 else:
                     company_name = "Công ty chưa xác định"
+                company_key = (
+                    getattr(cfg, "id", None),
+                    contract.pk if contract else None,
+                    company_name,
+                )
+                weekly_schedule_map[company_key] = {
+                    "config_id": getattr(cfg, "id", None),
+                    "contract_id": contract.pk if contract else None,
+                    "company_name": company_name,
+                    "planned_pax": cfg.planned_employee_count or 0,
+                }
+                weekly_company_keys.add((contract.pk if contract else None, company_name))
                 companies.append({
                     "name":        company_name,
                     "pax":         cfg.planned_employee_count,
                     "contract_id": contract.pk if contract else None,
+                    "config_id":   getattr(cfg, "id", None),
                 })
 
         result.append({
@@ -126,7 +149,14 @@ def get_corporate_bookings_by_week(week_start, week_end):
             "total_pax": sum(c["pax"] for c in companies),
         })
 
-    return result
+    return {
+        "days": result,
+        "summary": {
+            "schedule_count": len(weekly_schedule_map),
+            "company_count": len(weekly_company_keys),
+            "planned_pax": sum(item["planned_pax"] for item in weekly_schedule_map.values()),
+        },
+    }
 
 
 # ── Phần chung: Lịch làm việc toàn phòng khám hôm nay ───────────────────────

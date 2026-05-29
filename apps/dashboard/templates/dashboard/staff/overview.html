@@ -284,20 +284,6 @@
         </div>
 
         <div class="db-card">
-          <div class="db-card-title"><i class="fa fa-calendar-week"></i> Lịch khám tuần này</div>
-          <div class="kpi-chips">
-            <div class="kpi-chip teal"><div class="val">{{ weekly_booking_count }}</div><div class="lbl">Lịch khám</div></div>
-            <div class="kpi-chip"><div class="val">{{ weekly_company_count }}</div><div class="lbl">Công ty</div></div>
-            <div class="kpi-chip green"><div class="val">{{ weekly_booking_pax }}</div><div class="lbl">Người dự kiến</div></div>
-          </div>
-          <div class="mt-2">
-            <a href="{% url 'scheduling:schedule_table' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
-              Xem lịch khám đoàn →
-            </a>
-          </div>
-        </div>
-
-        <div class="db-card">
           <div class="db-card-title"><i class="fa fa-file-signature"></i> Hợp đồng</div>
           <div class="kpi-chips">
             <div class="kpi-chip"><div class="val">{{ personal_stats.contract_counts.draft }}</div><div class="lbl">Nháp</div></div>
@@ -340,7 +326,7 @@
           </div>
         </div>
 
-        <div class="db-card db-card-span-2">
+        <div class="db-card">
           <div class="db-card-title"><i class="fa fa-clock-rotate-left"></i> Phê duyệt đang chờ</div>
           <div style="display:flex;align-items:center;gap:12px;padding:8px 4px">
             <div style="font-size:2.8rem;font-weight:900;color:{% if personal_stats.pending_approvals > 0 %}#a06000{% else %}#0a6e3c{% endif %}">
@@ -546,7 +532,6 @@
         <div class="kpi-chips">
           <div class="kpi-chip teal"><div class="val">{{ weekly_booking_count }}</div><div class="lbl">Lịch khám</div></div>
           <div class="kpi-chip"><div class="val">{{ weekly_company_count }}</div><div class="lbl">Công ty</div></div>
-          <div class="kpi-chip green"><div class="val">{{ weekly_booking_pax }}</div><div class="lbl">Người dự kiến</div></div>
         </div>
         <div class="mt-2">
           <a href="{% url 'scheduling:schedule_table' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">

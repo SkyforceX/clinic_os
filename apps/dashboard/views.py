@@ -57,7 +57,8 @@ def overview(request):
 
     # ── Shared data ───────────────────────────────────────────────────────────
     implementation_plans = get_active_implementation_plans(today)
-    corporate_bookings   = get_corporate_bookings_by_week(week_start, week_end)
+    corporate_booking_data = get_corporate_bookings_by_week(week_start, week_end)
+    corporate_bookings = corporate_booking_data.get("days", [])
 
     # ── Work schedule (mới: toàn phòng khám) ──────────────────────────────────
     work_schedule_today, schedule_date = get_work_schedule_today(today)
@@ -91,13 +92,7 @@ def overview(request):
 
     # Tổng working hôm nay
     today_summary = week_schedule_summary.get(today, {})
-    weekly_booking_count = sum(len(day_info.get("companies") or []) for day_info in corporate_bookings)
-    weekly_booking_pax = sum(int(day_info.get("total_pax") or 0) for day_info in corporate_bookings)
-    weekly_booking_companies = {
-        (company.get("contract_id"), company.get("name"))
-        for day_info in corporate_bookings
-        for company in (day_info.get("companies") or [])
-    }
+    weekly_booking_summary = corporate_booking_data.get("summary", {})
 
     return render(request, "dashboard/staff/overview.html", {
         "today":                  today,
@@ -113,9 +108,9 @@ def overview(request):
         "schedule_date":          schedule_date,
         "today_working_count":    today_summary.get("working", 0),
         "today_total_count":      sum(v for k, v in today_summary.items() if k != "working"),
-        "weekly_booking_count":   weekly_booking_count,
-        "weekly_booking_pax":     weekly_booking_pax,
-        "weekly_company_count":   len(weekly_booking_companies),
+        "weekly_booking_count":   int(weekly_booking_summary.get("schedule_count") or 0),
+        "weekly_booking_pax":     int(weekly_booking_summary.get("planned_pax") or 0),
+        "weekly_company_count":   int(weekly_booking_summary.get("company_count") or 0),
         # Lịch cá nhân
         "my_employee":            my_employee,
         "my_week_schedule":       my_week_schedule,
