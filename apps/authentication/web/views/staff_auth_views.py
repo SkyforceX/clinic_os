@@ -6,7 +6,6 @@ from apps.authentication.forms import StaffLoginForm
 from apps.authentication.policies import AuthenticationPolicy
 from apps.authentication.services.staff_auth import authenticate_staff_credentials
 
-
 @never_cache
 def staff_login(request):
     error = ""
