@@ -278,6 +278,30 @@
         </button>
         {% endif %}
 
+        <hr class="my-4">
+
+        <div class="schedule-section-title">
+          4. Mục khám đặc biệt
+          <span class="text-muted fw-normal" style="font-size:.88rem;"> — Các danh mục khám mất nhiều thời gian</span>
+        </div>
+        {% if special_exam_categories %}
+          <div class="d-flex flex-wrap gap-3 mt-2">
+            {% for cat in special_exam_categories %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox"
+                name="special_exam_category_ids"
+                value="{{ cat.id }}"
+                id="sec_{{ cat.id }}"
+                {% if cat.id in selected_special_exam_category_ids %}checked{% endif %}
+                {% if is_view_mode %}disabled{% endif %}>
+              <label class="form-check-label" for="sec_{{ cat.id }}">{{ cat.name }}</label>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-muted small">Chưa có danh mục khám đặc biệt nào được thiết lập.</div>
+        {% endif %}
+
         <div class="d-flex justify-content-end mt-4 gap-2 flex-wrap">
           {% if not is_view_mode and is_edit_mode and can_delete_config %}
             <form method="post" action="{% url 'contract:delete_contract' selected_config.id %}" onsubmit="return confirm('Bạn chắc chắn muốn xóa lịch đăng ký khám này?');">

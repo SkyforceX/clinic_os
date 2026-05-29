@@ -33,6 +33,8 @@ from apps.scheduling.selectors.schedule_matrix import (
     _patient_gender_code,
     build_contract_schedule_matrix,
 )
+from apps.scheduling.selectors.slot_cleanup import get_slot_cleanup_modal_payload
+from apps.scheduling.services.slot_cleanup import delete_slot_registration
 from apps.scheduling.services.contract_lifecycle import (
     redistribute_contract_slots,
     update_contract_slot_capacities,
@@ -228,6 +230,43 @@ def update_slot_capacities(request, config_id):
         return JsonResponse({"error": str(exc)}, status=500)
 
     return JsonResponse({"success": True, "message": "Da cap nhat slot thanh cong."})
+
+
+@login_required(login_url="authentication:staff_login")
+def get_slot_cleanup_data(request, config_id):
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed."}, status=405)
+
+    try:
+        payload = get_slot_cleanup_modal_payload(actor=request.user, config_id=config_id)
+    except PermissionError as exc:
+        return JsonResponse({"error": str(exc)}, status=403)
+    except ValidationError as exc:
+        return JsonResponse({"error": exc.message}, status=404)
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=500)
+
+    return JsonResponse(payload)
+
+
+@login_required(login_url="authentication:staff_login")
+@require_POST
+def delete_slot_registration_view(request, appointment_id):
+    try:
+        result = delete_slot_registration(actor=request.user, appointment_id=appointment_id)
+    except PermissionError as exc:
+        return JsonResponse({"error": str(exc)}, status=403)
+    except ValidationError as exc:
+        return JsonResponse({"error": exc.message}, status=400)
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=500)
+
+    return JsonResponse({
+        "success": True,
+        "message": f"Da xoa dang ky slot cua {result['patient_name']}.",
+        "config_id": result["config_id"],
+        "remaining_count": result["remaining_count"],
+    })
 
 
 def _format_patient_dob(patient):

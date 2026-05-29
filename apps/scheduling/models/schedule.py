@@ -225,6 +225,12 @@ class ContractScheduleConfig(models.Model):
         verbose_name=_("Người kết thúc"),
     )
     ended_at = models.DateTimeField(blank=True, null=True, verbose_name=_("Thời điểm kết thúc"))
+    special_exam_categories = models.ManyToManyField(
+        "SpecialExamCategory",
+        blank=True,
+        related_name="schedule_configs",
+        verbose_name=_("Mục khám đặc biệt"),
+    )
     created_at = models.DateTimeField(blank=True, null=True, verbose_name=_("Ngày tạo"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Cập nhật lúc"))
 
@@ -260,6 +266,26 @@ class ContractScheduleConfig(models.Model):
     def __str__(self):
         q_id = self.quotation_id or "—"
         return f"ScheduleConfig #{self.pk} (Quotation #{q_id})"
+
+
+class SpecialExamCategory(models.Model):
+    """Mục khám đặc biệt – các danh mục khám mất nhiều thời gian."""
+
+    name = models.CharField(max_length=200, unique=True, verbose_name=_("Tên danh mục"))
+    description = models.TextField(blank=True, verbose_name=_("Mô tả"))
+    display_order = models.PositiveIntegerField(default=0, verbose_name=_("Thứ tự hiển thị"))
+    is_active = models.BooleanField(default=True, db_index=True, verbose_name=_("Đang sử dụng"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Tạo lúc"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Cập nhật lúc"))
+
+    class Meta:
+        db_table = "scheduling_special_exam_category"
+        ordering = ["display_order", "name"]
+        verbose_name = _("Mục khám đặc biệt")
+        verbose_name_plural = _("Mục khám đặc biệt")
+
+    def __str__(self):
+        return self.name
 
 
 class ScheduleBloodCollectionRow(models.Model):

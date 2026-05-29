@@ -60,6 +60,11 @@ def list_schedule_configs_for_user(user):
             and not config.is_ended
             and SchedulingPolicy.can_end_schedule(user, owner_user_id)
         )
+        config.can_unconfirm = (
+            config.is_confirmed
+            and not config.is_ended
+            and SchedulingPolicy.is_it_staff(user)
+        )
         config.his_actual_total = None
         config.his_cancelled = 0
         config.slot_warning_level = ""

@@ -537,7 +537,13 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
     # Lọc bỏ lịch đã kết thúc
     all_configs = [c for c in config_qs if not c.is_ended]
 
-    if SchedulingPolicy.is_executive(actor) or SchedulingPolicy.is_manager(actor):
+    has_wide_access = (
+        SchedulingPolicy.is_executive(actor)
+        or SchedulingPolicy.is_manager(actor)
+        or SchedulingPolicy.can_cleanup_slot_registrations(actor)
+    )
+
+    if has_wide_access:
         # Executives / Managers thấy tất cả với tên đầy đủ, giữ order mặc định (mới nhất trước)
         visible_configs = all_configs
         masked_config_ids = set()
@@ -745,6 +751,7 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
             ),
             "can_confirm_schedule": can_confirm,
             "can_end_schedule": can_end,
+            "can_cleanup_slot_registrations": SchedulingPolicy.can_cleanup_slot_registrations(actor),
             "is_confirmed": config.is_confirmed,
             "is_masked_company": is_masked,
             "can_create_impl_plan": can_create_impl_plan,
@@ -833,4 +840,5 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
         "current_staff_id": str(actor.id) if getattr(actor, "id", None) else "",
         "system_am_limit": default_am_limit,
         "system_pm_limit": default_pm_limit,
+        "can_cleanup_slot_registrations": SchedulingPolicy.can_cleanup_slot_registrations(actor),
     }

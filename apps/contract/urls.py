@@ -31,6 +31,7 @@ from apps.contract.web.views import (
     save_contract,
     save_corporate_contract,
     save_quotation,
+    unconfirm_contract,
     unlock_corporate_contract_view,
     edit_corporate_contract,
     update_corporate_contract,
@@ -55,6 +56,7 @@ urlpatterns = [
     path("<int:contract_id>/edit/", edit_contract, name="edit_contract"),
     path("<int:contract_id>/approve/", approve_contract, name="approve_contract"),
     path("<int:contract_id>/confirm/", confirm_contract, name="confirm_contract"),
+    path("<int:contract_id>/unconfirm/", unconfirm_contract, name="unconfirm_contract"),
     path("<int:contract_id>/delete/", delete_contract, name="delete_contract"),
 
     path("ajax/checkup-overview/", ajax_checkup_overview, name="ajax_checkup_overview"),

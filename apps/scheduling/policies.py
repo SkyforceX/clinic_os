@@ -1,6 +1,7 @@
 class SchedulingPolicy:
     MANAGER_GROUP_NAMES = {"Managers", "Manager"}
     EXECUTIVE_GROUP_NAMES = {"Executives", "Executive"}
+    IT_STAFF_GROUP_NAMES = {"IT Staff", "IT Admin", "IT", "IT Support"}
 
     @classmethod
     def is_authenticated_actor(cls, user):
@@ -21,6 +22,14 @@ class SchedulingPolicy:
         if user.is_superuser:
             return True
         return user.groups.filter(name__in=cls.EXECUTIVE_GROUP_NAMES).exists()
+
+    @classmethod
+    def is_it_staff(cls, user):
+        if not cls.is_authenticated_actor(user):
+            return False
+        if user.is_superuser:
+            return True
+        return user.groups.filter(name__in=cls.IT_STAFF_GROUP_NAMES).exists()
 
     @classmethod
     def can_view_schedule_table(cls, user):
@@ -57,3 +66,11 @@ class SchedulingPolicy:
     @classmethod
     def can_manage_general_settings(cls, user):
         return cls.is_manager(user) or cls.is_executive(user)
+
+    @classmethod
+    def can_manage_special_exam_categories(cls, user):
+        return cls.is_it_staff(user) or cls.is_executive(user)
+
+    @classmethod
+    def can_cleanup_slot_registrations(cls, user):
+        return cls.is_it_staff(user)

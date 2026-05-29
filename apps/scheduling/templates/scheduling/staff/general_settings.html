@@ -172,13 +172,166 @@
     </div>
   </div>
 
+  <!-- ── PHẦN 3: Mục khám đặc biệt ──────────────────────────── -->
+  <div class="settings-card mb-4">
+    <div class="card-body p-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h6 class="fw-bold text-primary mb-0">⏱️ Danh sách các Mục khám đặc biệt</h6>
+        {% if can_manage_special_exam_categories %}
+        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalAddCategory">
+          <i class="fa fa-plus"></i> Tạo danh mục
+        </button>
+        {% endif %}
+      </div>
+      <div class="settings-help mb-3">
+        Các danh mục khám mất nhiều thời gian. Được dùng khi đăng ký lịch khám hợp đồng.
+      </div>
+
+      {% if special_exam_categories %}
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle">
+            <thead class="table-light">
+              <tr>
+                <th style="width:50px;" class="text-center">Thứ tự</th>
+                <th>Tên danh mục</th>
+                <th>Mô tả</th>
+                <th style="width:100px;" class="text-center">Trạng thái</th>
+                {% if can_manage_special_exam_categories %}
+                <th style="width:80px;" class="text-center">Sửa</th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for cat in special_exam_categories %}
+              <tr>
+                <td class="text-center text-muted">{{ cat.display_order }}</td>
+                <td class="fw-semibold">{{ cat.name }}</td>
+                <td class="text-muted">{{ cat.description|default:"—" }}</td>
+                <td class="text-center">
+                  {% if cat.is_active %}
+                    <span class="badge bg-success">Đang dùng</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Tắt</span>
+                  {% endif %}
+                </td>
+                {% if can_manage_special_exam_categories %}
+                <td class="text-center">
+                  <button type="button" class="btn btn-sm btn-outline-primary js-edit-category"
+                    data-id="{{ cat.id }}"
+                    data-url="{% url 'scheduling:edit_special_exam_category' cat.id %}"
+                    data-name="{{ cat.name }}"
+                    data-description="{{ cat.description }}"
+                    data-order="{{ cat.display_order }}"
+                    data-active="{{ cat.is_active|yesno:'true,false' }}"
+                    data-bs-toggle="modal" data-bs-target="#modalEditCategory">
+                    <i class="fa fa-edit"></i>
+                  </button>
+                </td>
+                {% endif %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="text-muted small">Tổng: {{ special_exam_categories|length }} danh mục</div>
+      {% else %}
+        <div class="text-muted text-center py-3">Chưa có mục khám đặc biệt nào được thiết lập.</div>
+      {% endif %}
+    </div>
+  </div>
+
 </div>
+
+{% if can_manage_special_exam_categories %}
+<!-- Modal Tạo danh mục -->
+<div class="modal fade" id="modalAddCategory" tabindex="-1" aria-labelledby="modalAddCategoryLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'scheduling:add_special_exam_category' %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalAddCategoryLabel">Tạo danh mục khám đặc biệt</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="settings-label">Tên danh mục <span class="text-danger">*</span></label>
+            {{ category_form.name }}
+          </div>
+          <div class="mb-3">
+            <label class="settings-label">Mô tả</label>
+            {{ category_form.description }}
+          </div>
+          <div class="mb-3">
+            <label class="settings-label">Thứ tự hiển thị</label>
+            {{ category_form.display_order }}
+            <div class="settings-help mt-1">Số nhỏ hơn hiển thị trước.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-success"><i class="fa fa-save"></i> Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Sửa danh mục -->
+<div class="modal fade" id="modalEditCategory" tabindex="-1" aria-labelledby="modalEditCategoryLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="formEditCategory" action="">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEditCategoryLabel">Sửa danh mục khám đặc biệt</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="settings-label">Tên danh mục <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" id="editCategoryName" required>
+          </div>
+          <div class="mb-3">
+            <label class="settings-label">Mô tả</label>
+            <textarea name="description" class="form-control" rows="2" id="editCategoryDescription"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="settings-label">Thứ tự hiển thị</label>
+            <input type="number" name="display_order" class="form-control" min="0" id="editCategoryOrder">
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="is_active" id="editCategoryActive" value="True">
+              <label class="form-check-label" for="editCategoryActive">Đang sử dụng</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Cập nhật</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <script>
 document.querySelectorAll('.js-confirm-delete').forEach(function(form) {
   form.addEventListener('submit', function(e) {
     var msg = form.dataset.confirm || 'Bạn chắc chắn muốn xóa?';
     if (!confirm(msg)) e.preventDefault();
+  });
+});
+
+document.querySelectorAll('.js-edit-category').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.getElementById('formEditCategory').action = this.dataset.url;
+    document.getElementById('editCategoryName').value = this.dataset.name;
+    document.getElementById('editCategoryDescription').value = this.dataset.description;
+    document.getElementById('editCategoryOrder').value = this.dataset.order;
+    document.getElementById('editCategoryActive').checked = this.dataset.active === 'true';
   });
 });
 </script>

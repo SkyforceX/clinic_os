@@ -63,6 +63,16 @@
       color: #b71c1c;
       background: #ffebee;
     }
+    .schedule-action-it {
+      border-color: #ffcc80;
+      color: #ef6c00;
+      background: #fff8f0;
+    }
+    .schedule-action-it:hover {
+      border-color: #ffb74d;
+      color: #e65100;
+      background: #fff3e0;
+    }
     .schedule-action-end {
       border-color: #cfd8dc;
       color: #455a64;
@@ -242,6 +252,7 @@
                 {% if row.can_edit_slots %}
                   <button type="button" class="btn btn-sm schedule-action-btn schedule-action-edit js-open-slot-modal"
                           data-config-id="{{ row.schedule_config_id }}"
+                          onclick="return window.openSlotCleanupModal ? window.openSlotCleanupModal({{ row.schedule_config_id }}, event) : false;"
                           data-planned="{{ row.planned_employee_count }}"
                           title="Sửa số lượng và lịch slot">
                     <i class="fa fa-pen"></i><span>Sửa slot</span>
@@ -268,6 +279,15 @@
                       <i class="fa fa-trash"></i><span>Xóa lịch</span>
                     </button>
                   </form>
+                {% endif %}
+
+                {% if row.can_cleanup_slot_registrations %}
+                  <button type="button"
+                          class="btn btn-sm schedule-action-btn schedule-action-it js-open-slot-cleanup-modal"
+                          data-config-id="{{ row.schedule_config_id }}"
+                          title="Xóa các khách hàng đã đăng ký slot">
+                    <i class="fa fa-user-times"></i><span>Xóa slot</span>
+                  </button>
                 {% endif %}
 
                 {% if row.can_end_schedule %}
@@ -403,7 +423,7 @@
 </div>
 
 <script>
-// ===== hiển thị modal danh sách BN chưa đăng ký lịch khám
+// ===== hi?n th? modal danh s?ch BN ch?a ??ng k? l?ch kh?m
 function toggleUnreg(el) {
   const list = el.nextElementSibling;
   if (list.style.display === "none" || list.style.display === "") {
@@ -413,8 +433,7 @@ function toggleUnreg(el) {
   }
 }
 
-
-// lọc theo nhân viên Sales Team
+// l?c theo nh?n vi?n Sales Team
 document.addEventListener('DOMContentLoaded', function() {
   const filter = document.getElementById('staff-filter');
   if (!filter) return;
@@ -423,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const value = filter.value;
     document.querySelectorAll('tr.am-row, tr.pm-row, tr.blood-row').forEach(tr => {
       const staffId = tr.getAttribute('data-staff-id');
-      if (!value || staffId === value) {
+      if (!value || staffId == value) {
         tr.style.display = '';
       } else {
         tr.style.display = 'none';
@@ -433,9 +452,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-
 <script>
-  // định dạng bảng - màu cho ngày đăng ký của CTY
+  // ??nh d?ng b?ng - m?u cho ng?y ??ng k? c?a c?ng ty
   document.addEventListener("DOMContentLoaded", function () {
     const today = new Date();
     const todayIso = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
@@ -459,44 +477,44 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
 
-    // Tooltip đơn giản
-    const shiftBlocks = document.querySelectorAll(".shift-blood"); // ô lấy máu (có class shift-blood)
+    // Tooltip ??n gi?n
+    const shiftBlocks = document.querySelectorAll(".shift-blood");
     shiftBlocks.forEach(cell => {
       if (cell.dataset.people) {
-        // 4 thông tin
         const date = cell.dataset.date || '';
         const location = cell.dataset.location || '';
         const people = cell.dataset.people || '';
         const staff = cell.dataset.staff || '';
-        // Tạo tooltip nhiều dòng (xuống dòng bằng \n)
-        cell.title = 
-          `Ngày lấy máu: ${date}\n` +
-          `Địa điểm: ${location}\n` +
-          `Số người lấy máu: ${people}\n` +
-          `Số nhân viên: ${staff}`;
+        cell.title =
+          `Ng?y l?y m?u: ${date}
+` +
+          `??a ?i?m: ${location}
+` +
+          `S? ng??i l?y m?u: ${people}
+` +
+          `S? nh?n vi?n: ${staff}`;
       } else {
-        // Lịch bình thường
-        cell.title = cell.innerText ? `${cell.innerText}` : "Không có lịch";
+        cell.title = cell.innerText ? `${cell.innerText}` : "Kh?ng c? l?ch";
       }
     });
   });
 
-  // btn chạy đến ngày hiện tại
-function scrollToToday() {
-  const wrapper = document.getElementById('js-schedule-table-wrapper');
-  const todayCell = document.querySelector('.schedule-table thead .today-highlight');
-  if (wrapper && todayCell) {
-    const wrapperRect = wrapper.getBoundingClientRect();
-    const cellRect = todayCell.getBoundingClientRect();
-    const offset = cellRect.left - wrapperRect.left - (wrapper.clientWidth / 2) + (todayCell.offsetWidth / 2);
-    wrapper.scrollLeft += offset;
+  // btn ch?y ??n ng?y hi?n t?i
+  function scrollToToday() {
+    const wrapper = document.getElementById('js-schedule-table-wrapper');
+    const todayCell = document.querySelector('.schedule-table thead .today-highlight');
+    if (wrapper && todayCell) {
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const cellRect = todayCell.getBoundingClientRect();
+      const offset = cellRect.left - wrapperRect.left - (wrapper.clientWidth / 2) + (todayCell.offsetWidth / 2);
+      wrapper.scrollLeft += offset;
+    }
   }
-}
 </script>
 
-<!-- tự động cập nhật chiều cao bảng theo màn hình -->
- <script>
-  // 1. Cập nhật chiều cao tối đa của bảng theo chiều cao màn hình
+<!-- t? ??ng c?p nh?t chi?u cao b?ng theo m?n h?nh -->
+<script>
+  // c?p nh?t chi?u cao t?i ?a c?a b?ng theo chi?u cao m?n h?nh
   function adjustTableHeight() {
     const wrapper = document.querySelector('.schedule-table-wrapper');
     if (!wrapper) return;
@@ -513,67 +531,63 @@ function scrollToToday() {
   window.addEventListener('resize', adjustTableHeight);
   window.addEventListener('load', adjustTableHeight);
 
-document.addEventListener('DOMContentLoaded', function () {
-  // Tính top offset tích lũy cho từng dòng trong thead để sticky đúng vị trí
-  (function () {
-    var table = document.querySelector('.schedule-table');
-    if (!table) return;
-    var theadRows = Array.from(table.querySelectorAll('thead tr'));
-    var cumulativeTop = 0;
-    theadRows.forEach(function (tr) {
-      tr.querySelectorAll('th, td').forEach(function (cell) {
-        cell.style.top = cumulativeTop + 'px';
+  document.addEventListener('DOMContentLoaded', function () {
+    // T?nh top offset t?ch l?y cho t?ng d?ng trong thead ?? sticky ??ng v? tr?
+    (function () {
+      var table = document.querySelector('.schedule-table');
+      if (!table) return;
+      var theadRows = Array.from(table.querySelectorAll('thead tr'));
+      var cumulativeTop = 0;
+      theadRows.forEach(function (tr) {
+        tr.querySelectorAll('th, td').forEach(function (cell) {
+          cell.style.top = cumulativeTop + 'px';
+        });
+        cumulativeTop += tr.getBoundingClientRect().height;
       });
-      cumulativeTop += tr.getBoundingClientRect().height;
+    })();
+
+    requestAnimationFrame(function () {
+      scrollToToday();
     });
-  })();
-
-  requestAnimationFrame(function () {
-    scrollToToday();
   });
-});
 
-document.addEventListener('DOMContentLoaded', function () {
-  // Lấy tất cả ô tiêu đề công ty ở dòng blood-row
-  const companyCells = document.querySelectorAll('tr.blood-row th[rowspan="3"]');
+  document.addEventListener('DOMContentLoaded', function () {
+    // L?y t?t c? ? ti?u ?? c?ng ty ? d?ng blood-row
+    const companyCells = document.querySelectorAll('tr.blood-row th[rowspan="3"]');
 
-  companyCells.forEach((cell) => {
-    cell.style.cursor = 'pointer';
-    cell.title = 'Click để chuyển đến lịch khám của công ty này';
+    companyCells.forEach((cell) => {
+      cell.style.cursor = 'pointer';
+      cell.title = 'Click ?? chuy?n ??n l?ch kh?m c?a c?ng ty n?y';
 
-    cell.addEventListener('click', function () {
-      // Tìm tr.blood-row hiện tại
-      const bloodRow = cell.closest('tr.blood-row');
-      // tr.am-row là dòng kế tiếp
-      const amRow = bloodRow.nextElementSibling;
-      if (!amRow || !amRow.classList.contains('am-row')) return;
-
-      // Tìm cell .shift-am đầu tiên có nội dung hoặc đang trong range
-      const targetCells = amRow.querySelectorAll('td.shift-am');
-      for (let i = 0; i < targetCells.length; i++) {
-        const td = targetCells[i];
-        if (td.textContent.trim() !== '' || td.classList.contains('is_full_flag')) {
-          // Scroll cell vào giữa khung table
-          td.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-          // Nếu bảng nằm trong div .table-responsive, scroll ngang div chứ không scroll cả trang
-          const wrapper = td.closest('.table-responsive');
-          if (wrapper) {
-            // Tính offset để td nằm giữa
-            const tdRect = td.getBoundingClientRect();
-            const wrapperRect = wrapper.getBoundingClientRect();
-            const offset = tdRect.left - wrapperRect.left - wrapperRect.width / 2 + tdRect.width / 2;
-            wrapper.scrollLeft += offset;
-          }
-          break;
+      cell.addEventListener('click', function (event) {
+        if (event.target.closest('.schedule-actions, button, a, form, input, select, textarea, label')) {
+          return;
         }
-      }
+        const bloodRow = cell.closest('tr.blood-row');
+        const amRow = bloodRow.nextElementSibling;
+        if (!amRow || !amRow.classList.contains('am-row')) return;
+
+        const targetCells = amRow.querySelectorAll('td.shift-am');
+        for (let i = 0; i < targetCells.length; i++) {
+          const td = targetCells[i];
+          if (td.textContent.trim() !== '' || td.classList.contains('is_full_flag')) {
+            td.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            const wrapper = td.closest('.table-responsive');
+            if (wrapper) {
+              const tdRect = td.getBoundingClientRect();
+              const wrapperRect = wrapper.getBoundingClientRect();
+              const offset = tdRect.left - wrapperRect.left - wrapperRect.width / 2 + tdRect.width / 2;
+              wrapper.scrollLeft += offset;
+            }
+            break;
+          }
+        }
+      });
     });
   });
-});
-
 </script>
 
-<!-- JS mở rộng bảng -->
+<!-- JS m? r?ng b?ng -->
 <script>
 function toggleFullscreen() {
   const wrapper = document.getElementById("js-schedule-table-wrapper");
@@ -582,15 +596,15 @@ function toggleFullscreen() {
   wrapper.classList.toggle('fullscreen-table-wrapper');
 
   if (wrapper.classList.contains('fullscreen-table-wrapper')) {
-    btn.innerHTML = '🔽 Thu gọn';
+    btn.innerHTML = 'Thu g?n';
   } else {
-    btn.innerHTML = '🔍 Mở rộng';
+    btn.innerHTML = 'M? r?ng';
   }
 }
 </script>
 
-<!-- hiệu ứng kéo ngang bằng chuột và touch screen -->
- <script>
+<!-- hi?u ?ng k?o ngang b?ng chu?t v? touch screen -->
+<script>
 const scrollWrapper = document.querySelector('.schedule-table-wrapper');
 let isDragging = false;
 let startX;
@@ -617,7 +631,7 @@ scrollWrapper.addEventListener('mousemove', (e) => {
   if (!isDragging) return;
   e.preventDefault();
   const x = e.pageX - scrollWrapper.offsetLeft;
-  const walk = (x - startX) * 1.5; // tốc độ cuộn (tùy chỉnh)
+  const walk = (x - startX) * 1.5; // t?c ?? cu?n (t?y ch?nh)
   scrollWrapper.scrollLeft = scrollLeft - walk;
 });
 
@@ -636,7 +650,7 @@ scrollWrapper.addEventListener('touchmove', (e) => {
 
 </script>
 
-<!-- Modal chi tiết siêu âm -->
+<!-- Modal chi ti?t si?u ?m -->
 <div class="modal fade" id="usDetailModal" tabindex="-1" aria-labelledby="usDetailModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
@@ -657,6 +671,27 @@ scrollWrapper.addEventListener('touchmove', (e) => {
 </div>
 
 <!-- Modal sửa slot -->
+{% if can_cleanup_slot_registrations %}
+<div class="modal fade" id="slotCleanupModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-1">Xóa slot</h5>
+          <div id="slot-cleanup-meta" class="text-muted small"></div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="slot-cleanup-alert" class="alert d-none py-2 px-3" role="alert"></div>
+        <div id="slot-cleanup-loading" class="text-muted">Đang tải danh sách đăng ký...</div>
+        <div id="slot-cleanup-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="modal fade" id="slotEditModal" tabindex="-1" aria-labelledby="slotEditModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
@@ -694,6 +729,268 @@ scrollWrapper.addEventListener('touchmove', (e) => {
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  if (window.bootstrap && window.bootstrap.Modal) {
+    return;
+  }
+
+  const instances = new WeakMap();
+
+  function ensureBackdrop() {
+    let backdrop = document.querySelector('.modal-backdrop.schedule-fallback-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop fade schedule-fallback-backdrop';
+      document.body.appendChild(backdrop);
+    }
+    requestAnimationFrame(function () {
+      backdrop.classList.add('show');
+    });
+    return backdrop;
+  }
+
+  function removeBackdrop() {
+    const backdrop = document.querySelector('.modal-backdrop.schedule-fallback-backdrop');
+    if (backdrop) {
+      backdrop.remove();
+    }
+  }
+
+  class FallbackModal {
+    constructor(element) {
+      this._element = element;
+      this._backdrop = null;
+      this._bindEvents();
+      instances.set(element, this);
+    }
+
+    _bindEvents() {
+      if (!this._element || this._element.dataset.fallbackModalBound === '1') {
+        return;
+      }
+
+      this._element.dataset.fallbackModalBound = '1';
+
+      this._element.addEventListener('click', (event) => {
+        if (event.target === this._element || event.target.closest('[data-bs-dismiss="modal"]')) {
+          this.hide();
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && this._element.classList.contains('show')) {
+          this.hide();
+        }
+      });
+    }
+
+    show() {
+      if (!this._element) return;
+      this._backdrop = ensureBackdrop();
+      this._element.style.display = 'block';
+      this._element.removeAttribute('aria-hidden');
+      this._element.setAttribute('aria-modal', 'true');
+      this._element.classList.add('show');
+      document.body.classList.add('modal-open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    hide() {
+      if (!this._element) return;
+      this._element.classList.remove('show');
+      this._element.style.display = 'none';
+      this._element.setAttribute('aria-hidden', 'true');
+      this._element.removeAttribute('aria-modal');
+      removeBackdrop();
+      document.body.classList.remove('modal-open');
+      document.body.style.overflow = '';
+    }
+
+    static getInstance(element) {
+      return element ? instances.get(element) || null : null;
+    }
+  }
+
+  window.bootstrap = window.bootstrap || {};
+  window.bootstrap.Modal = FallbackModal;
+  window.bootstrap.Modal.getInstance = function (element) {
+    return FallbackModal.getInstance(element);
+  };
+  window.bootstrap.Toast = window.bootstrap.Toast || function () {
+    this.show = function () {};
+  };
+})();
+</script>
+
+{% if can_cleanup_slot_registrations %}
+<script>
+(function () {
+  const modalEl = document.getElementById('slotCleanupModal');
+  if (!modalEl) return;
+
+  const modal = new bootstrap.Modal(modalEl);
+  const loadingEl = document.getElementById('slot-cleanup-loading');
+  const bodyEl = document.getElementById('slot-cleanup-body');
+  const metaEl = document.getElementById('slot-cleanup-meta');
+  const alertEl = document.getElementById('slot-cleanup-alert');
+  let currentConfigId = null;
+
+  function esc(text) {
+    const d = document.createElement('div');
+    d.appendChild(document.createTextNode(text || ''));
+    return d.innerHTML;
+  }
+
+  function setLoading(isLoading) {
+    loadingEl.style.display = isLoading ? '' : 'none';
+    if (isLoading) {
+      bodyEl.innerHTML = '';
+    }
+  }
+
+  function hideAlert() {
+    alertEl.className = 'alert d-none py-2 px-3';
+    alertEl.textContent = '';
+  }
+
+  function showAlert(message, level) {
+    alertEl.className = `alert alert-${level} py-2 px-3`;
+    alertEl.textContent = message;
+  }
+
+  function buildHtml(days) {
+    if (!days.length) {
+      return '<div class="text-muted">Hi?n kh?ng c?n kh?ch h?ng n?o ??ng k? slot c?a c?ng ty n?y.</div>';
+    }
+
+    return days.map(function(day) {
+      const rows = (day.registrations || []).map(function(item) {
+        return `<tr>
+          <td>${esc(item.shift)}</td>
+          <td>${esc(item.patient_code)}</td>
+          <td>${esc(item.name)}</td>
+          <td>${esc(item.dob)}</td>
+          <td>${esc(item.status)}</td>
+          <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger js-delete-slot-registration" data-appointment-id="${item.appointment_id}" data-patient-name="${esc(item.name)}">
+              X?a
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
+
+      return `<div class="card mb-3 border-0 shadow-sm">
+        <div class="card-header bg-light fw-semibold">
+          Ng?y ${esc(day.date_display)} <span class="text-muted">(${(day.registrations || []).length} ??ng k?)</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Ca</th>
+                  <th>M? KH</th>
+                  <th>H? t?n</th>
+                  <th>Ng?y sinh</th>
+                  <th>Tr?ng th?i</th>
+                  <th style="width:90px;">Thao t?c</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function loadData(configId) {
+    currentConfigId = configId;
+    hideAlert();
+    setLoading(true);
+    metaEl.textContent = '';
+
+    fetch(`{% url 'scheduling:get_slot_cleanup_data' 0 %}`.replace('/0/', `/${configId}/`), {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(function(response) {
+        return response.json().then(function(data) {
+          return { ok: response.ok, data: data };
+        });
+      })
+      .then(function(result) {
+        setLoading(false);
+        if (!result.ok) {
+          showAlert(result.data.error || 'Kh?ng t?i ???c d? li?u.', 'danger');
+          return;
+        }
+        const data = result.data || {};
+        metaEl.textContent = `${data.company_name || ''} | T?ng ??ng k?: ${data.total_registrations || 0}`;
+        bodyEl.innerHTML = buildHtml(data.days || []);
+      })
+      .catch(function() {
+        setLoading(false);
+        showAlert('Kh?ng t?i ???c d? li?u.', 'danger');
+      });
+  }
+
+  document.querySelectorAll('.js-open-slot-cleanup-modal').forEach(function(button) {
+    button.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      const configId = button.getAttribute('data-config-id');
+      if (!configId) return;
+      modal.show();
+      loadData(configId);
+    });
+  });
+
+  bodyEl.addEventListener('click', function(event) {
+    const button = event.target.closest('.js-delete-slot-registration');
+    if (!button) return;
+
+    const appointmentId = button.getAttribute('data-appointment-id');
+    const patientName = button.getAttribute('data-patient-name') || 'kh?ch h?ng';
+    if (!appointmentId || !confirm(`X?a ??ng k? slot c?a ${patientName}?`)) {
+      return;
+    }
+
+    hideAlert();
+    button.disabled = true;
+
+    fetch(`{% url 'scheduling:delete_slot_registration' 0 %}`.replace('/0/', `/${appointmentId}/`), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: '{}'
+    })
+      .then(function(response) {
+        return response.json().then(function(data) {
+          return { ok: response.ok, data: data };
+        });
+      })
+      .then(function(result) {
+        button.disabled = false;
+        if (!result.ok) {
+          showAlert(result.data.error || 'Kh?ng x?a ???c ??ng k? slot.', 'danger');
+          return;
+        }
+        showAlert(result.data.message || '?? x?a ??ng k? slot.', 'success');
+        loadData(currentConfigId);
+      })
+      .catch(function() {
+        button.disabled = false;
+        showAlert('Kh?ng x?a ???c ??ng k? slot.', 'danger');
+      });
+  });
+})();
+</script>
+{% endif %}
 
 <script>
 (function () {
@@ -925,7 +1222,6 @@ scrollWrapper.addEventListener('touchmove', (e) => {
 
 
 {% block extra_scripts %}
-<script src="{% static 'booking/js/contract_list.js' %}"></script>
 <script>
 (function () {
   const US_MODAL_URL = "{% url 'scheduling:ultrasound_modal' %}";

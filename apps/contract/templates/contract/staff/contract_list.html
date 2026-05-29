@@ -149,6 +149,14 @@
                 {% if config.confirmed_at %}
                   <div class="text-muted small" style="display: none;">{{ config.confirmed_at|date:"d/m/Y H:i" }}</div>
                 {% endif %}
+                {% if config.can_unconfirm %}
+                  <div class="mt-1">
+                    <form method="post" action="{% url 'contract:unconfirm_contract' config.id %}" onsubmit="return confirm('Gỡ chốt lịch khám này? Lịch sẽ trở về trạng thái Dự kiến và có thể chỉnh sửa lại.');" style="display:inline;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-warning">Gỡ chốt</button>
+                    </form>
+                  </div>
+                {% endif %}
                 {% if config.can_end %}
                   <div class="mt-1">
                     <form method="post" action="{% url 'scheduling:end_schedule' config.id %}" onsubmit="return confirm('Kết thúc lịch khám này? Hành động này không thể hoàn tác.');" style="display:inline;">

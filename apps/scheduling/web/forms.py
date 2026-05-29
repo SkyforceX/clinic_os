@@ -1,6 +1,7 @@
 from django import forms
 
 from apps.core.models import PublicHoliday, SystemGeneralSetting
+from apps.scheduling.models import SpecialExamCategory
 
 
 class SystemGeneralSettingForm(forms.ModelForm):
@@ -41,4 +42,17 @@ class PublicHolidayForm(forms.ModelForm):
             "name": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "Ví dụ: Tết Nguyên Đán"}
             ),
+        }
+
+
+class SpecialExamCategoryForm(forms.ModelForm):
+    class Meta:
+        model = SpecialExamCategory
+        fields = ["name", "description", "display_order", "is_active"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ví dụ: Siêu âm tim"}
+            ),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+            "display_order": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
         }

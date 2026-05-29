@@ -17,7 +17,7 @@ from apps.contract.selectors.contract_selectors import (
 )
 from apps.core.models import SystemGeneralSetting
 from apps.his_integration.models import HisCorporatePackageSync
-from apps.scheduling.models import ScheduleBloodCollectionRow
+from apps.scheduling.models import ScheduleBloodCollectionRow, SpecialExamCategory
 from apps.scheduling.services.contract_registration import (
     BloodCollectionInputRow,
     RegisterContractScheduleCommand,
@@ -46,6 +46,14 @@ def _link_his_package(his_package_id, config):
     pkg_id = int(his_package_id) if his_package_id else None
     if config and config.his_package_id != pkg_id:
         ContractScheduleConfig.objects.filter(pk=config.pk).update(his_package_id=pkg_id)
+
+
+def _save_special_exam_categories(category_id_list, config):
+    if not config:
+        return
+    ids = [int(x) for x in category_id_list if str(x).isdigit()]
+    categories = SpecialExamCategory.objects.filter(pk__in=ids, is_active=True)
+    config.special_exam_categories.set(categories)
 
 
 def _parse_blood_rows_from_post(request):
@@ -136,6 +144,14 @@ def _build_registration_context(*, user, config=None, old_post=None, old_blood_r
         (5, "Thứ 7"),
     ]
 
+    all_special_exam_categories = SpecialExamCategory.objects.filter(is_active=True)
+    if old_post is not None:
+        selected_cat_ids = set(int(x) for x in old_post.getlist("special_exam_category_ids") if str(x).isdigit())
+    elif config:
+        selected_cat_ids = set(config.special_exam_categories.values_list("id", flat=True))
+    else:
+        selected_cat_ids = set()
+
     return {
         "available_quotations": quotations,
         "selected_config": config,
@@ -183,6 +199,8 @@ def _build_registration_context(*, user, config=None, old_post=None, old_blood_r
         "can_assign_his_package": _can_assign_his_package(user),
         "max_blood_per_day": settings.max_blood_location_per_day,
         "blood_date_counts_json": _build_blood_date_counts_json(config),
+        "special_exam_categories": all_special_exam_categories,
+        "selected_special_exam_category_ids": selected_cat_ids,
     }
 
 
@@ -229,6 +247,7 @@ def save_contract(request):
         )
         if _can_assign_his_package(request.user):
             _link_his_package(request.POST.get("his_package_id"), config)
+        _save_special_exam_categories(request.POST.getlist("special_exam_category_ids"), config)
         messages.success(request, "Đã đăng ký lịch khám thành công ✅")
         return redirect("contract:contract_list")
     except Exception as exc:
@@ -265,6 +284,7 @@ def edit_contract(request, contract_id):
             )
             if _can_assign_his_package(request.user):
                 _link_his_package(request.POST.get("his_package_id"), updated_config)
+            _save_special_exam_categories(request.POST.getlist("special_exam_category_ids"), updated_config)
             messages.success(request, "Đã cập nhật đăng ký lịch khám thành công ✅")
             return redirect("contract:edit_contract", contract_id=config.id)
         except Exception as exc:
@@ -314,6 +334,37 @@ def confirm_contract(request, contract_id):
     config.save(update_fields=["is_confirmed", "confirmed_by", "confirmed_at", "updated_at"])
 
     messages.success(request, "Đã chốt lịch khám thành công ✅")
+    return redirect("contract:contract_list")
+
+
+@login_required(login_url="authentication:staff_login")
+@require_POST
+def unconfirm_contract(request, contract_id):
+    from apps.scheduling.models.schedule import ContractScheduleConfig
+
+    if not SchedulingPolicy.is_it_staff(request.user):
+        messages.error(request, "Chỉ IT staff mới có thể gỡ chốt lịch khám.")
+        return redirect("contract:contract_list")
+
+    config = ContractScheduleConfig.objects.filter(pk=contract_id).first()
+    if not config:
+        messages.error(request, "Không tìm thấy lịch đăng ký khám.")
+        return redirect("contract:contract_list")
+
+    if not config.is_confirmed:
+        messages.warning(request, "Lịch khám này chưa được chốt.")
+        return redirect("contract:contract_list")
+
+    if config.is_ended:
+        messages.error(request, "Không thể gỡ chốt lịch khám đã kết thúc.")
+        return redirect("contract:contract_list")
+
+    config.is_confirmed = False
+    config.confirmed_by = None
+    config.confirmed_at = None
+    config.save(update_fields=["is_confirmed", "confirmed_by", "confirmed_at", "updated_at"])
+
+    messages.success(request, "Đã gỡ chốt lịch khám thành công.")
     return redirect("contract:contract_list")
 
 

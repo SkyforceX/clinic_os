@@ -7,6 +7,7 @@ from .schedule import (
     ScheduleBloodCollectionRow,
     ScheduleSlot,
     SlotType,
+    SpecialExamCategory,
     TimeShift,
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "ScheduleBloodCollectionRow",
     "ScheduleSlot",
     "SlotType",
+    "SpecialExamCategory",
     "TimeShift",
 ]
