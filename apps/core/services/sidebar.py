@@ -275,18 +275,16 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
     is_regular_manager = is_manager and not is_medical_director
 
     # ── Tổng quan ───────────────────────────────────────────────────────────
-    items = [
-        _item(
-            request=request,
-            label="Dashboard",
-            url_name="dashboard:overview",
-            icon="fa-solid fa-house",
-            active_app_names=["dashboard"],
-            active_url_names=["overview"],
-        ),
-    ]
     if is_sales or is_full_access:
-        items += [
+        items = [
+            _item(
+                request=request,
+                label="Dashboard",
+                url_name="dashboard:overview",
+                icon="fa-solid fa-house",
+                active_app_names=["dashboard"],
+                active_url_names=["overview"],
+            ),
             _item(
                 request=request,
                 label="Danh mục khám",
@@ -312,7 +310,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["index", "media", "library"],
             ),
         ]
-    _append_section(sections, _section("Tổng quan", "🏠", items))
+        _append_section(sections, _section("Tổng quan", "🏠", items))
 
     # ── Kinh doanh ──────────────────────────────────────────────────────────
     if is_sales or is_full_access:
@@ -362,8 +360,8 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
         )
 
     # ── Lịch khám Doanh nghiệp ──────────────────────────────────────────────
-    # Sales: không thấy; Operations: chỉ Lịch khám chi tiết
-    if is_full_access or is_sales or is_operations:
+    # Sales: không thấy; Operations/Manager: chỉ Lịch khám chi tiết
+    if is_full_access or is_sales or is_operations or is_manager:
         schedule_items = []
         if is_full_access or is_sales:
             schedule_items += [
@@ -434,7 +432,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["package"],
             )
         )
-    if is_full_access or is_operations or is_medical_director or is_manager:
+    if is_supperuser:
         qldn_items.append(
             _item(
                 request=request,
@@ -460,7 +458,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
     _append_section(sections, _section("Quản lý doanh nghiệp", "🏠", qldn_items))
 
     # ── KPI & Quota ──────────────────────────────────────────────────────────
-    if is_full_access:
+    if is_supperuser:
         kpi_items = [
             _item(
                 request=request,
@@ -471,7 +469,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["dashboard", "target", "quota"],
             )
         ]
-        if is_full_access:
+        if is_supperuser:
             kpi_items.append(
                 _item(
                     request=request,
@@ -485,7 +483,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
 
     # ── Giao việc ────────────────────────────────────────────────────────────
     # Sales / plain Doctor: không thấy
-    if is_full_access or is_operations or is_medical_director:
+    if is_executive or is_supperuser:
         task_items = [
             _item(
                 request=request,
@@ -509,7 +507,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
         _append_section(sections, _section("Giao việc", "📋", task_items))
 
     # ── Helpdesk – Yêu cầu IT ───────────────────────────────────────────────
-    if _can_use_helpdesk(user):
+    if is_supperuser:
         hd_count = _get_helpdesk_open_count(user)
         hd_list_label = f"Danh sách ticket ({hd_count})" if hd_count else "Danh sách ticket"
         helpdesk_items = [
@@ -522,7 +520,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["ticket", "helpdesk", "list", "detail"],
             ),
         ]
-        if is_full_access:
+        if is_supperuser:
             helpdesk_items.append(
                 _item(
                     request=request,
@@ -608,7 +606,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
     # ── Nhân sự ──────────────────────────────────────────────────────────────
     # Medical Director: chỉ Danh sách nhân viên
     # regular_manager + hr_admin + full_access: toàn bộ
-    if is_hr_admin or is_manager or is_full_access:
+    if is_supperuser:
         hrm_items = [
             _item(
                 request=request,
@@ -619,7 +617,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["employee"],
             ),
         ]
-        if is_hr_admin or is_full_access:
+        if is_supperuser:
             hrm_items.append(
                 _item(
                     request=request,
@@ -629,7 +627,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                     active_url_name_contains=["doctor_schedule"],
                 )
             )
-        if is_hr_admin or is_full_access:
+        if is_supperuser:
             hrm_items.extend(
                 [
                     _item(
@@ -659,9 +657,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
 
     # ── Phê duyệt ────────────────────────────────────────────────────────────
     # Plain Doctor: không thấy
-    can_see_approval = (
-        is_full_access or is_sales or is_operations or is_medical_director
-    )
+    can_see_approval = is_executive or is_sales or is_supperuser
     if can_see_approval:
         approval_items = []
         if is_executive or is_full_access:
@@ -677,21 +673,22 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                     active_url_name_contains=["approval"],
                 )
             )
-        approval_items.append(
-            _item(
-                request=request,
-                label="Yêu cầu của tôi",
-                url_name="approvals:my_requests",
-                icon="fa-regular fa-clipboard",
-                active_url_names=["my_requests"],
-                active_app_names=["approvals"],
+        if not is_executive:
+            approval_items.append(
+                _item(
+                    request=request,
+                    label="Yêu cầu của tôi",
+                    url_name="approvals:my_requests",
+                    icon="fa-regular fa-clipboard",
+                    active_url_names=["my_requests"],
+                    active_app_names=["approvals"],
+                )
             )
-        )
         _append_section(sections, _section("Phê duyệt", "✅", approval_items))
 
     # ── Quản lý ──────────────────────────────────────────────────────────────
-    # Sales / Operations / plain Doctor: không thấy
-    if is_full_access or is_manager:
+    # Chỉ Executive / Medical Director thấy
+    if is_executive or is_medical_director:
         quality_items = [
             _item(
                 request=request,
@@ -702,7 +699,7 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                 active_url_name_contains=["incident"],
             )
         ]
-        if is_manager or is_full_access:
+        if is_executive or is_medical_director:
             quality_items.append(
                 _item(
                     request=request,
@@ -764,26 +761,24 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
 
     # ── Quy trình ────────────────────────────────────────────────────────────
     # Doctor: chỉ Danh sách; Sales / Operations / manager thấy cả Tạo mới
-    procedure_items = [
-        _item(
-            request=request,
-            label="Danh sách quy trình",
-            url_name="procedures:list",
-            icon="fa-solid fa-list-ul",
-            active_url_name_contains=["list"],
-        ),
-    ]
-    if is_manager or is_hr_admin or is_full_access or is_sales or is_operations:
-        procedure_items.append(
+    if is_supperuser:
+        procedure_items = [
+            _item(
+                request=request,
+                label="Danh sách quy trình",
+                url_name="procedures:list",
+                icon="fa-solid fa-list-ul",
+                active_url_name_contains=["list"],
+            ),
             _item(
                 request=request,
                 label="Tạo quy trình mới",
                 url_name="procedures:create",
                 icon="fa-solid fa-diagram-next",
                 active_url_names=["create"],
-            )
-        )
-    _append_section(sections, _section("Quy trình", "📋", procedure_items))
+            ),
+        ]
+        _append_section(sections, _section("Quy trình", "📋", procedure_items))
 
     # ── Hệ thống ─────────────────────────────────────────────────────────────
     # Medical Director không thấy Hệ thống
@@ -799,23 +794,18 @@ def build_sidebar_for_request(request) -> List[Dict[str, Any]]:
                     active_url_names=["general_settings"],
                     active_app_names=["scheduling"],
                 ),
-                # _item(
-                #     request=request,
-                #     label="Test HIS API",
-                #     url_name="api_his:api_playground",
-                #     icon="fa-solid fa-plug",
-                #     active_url_names=["api_playground"],
-                #     active_app_names=["api_his"],
-                # ),
-                _item(
-                    request=request,
-                    label="Test HIS API",
-                    url_name="api_his:booking_his_push_demo",
-                    icon="fa-solid fa-plug",
-                    active_url_names=["booking_his_push_demo"],
-                    active_app_names=["api_his"],
-                ),
             ]
+            if is_supperuser:
+                sys_items.append(
+                    _item(
+                        request=request,
+                        label="Test HIS API",
+                        url_name="api_his:booking_his_push_demo",
+                        icon="fa-solid fa-plug",
+                        active_url_names=["booking_his_push_demo"],
+                        active_app_names=["api_his"],
+                    )
+                )
         if is_supperuser:
             sys_items.append(
                 _item(

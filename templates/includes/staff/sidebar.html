@@ -181,12 +181,14 @@
   color: rgba(255, 255, 255, 0.78);
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.04) 100%
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0.12) 100%
   );
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 6px 14px rgba(15, 23, 42, 0.18);
   transition: opacity 0.18s ease, height 0.18s ease, margin 0.18s ease, padding 0.18s ease;
 }
 
@@ -630,7 +632,11 @@
   (function () {
     const sidebar = document.getElementById("sidebar");
     const overlay = document.getElementById("sidebar-overlay");
+    const sidebarScroll = sidebar ? sidebar.querySelector(".sidebar-scroll") : null;
+    const activeLink = sidebar ? sidebar.querySelector(".menu-link.active") : null;
     const collapsedKey = "clinic_sidebar_collapsed";
+    const scrollTopKey = "clinic_sidebar_scroll_top";
+    const activeHrefKey = "clinic_sidebar_active_href";
 
     if (!sidebar || !overlay) return;
 
@@ -655,6 +661,35 @@
         document.body.classList.add("sidebar-collapsed");
       } else {
         document.body.classList.remove("sidebar-collapsed");
+      }
+    }
+
+    function saveSidebarScroll() {
+      if (!sidebarScroll) return;
+      sessionStorage.setItem(scrollTopKey, String(sidebarScroll.scrollTop || 0));
+      if (activeLink && activeLink.href) {
+        sessionStorage.setItem(activeHrefKey, activeLink.href);
+      }
+    }
+
+    function restoreSidebarScroll() {
+      if (!sidebarScroll || isMobile()) return;
+
+      const savedScrollTop = sessionStorage.getItem(scrollTopKey);
+      if (savedScrollTop !== null) {
+        sidebarScroll.scrollTop = parseInt(savedScrollTop, 10) || 0;
+      }
+
+      if (!activeLink) return;
+
+      const activeHref = sessionStorage.getItem(activeHrefKey);
+      const shouldAlignActive =
+        savedScrollTop === null ||
+        (activeHref && activeLink.href && activeHref !== activeLink.href);
+
+      if (shouldAlignActive) {
+        activeLink.scrollIntoView({ block: "center", inline: "nearest" });
+        saveSidebarScroll();
       }
     }
 
@@ -689,5 +724,23 @@
     });
 
     restoreDesktopState();
+    restoreSidebarScroll();
+
+    if (sidebarScroll) {
+      sidebarScroll.addEventListener("scroll", saveSidebarScroll, { passive: true });
+    }
+
+    sidebar.querySelectorAll(".menu-link").forEach(function (link) {
+      link.addEventListener("click", function () {
+        if (sidebarScroll) {
+          sessionStorage.setItem(scrollTopKey, String(sidebarScroll.scrollTop || 0));
+        }
+        if (link.href) {
+          sessionStorage.setItem(activeHrefKey, link.href);
+        }
+      });
+    });
+
+    window.addEventListener("beforeunload", saveSidebarScroll);
   })();
 </script>

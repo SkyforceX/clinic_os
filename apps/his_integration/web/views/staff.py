@@ -624,6 +624,7 @@ class HisSyncDashboardView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['is_superuser'] = bool(getattr(self.request.user, 'is_superuser', False))
         context['stats'] = get_his_sync_dashboard_stats()
         context['job_watchlist'] = get_his_sync_job_watchlist()
         quality_warnings = get_his_sync_quality_warnings(sample_limit=5)

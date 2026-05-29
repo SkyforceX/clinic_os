@@ -12,6 +12,12 @@
       min-width: 235px;
       width: 235px;
     }
+    .schedule-company-col.company-col-full-name {
+      min-width: 340px;
+      width: 340px;
+      white-space: normal;
+      word-break: break-word;
+    }
     .schedule-actions {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -196,25 +202,27 @@
                 {% endif %}
               {% endfor %}
             </tr>
-            <!-- DÒNG TỔNG SIÊU ÂM -->
             <tr>
-              {% for info in daily_us_data %}
+              {% for info in daily_special_exam_data %}
                 {% if forloop.counter0 in sunday_indexes %}
                   <td class="col-sunday"></td>
                 {% elif forloop.counter0 in holiday_indexes %}
                   <td class="col-holiday"></td>
                 {% else %}
-                  {% if info.registered_total > 0 or info.allocated_total > 0 or info.allocated_company_count > 0 %}
-                    <td class="js-us-total-cell"
-                        data-date="{{ info.date }}"
-                        style="background:#f3e5f5; color:#6a1b9a; cursor:pointer;  font-weight:600; line-height:1.25;"
-                        title="Đã đăng ký: {{ info.registered_total }} siêu âm / {{ info.registered_company_count }} công ty. Theo phân bổ slot trong ngày: {{ info.allocated_total }} siêu âm / {{ info.allocated_company_count }} công ty. Click để xem chi tiết.">
-                      <div>ĐK: {{ info.registered_total }} SA / {{ info.registered_company_count }} CTY</div>
-                      <div>Slot: {{ info.allocated_total }} SA / {{ info.allocated_company_count }} CTY</div>
-                    </td>
-                  {% else %}
-                    <td style="font-size:10px;"></td>
-                  {% endif %}
+                  <td
+                    {% if info.count > 0 %}
+                      class="js-special-exam-cell"
+                      data-date="{{ info.date }}"
+                      style="background:#fff8e1; color:#8d6e63; cursor:pointer; font-weight:600;"
+                      title="Tổng danh mục khám đặc biệt: {{ info.count }} | Công ty có đăng ký: {{ info.company_count }}. Click để xem chi tiết."
+                    {% else %}
+                      style="color:#b0bec5;"
+                    {% endif %}
+                  >
+                    {% if info.count > 0 %}
+                      ĐB: {{ info.count }}
+                    {% endif %}
+                  </td>
                 {% endif %}
               {% endfor %}
             </tr>
@@ -223,7 +231,7 @@
         {% for row in schedule_rows %}
           <!-- DÒNG 1: LẤY MÁU -->
           <tr class="blood-row" data-staff-id="{{ row.salesperson_id }}">
-            <th rowspan="3" class="schedule-company-col {% if forloop.counter0|divisibleby:2 %}company-col-even{% else %}company-col-odd{% endif %} {% if row.is_confirmed %}company-col-confirmed{% else %}company-col-unconfirmed{% endif %}">
+            <th rowspan="3" class="schedule-company-col {% if show_full_company_names %}company-col-full-name{% endif %} {% if forloop.counter0|divisibleby:2 %}company-col-even{% else %}company-col-odd{% endif %} {% if row.is_confirmed %}company-col-confirmed{% else %}company-col-unconfirmed{% endif %}" title="{{ row.company_name }}">
               {% if row.is_masked_company %}
                 <span style="color:{% if row.is_confirmed %}#1b5e20{% else %}#1565c0{% endif %}; font-weight:600;">{{ row.company_name }}</span>
               {% else %}
@@ -245,7 +253,7 @@
               {% if row.is_masked_company and row.schedule_creator_name %}
                 <small class="text-muted d-block">Người tạo lịch: {{ row.schedule_creator_name }}</small>
               {% elif row.schedule_creator_name and row.schedule_creator_name != row.salesperson_name %}
-                <small class="text-muted d-block">Nguoi tao lich: {{ row.schedule_creator_name }}</small>
+                <small class="text-muted d-block">Người tạo lịch: {{ row.schedule_creator_name }}</small>
               {% endif %}
 
               <div class="schedule-actions">
@@ -423,7 +431,7 @@
 </div>
 
 <script>
-// ===== hi?n th? modal danh s?ch BN ch?a ??ng k? l?ch kh?m
+// unregistered patient helper
 function toggleUnreg(el) {
   const list = el.nextElementSibling;
   if (list.style.display === "none" || list.style.display === "") {
@@ -433,7 +441,7 @@ function toggleUnreg(el) {
   }
 }
 
-// l?c theo nh?n vi?n Sales Team
+// filter by Sales Team staff
 document.addEventListener('DOMContentLoaded', function() {
   const filter = document.getElementById('staff-filter');
   if (!filter) return;
@@ -453,7 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script>
-  // ??nh d?ng b?ng - m?u cho ng?y ??ng k? c?a c?ng ty
+  // format table and highlight company schedule days
   document.addEventListener("DOMContentLoaded", function () {
     const today = new Date();
     const todayIso = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
@@ -477,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
 
-    // Tooltip ??n gi?n
+    // simple tooltip
     const shiftBlocks = document.querySelectorAll(".shift-blood");
     shiftBlocks.forEach(cell => {
       if (cell.dataset.people) {
@@ -486,20 +494,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const people = cell.dataset.people || '';
         const staff = cell.dataset.staff || '';
         cell.title =
-          `Ng?y l?y m?u: ${date}
-` +
-          `??a ?i?m: ${location}
-` +
-          `S? ng??i l?y m?u: ${people}
-` +
-          `S? nh?n vi?n: ${staff}`;
+          `\u004e\u0067\u00e0\u0079 \u006c\u1ea5\u0079 \u006d\u00e1\u0075: ${date}\n` +
+          `\u0110\u1ecb\u0061 \u0111\u0069\u1ec3\u006d: ${location}\n` +
+          `\u0053\u1ed1 \u006e\u0067\u01b0\u1eddi \u006c\u1ea5\u0079 \u006d\u00e1\u0075: ${people}\n` +
+          `\u0053\u1ed1 \u006e\u0068\u00e2\u006e \u0076\u0069\u00ea\u006e: ${staff}`;
       } else {
-        cell.title = cell.innerText ? `${cell.innerText}` : "Kh?ng c? l?ch";
+        cell.title = cell.innerText ? `${cell.innerText}` : "\u004b\u0068\u00f4\u006e\u0067 \u0063\u00f3 \u006c\u1ecb\u0063\u0068";
       }
     });
   });
 
-  // btn ch?y ??n ng?y hi?n t?i
+  // scroll to current date
   function scrollToToday() {
     const wrapper = document.getElementById('js-schedule-table-wrapper');
     const todayCell = document.querySelector('.schedule-table thead .today-highlight');
@@ -512,9 +517,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 </script>
 
-<!-- t? ??ng c?p nh?t chi?u cao b?ng theo m?n h?nh -->
+<!-- auto adjust table height -->
 <script>
-  // c?p nh?t chi?u cao t?i ?a c?a b?ng theo chi?u cao m?n h?nh
+  // adjust max table height by viewport
   function adjustTableHeight() {
     const wrapper = document.querySelector('.schedule-table-wrapper');
     if (!wrapper) return;
@@ -532,7 +537,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.addEventListener('load', adjustTableHeight);
 
   document.addEventListener('DOMContentLoaded', function () {
-    // T?nh top offset t?ch l?y cho t?ng d?ng trong thead ?? sticky ??ng v? tr?
+    // compute sticky top offsets for thead rows
     (function () {
       var table = document.querySelector('.schedule-table');
       if (!table) return;
@@ -552,12 +557,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   document.addEventListener('DOMContentLoaded', function () {
-    // L?y t?t c? ? ti?u ?? c?ng ty ? d?ng blood-row
+    // get all company header cells on blood rows
     const companyCells = document.querySelectorAll('tr.blood-row th[rowspan="3"]');
 
     companyCells.forEach((cell) => {
       cell.style.cursor = 'pointer';
-      cell.title = 'Click ?? chuy?n ??n l?ch kh?m c?a c?ng ty n?y';
+      cell.title = '\u0043\u006c\u0069\u0063\u006b \u0111\u1ec3 \u0063\u0068\u0075\u0079\u1ec3\u006e \u0111\u1ebf\u006e \u006c\u1ecb\u0063\u0068 \u006b\u0068\u00e1\u006d \u0063\u1ee7\u0061 \u0063\u00f4\u006e\u0067 \u0074\u0079 \u006e\u00e0\u0079';
 
       cell.addEventListener('click', function (event) {
         if (event.target.closest('.schedule-actions, button, a, form, input, select, textarea, label')) {
@@ -587,7 +592,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 </script>
 
-<!-- JS m? r?ng b?ng -->
+<!-- fullscreen table toggle -->
 <script>
 function toggleFullscreen() {
   const wrapper = document.getElementById("js-schedule-table-wrapper");
@@ -596,14 +601,14 @@ function toggleFullscreen() {
   wrapper.classList.toggle('fullscreen-table-wrapper');
 
   if (wrapper.classList.contains('fullscreen-table-wrapper')) {
-    btn.innerHTML = 'Thu g?n';
+    btn.innerHTML = '\u0054\u0068\u0075 \u0067\u1ecd\u006e';
   } else {
-    btn.innerHTML = 'M? r?ng';
+    btn.innerHTML = '\u004d\u1edf \u0072\u1ed9\u006e\u0067';
   }
 }
 </script>
 
-<!-- hi?u ?ng k?o ngang b?ng chu?t v? touch screen -->
+<!-- horizontal drag scroll -->
 <script>
 const scrollWrapper = document.querySelector('.schedule-table-wrapper');
 let isDragging = false;
@@ -631,7 +636,7 @@ scrollWrapper.addEventListener('mousemove', (e) => {
   if (!isDragging) return;
   e.preventDefault();
   const x = e.pageX - scrollWrapper.offsetLeft;
-  const walk = (x - startX) * 1.5; // t?c ?? cu?n (t?y ch?nh)
+  const walk = (x - startX) * 1.5; // scroll speed tweak
   scrollWrapper.scrollLeft = scrollLeft - walk;
 });
 
@@ -649,26 +654,6 @@ scrollWrapper.addEventListener('touchmove', (e) => {
 });
 
 </script>
-
-<!-- Modal chi ti?t si?u ?m -->
-<div class="modal fade" id="usDetailModal" tabindex="-1" aria-labelledby="usDetailModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="usDetailModalLabel">Chi tiết siêu âm</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" id="us-modal-body">
-        <div class="text-center py-4">
-          <div class="spinner-border text-primary" role="status"></div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- Modal sửa slot -->
 {% if can_cleanup_slot_registrations %}
@@ -725,6 +710,23 @@ scrollWrapper.addEventListener('touchmove', (e) => {
         <div class="me-auto text-muted small" id="slot-footer-total"></div>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
         <button type="button" class="btn btn-primary" id="btn-save-slots" disabled>Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="specialExamDetailModal" tabindex="-1" aria-labelledby="specialExamDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="specialExamDetailModalLabel">Danh mục khám đặc biệt</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="special-exam-modal-body">
+        <div class="text-muted text-center py-4">Không có dữ liệu.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
       </div>
     </div>
   </div>
@@ -862,7 +864,7 @@ scrollWrapper.addEventListener('touchmove', (e) => {
 
   function buildHtml(days) {
     if (!days.length) {
-      return '<div class="text-muted">Hi?n kh?ng c?n kh?ch h?ng n?o ??ng k? slot c?a c?ng ty n?y.</div>';
+      return '<div class="text-muted">\u0048\u0069\u1ec7\u006e \u006b\u0068\u00f4\u006e\u0067 \u0063\u00f2\u006e \u006b\u0068\u00e1\u0063\u0068 \u0068\u00e0\u006e\u0067 \u006e\u00e0\u006f \u0111\u0103\u006e\u0067 \u006b\u00fd \u0073\u006c\u006f\u0074 \u0063\u1ee7\u0061 \u0063\u00f4\u006e\u0067 \u0074\u0079 \u006e\u00e0\u0079.</div>';
     }
 
     return days.map(function(day) {
@@ -875,7 +877,7 @@ scrollWrapper.addEventListener('touchmove', (e) => {
           <td>${esc(item.status)}</td>
           <td class="text-center">
             <button type="button" class="btn btn-sm btn-outline-danger js-delete-slot-registration" data-appointment-id="${item.appointment_id}" data-patient-name="${esc(item.name)}">
-              X?a
+              Xóa
             </button>
           </td>
         </tr>`;
@@ -883,7 +885,7 @@ scrollWrapper.addEventListener('touchmove', (e) => {
 
       return `<div class="card mb-3 border-0 shadow-sm">
         <div class="card-header bg-light fw-semibold">
-          Ng?y ${esc(day.date_display)} <span class="text-muted">(${(day.registrations || []).length} ??ng k?)</span>
+          \u004e\u0067\u00e0\u0079 ${esc(day.date_display)} <span class="text-muted">(${(day.registrations || []).length} \u0111\u0103\u006e\u0067 \u006b\u00fd)</span>
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
@@ -891,11 +893,11 @@ scrollWrapper.addEventListener('touchmove', (e) => {
               <thead class="table-light">
                 <tr>
                   <th>Ca</th>
-                  <th>M? KH</th>
-                  <th>H? t?n</th>
-                  <th>Ng?y sinh</th>
-                  <th>Tr?ng th?i</th>
-                  <th style="width:90px;">Thao t?c</th>
+                  <th>\u004d\u00e3 \u004b\u0048</th>
+                  <th>\u0048\u1ecd \u0074\u00ea\u006e</th>
+                  <th>\u004e\u0067\u00e0\u0079 \u0073\u0069\u006e\u0068</th>
+                  <th>\u0054\u0072\u1ea1\u006e\u0067 \u0074\u0068\u00e1\u0069</th>
+                  <th style="width:90px;">\u0054\u0068\u0061\u006f \u0074\u00e1\u0063</th>
                 </tr>
               </thead>
               <tbody>${rows}</tbody>
@@ -923,16 +925,16 @@ scrollWrapper.addEventListener('touchmove', (e) => {
       .then(function(result) {
         setLoading(false);
         if (!result.ok) {
-          showAlert(result.data.error || 'Kh?ng t?i ???c d? li?u.', 'danger');
+          showAlert(result.data.error || '\u004b\u0068\u00f4\u006e\u0067 \u0074\u1ea3\u0069 \u0111\u01b0\u1ee3\u0063 \u0064\u1eef \u006c\u0069\u1ec7\u0075.', 'danger');
           return;
         }
         const data = result.data || {};
-        metaEl.textContent = `${data.company_name || ''} | T?ng ??ng k?: ${data.total_registrations || 0}`;
+        metaEl.textContent = `${data.company_name || ''} | \u0054\u1ed5\u006e\u0067 \u0111\u0103\u006e\u0067 \u006b\u00fd: ${data.total_registrations || 0}`;
         bodyEl.innerHTML = buildHtml(data.days || []);
       })
       .catch(function() {
         setLoading(false);
-        showAlert('Kh?ng t?i ???c d? li?u.', 'danger');
+        showAlert('\u004b\u0068\u00f4\u006e\u0067 \u0074\u1ea3\u0069 \u0111\u01b0\u1ee3\u0063 \u0064\u1eef \u006c\u0069\u1ec7\u0075.', 'danger');
       });
   }
 
@@ -952,8 +954,8 @@ scrollWrapper.addEventListener('touchmove', (e) => {
     if (!button) return;
 
     const appointmentId = button.getAttribute('data-appointment-id');
-    const patientName = button.getAttribute('data-patient-name') || 'kh?ch h?ng';
-    if (!appointmentId || !confirm(`X?a ??ng k? slot c?a ${patientName}?`)) {
+    const patientName = button.getAttribute('data-patient-name') || '\u006b\u0068\u00e1\u0063\u0068 \u0068\u00e0\u006e\u0067';
+    if (!appointmentId || !confirm(`\u0058\u00f3\u0061 \u0111\u0103\u006e\u0067 \u006b\u00fd \u0073\u006c\u006f\u0074 \u0063\u1ee7\u0061 ${patientName}?`)) {
       return;
     }
 
@@ -977,20 +979,88 @@ scrollWrapper.addEventListener('touchmove', (e) => {
       .then(function(result) {
         button.disabled = false;
         if (!result.ok) {
-          showAlert(result.data.error || 'Kh?ng x?a ???c ??ng k? slot.', 'danger');
+          showAlert(result.data.error || '\u004b\u0068\u00f4\u006e\u0067 \u0078\u00f3\u0061 \u0111\u01b0\u1ee3\u0063 \u0111\u0103\u006e\u0067 \u006b\u00fd \u0073\u006c\u006f\u0074.', 'danger');
           return;
         }
-        showAlert(result.data.message || '?? x?a ??ng k? slot.', 'success');
+        showAlert(result.data.message || '\u0110\u00e3 \u0078\u00f3\u0061 \u0111\u0103\u006e\u0067 \u006b\u00fd \u0073\u006c\u006f\u0074.', 'success');
         loadData(currentConfigId);
       })
       .catch(function() {
         button.disabled = false;
-        showAlert('Kh?ng x?a ???c ??ng k? slot.', 'danger');
+        showAlert('\u004b\u0068\u00f4\u006e\u0067 \u0078\u00f3\u0061 \u0111\u01b0\u1ee3\u0063 \u0111\u0103\u006e\u0067 \u006b\u00fd \u0073\u006c\u006f\u0074.', 'danger');
       });
   });
 })();
 </script>
 {% endif %}
+
+{{ daily_special_exam_data|json_script:"special-exam-daily-data" }}
+
+<script>
+(function () {
+  var payloadEl = document.getElementById('special-exam-daily-data');
+  if (!payloadEl) return;
+
+  var dailyData = {};
+  try {
+    JSON.parse(payloadEl.textContent).forEach(function (item) {
+      dailyData[item.date] = item;
+    });
+  } catch (err) {
+    return;
+  }
+
+  document.addEventListener('click', function (event) {
+    var cell = event.target.closest('.js-special-exam-cell');
+    if (!cell) return;
+    openSpecialExamModal(cell.getAttribute('data-date'));
+  });
+
+  function openSpecialExamModal(date) {
+    var modalEl = document.getElementById('specialExamDetailModal');
+    var bodyEl = document.getElementById('special-exam-modal-body');
+    var titleEl = document.getElementById('specialExamDetailModalLabel');
+    var data = dailyData[date];
+    var parts = (date || '').split('-');
+    var dateDisplay = parts.length === 3 ? (parts[2] + '/' + parts[1] + '/' + parts[0]) : date;
+
+    titleEl.textContent = 'Danh mục khám đặc biệt ngày ' + dateDisplay;
+    bodyEl.innerHTML = buildSpecialExamHtml(data);
+    new bootstrap.Modal(modalEl).show();
+  }
+
+  function buildSpecialExamHtml(data) {
+    if (!data || !data.companies || data.companies.length === 0) {
+      return '<div class="text-muted text-center py-4">Không có danh mục khám đặc biệt trong ngày này.</div>';
+    }
+
+    var html = '<div class="text-muted mb-3">Tổng danh mục: <strong>' + data.count + '</strong> | Số công ty: <strong>' + data.company_count + '</strong></div>';
+    html += data.companies.map(function (company) {
+      var categories = (company.category_names || []).map(function (name) {
+        return '<li>' + esc(name) + '</li>';
+      }).join('');
+
+      return '<div class="card mb-3 border-0 shadow-sm">' +
+        '<div class="card-header bg-light d-flex justify-content-between align-items-center">' +
+          '<span class="fw-semibold">' + esc(company.company_name || '') + '</span>' +
+          '<span class="badge bg-warning text-dark">' + (company.category_count || 0) + ' mục</span>' +
+        '</div>' +
+        '<div class="card-body">' +
+          '<ul class="mb-0">' + categories + '</ul>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    return html;
+  }
+
+  function esc(text) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(text || ''));
+    return d.innerHTML;
+  }
+})();
+</script>
 
 <script>
 (function () {
@@ -1218,162 +1288,4 @@ scrollWrapper.addEventListener('touchmove', (e) => {
 })();
 </script>
 
-{% endblock %}
-
-
-{% block extra_scripts %}
-<script>
-(function () {
-  const US_MODAL_URL = "{% url 'scheduling:ultrasound_modal' %}";
-
-  document.addEventListener('click', function (e) {
-    const cell = e.target.closest('.js-us-total-cell');
-    if (!cell) return;
-    openUsModal(cell.dataset.date);
-  });
-
-  function openUsModal(date) {
-    const parts = date.split('-');
-    const dateDisplay = `${parts[2]}/${parts[1]}/${parts[0]}`;
-    document.getElementById('usDetailModalLabel').textContent = `Chi tiết siêu âm ngày ${dateDisplay}`;
-    document.getElementById('us-modal-body').innerHTML =
-      '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
-    new bootstrap.Modal(document.getElementById('usDetailModal')).show();
-
-    fetch(`${US_MODAL_URL}?date=${date}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      .then(function (r) { return r.json(); })
-      .then(function (data) { renderUsModal(data); })
-      .catch(function () {
-        document.getElementById('us-modal-body').innerHTML =
-          '<div class="alert alert-danger">Không thể tải dữ liệu.</div>';
-      });
-  }
-
-  function renderUsModal(data) {
-    const body = document.getElementById('us-modal-body');
-    const regBadge = data.total || 0;
-    const planBadge = data.planned_total_us || 0;
-    body.innerHTML =
-      `<ul class="nav nav-tabs mb-3" role="tablist">
-        <li class="nav-item" role="presentation">
-          <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#us-tab-reg" type="button">
-            BN đã đăng ký <span class="badge bg-primary ms-1">${regBadge}</span>
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#us-tab-plan" type="button">
-            Gói khám theo ngày <span class="badge bg-secondary ms-1">${planBadge}</span>
-          </button>
-        </li>
-      </ul>
-      <div class="tab-content">
-        <div class="tab-pane fade show active" id="us-tab-reg">${buildRegisteredContent(data)}</div>
-        <div class="tab-pane fade" id="us-tab-plan">${buildPlannedContent(data)}</div>
-      </div>`;
-  }
-
-  function buildRegisteredContent(data) {
-    if (!data.companies || data.companies.length === 0) {
-      return '<p class="text-muted text-center py-4">Không có dữ liệu siêu âm cho ngày này.</p>';
-    }
-    let html = `<p class="text-muted mb-3">Tổng: <strong>${data.total}</strong> lượt siêu âm</p>`;
-    for (const company of data.companies) {
-      html += `<div class="card mb-3"><div class="card-header py-2 fw-semibold">${esc(company.name)}</div><div class="card-body p-0">`;
-      if (company.am_patients && company.am_patients.length > 0) {
-        html += `<div class="px-3 pt-2 pb-1"><strong style="color:#1e88e5;">&#9728; Sáng</strong></div>`;
-        html += buildPatientTable(company.am_patients);
-      }
-      if (company.pm_patients && company.pm_patients.length > 0) {
-        html += `<div class="px-3 pt-2 pb-1"><strong style="color:#fb8c00;">&#9790; Chiều</strong></div>`;
-        html += buildPatientTable(company.pm_patients);
-      }
-      html += '</div></div>';
-    }
-    return html;
-  }
-
-  function buildPlannedContent(data) {
-    const companies = data.planned_companies || [];
-    if (companies.length === 0) {
-      return '<p class="text-muted text-center py-4">Không có dữ liệu gói khám cho ngày này.</p>';
-    }
-    let html = `<p class="text-muted mb-2">Tổng SA dự kiến: <strong>${data.planned_total_us || 0}</strong> lượt</p>`;
-    html += '<div class="table-responsive"><table class="table table-sm table-bordered align-middle">';
-    html += '<thead class="table-light"><tr>';
-    html += '<th style="min-width:160px;">Công ty / Gói khám</th>';
-    html += '<th style="text-align:center;">Slot ngày</th>';
-    html += '<th style="text-align:center;">Tổng SA dự kiến</th>';
-    html += '<th style="">Dịch vụ siêu âm theo ngày</th>';
-    html += '</tr></thead><tbody>';
-    for (const c of companies) {
-      const serviceRows = (c.service_counts || []).map(function (s) {
-        return `<tr>
-          <td style="">${esc(s.name)}</td>
-          <td style="text-align:center;width:72px;font-weight:600;">${s.count}</td>
-        </tr>`;
-      }).join('');
-      html += '<tr>';
-      html += `<td style=""><strong>${esc(c.name)}</strong>`;
-      if (c.package_name) html += `<br><small class="text-muted">${esc(c.package_name)}</small>`;
-      html += '</td>';
-      html += `<td style="text-align:center;">${c.allocated_slots}</td>`;
-      html += `<td style="text-align:center;font-weight:${c.estimated_us > 0 ? 'bold' : 'normal'};">${c.estimated_us}</td>`;
-      html += `<td>${
-        serviceRows
-          ? `<div class="table-responsive">
-              <table class="table table-sm table-bordered mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th style="">Tên siêu âm</th>
-                    <th style="text-align:center;width:72px;">SL</th>
-                  </tr>
-                </thead>
-                <tbody>${serviceRows}</tbody>
-              </table>
-            </div>`
-          : '<small class="text-muted">Không có SA trong gói</small>'
-      }</td>`;
-      html += '</tr>';
-    }
-    html += '</tbody></table></div>';
-    return html;
-  }
-
-  function buildPatientTable(patients) {
-    let t = `<div class="table-responsive"><table class="table table-sm table-bordered mb-0">
-      <thead class="table-light"><tr>
-        <th style="">Mã BN</th>
-        <th style="">Họ tên</th>
-        <th style="">Ngày sinh</th>
-        <th style="">GT</th>
-        <th style="">Siêu âm</th>
-      </tr></thead><tbody>`;
-    for (const p of patients) {
-      const serviceRows = p.services.map(function (s) {
-        const serviceName = typeof s === 'string' ? s : (s.name || '');
-        const isExtra = typeof s === 'object' && !!s.is_extra;
-        return `<div style="line-height:1.4;padding:2px 0;${isExtra ? 'color:#c62828;font-weight:600;' : ''}">
-          ${esc(serviceName)}
-          ${isExtra ? '<span class="badge bg-warning text-dark ms-1" style="font-size:9px;">Extra</span>' : ''}
-        </div>`;
-      }).join('');
-      t += `<tr>
-        <td style="">${esc(p.code)}</td>
-        <td style="">${esc(p.name)}</td>
-        <td style="">${esc(p.dob)}</td>
-        <td style="">${esc(p.gender)}</td>
-        <td>${serviceRows}</td>
-      </tr>`;
-    }
-    t += '</tbody></table></div>';
-    return t;
-  }
-
-  function esc(text) {
-    const d = document.createElement('div');
-    d.appendChild(document.createTextNode(text || ''));
-    return d.innerHTML;
-  }
-})();
-</script>
 {% endblock %}

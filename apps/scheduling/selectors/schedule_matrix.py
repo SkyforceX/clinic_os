@@ -476,6 +476,7 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
             "his_package__organization",
         )
         .prefetch_related(
+            "special_exam_categories",
             "quotation__company__patients",
             "contract__contract__company__patients",
             Prefetch(
@@ -570,10 +571,22 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
         }
     )
     daily_blood_totals = {day: {"people": 0, "staff": 0, "locations": 0} for day in days}
+    daily_special_exam_totals = {day: {"count": 0, "company_count": 0} for day in days}
+    daily_special_exam_details = {day: [] for day in days}
 
     for config in visible_configs:
         slots = _get_slots_for_config(config)
         slot_map = {(slot.date, slot.shift): slot for slot in slots}
+        special_exam_names = [cat.name for cat in config.special_exam_categories.all()]
+        is_masked = config.id in masked_config_ids
+        daily_special_exam_company_name = "Lịch khám dự kiến" if is_masked else _get_company_name_from_config(config)
+        if is_masked:
+            daily_special_exam_company_name = (
+                "Lịch khám đã chốt" if config.is_confirmed else "Lịch khám dự kiến"
+            )
+        if not daily_special_exam_company_name:
+            schedule_creator = getattr(config, "registered_by", None) or _get_schedule_creator_from_config(config)
+            daily_special_exam_company_name = _display_user_name(schedule_creator) or daily_special_exam_company_name
 
         for blood in _get_blood_rows_for_config(config):
             if blood.collection_date in daily_blood_totals:
@@ -593,65 +606,32 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
                 day_totals[day]["pm"]["registered"] += _registered_count(slot_pm)
                 day_totals[day]["pm"]["limit"] += _limit_count(slot_pm)
 
+            if special_exam_names and (slot_am or slot_pm):
+                daily_special_exam_totals[day]["count"] += len(special_exam_names)
+                daily_special_exam_totals[day]["company_count"] += 1
+                daily_special_exam_details[day].append({
+                    "config_id": config.id,
+                    "company_name": daily_special_exam_company_name,
+                    "category_names": special_exam_names,
+                    "category_count": len(special_exam_names),
+                })
+
     daily_am_totals = []
     daily_pm_totals = []
+    daily_special_exam_data = []
     for day in days:
         am = day_totals[day]["am"]
         pm = day_totals[day]["pm"]
         daily_am_totals.append(f"Sáng: {am['registered']}/{am['limit']}/{default_am_limit}")
         daily_pm_totals.append(f"Chiều: {pm['registered']}/{pm['limit']}/{default_pm_limit}")
+        daily_special_exam_data.append({
+            "date": day.strftime("%Y-%m-%d"),
+            "count": daily_special_exam_totals[day]["count"],
+            "company_count": daily_special_exam_totals[day]["company_count"],
+            "companies": daily_special_exam_details[day],
+        })
 
     # ─── Tổng siêu âm mỗi ngày ───────────────────────────────────────────────
-    daily_us_counts = defaultdict(int)
-    daily_us_allocated_counts = defaultdict(int)
-    daily_us_registered_company_counts = defaultdict(int)
-    daily_us_allocated_company_counts = defaultdict(int)
-    for config in visible_configs:
-        us_plan = _build_config_us_plan(config)
-        us_lines = us_plan["us_lines"]
-        slot_map_us = us_plan["slot_map"]
-        for day, shifts in slot_map_us.items():
-            day_capacity = sum(_limit_count(slot) for slot in shifts.values())
-            if day_capacity > 0:
-                daily_us_allocated_company_counts[day] += 1
-
-        if not us_lines:
-            continue
-
-        has_registered_by_day = set()
-        for day in days:
-            for shift in (TimeShift.MORNING, TimeShift.AFTERNOON):
-                slot = slot_map_us.get(day, {}).get(shift)
-                if not slot:
-                    continue
-                for ap in slot.appointments.all():
-                    patient = _appointment_patient(ap)
-                    if not patient:
-                        continue
-                    registered_us = _count_us_services(us_lines, _patient_gender_code(patient))
-                    if registered_us > 0:
-                        daily_us_counts[day] += registered_us
-                        has_registered_by_day.add(day)
-
-        for day, allocated_us in us_plan["allocated_daily_us"].items():
-            if allocated_us > 0:
-                daily_us_allocated_counts[day] += allocated_us
-
-        for day in has_registered_by_day:
-            daily_us_registered_company_counts[day] += 1
-
-    daily_us_data = [
-        {
-            "date": day.strftime("%Y-%m-%d"),
-            "total": daily_us_counts.get(day, 0),
-            "registered_total": daily_us_counts.get(day, 0),
-            "allocated_total": daily_us_allocated_counts.get(day, 0),
-            "registered_company_count": daily_us_registered_company_counts.get(day, 0),
-            "allocated_company_count": daily_us_allocated_company_counts.get(day, 0),
-        }
-        for day in days
-    ]
-
     rows = []
     for config in visible_configs:
         quotation = getattr(config, "quotation", None)
@@ -831,8 +811,8 @@ def build_contract_schedule_matrix(*, actor, start_of_year=None):
         "schedule_rows": rows,
         "daily_am_totals": daily_am_totals,
         "daily_pm_totals": daily_pm_totals,
+        "daily_special_exam_data": daily_special_exam_data,
         "blood_totals_per_day": blood_totals_per_day,
-        "daily_us_data": daily_us_data,
         "sunday_indexes": sunday_indexes,
         "holiday_indexes": holiday_indexes,
         "sale_team_users": sale_team_users,

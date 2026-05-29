@@ -269,6 +269,7 @@
         </a>
     </div>
 
+    {% if is_superuser %}
     <div class="his-stats-section-label">Dữ liệu lâm sàng</div>
     <div class="row g-3 mb-2 his-stats-grid">
         <div class="col-6 col-md-4 col-lg-3">
@@ -542,6 +543,7 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
 
     <div class="card sync-actions-card mb-4">
         <div class="card-header bg-white">
@@ -609,6 +611,7 @@
         </div>
     </div>
 
+    {% if is_superuser %}
     <div class="card sync-watch-card mb-4">
         <div class="card-header bg-white">
             <h5 class="mb-0">Theo dõi 12 nhóm sync</h5>
@@ -662,6 +665,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <div class="card sync-history-card">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">

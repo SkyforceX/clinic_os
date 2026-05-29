@@ -24,7 +24,9 @@ def delete_slot_registration(*, actor, appointment_id):
         raise PermissionError("Ban khong co quyen xoa dang ky slot.")
 
     appointment = (
-        Appointment.objects.select_for_update()
+        # his_patient_sync là FK nullable; khóa chỉ row Appointment để tránh
+        # PostgreSQL báo lỗi FOR UPDATE trên outer join do select_related().
+        Appointment.objects.select_for_update(of=("self",))
         .select_related("schedule_slot", "patient", "his_patient_sync")
         .filter(pk=appointment_id)
         .first()

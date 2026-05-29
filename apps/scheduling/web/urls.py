@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.scheduling.web.views import add_holiday, add_special_exam_category, delete_holiday, delete_slot_registration_view, edit_special_exam_category, end_schedule, general_settings, get_slot_cleanup_data, get_slot_data, get_us_modal_data, redistribute_slots, schedule_table, update_slot_capacities
+from apps.scheduling.web.views import add_holiday, add_special_exam_category, delete_holiday, delete_slot_registration_view, edit_special_exam_category, end_schedule, general_settings, get_slot_cleanup_data, get_slot_data, redistribute_slots, schedule_table, update_slot_capacities
 
 from apps.scheduling.web.views.public_booking_views import (
     register_schedule,
@@ -18,7 +18,6 @@ urlpatterns = [
     path("schedule-config/<int:config_id>/update-slots/", update_slot_capacities, name="update_slot_capacities"),
     path("slot-registrations/<int:appointment_id>/delete/", delete_slot_registration_view, name="delete_slot_registration"),
     path("contract/<int:contract_id>/redistribute/", redistribute_slots, name="redistribute_slots"),
-    path("ultrasound-modal/", get_us_modal_data, name="ultrasound_modal"),
     path("general-settings/", general_settings, name="general_settings"),
     path("holidays/add/", add_holiday, name="add_holiday"),
     path("holidays/<int:holiday_id>/delete/", delete_holiday, name="delete_holiday"),

@@ -39,6 +39,13 @@
   display: flex; align-items: center; gap: 7px;
 }
 .db-card-title i { opacity: .75; }
+.db-side-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.db-side-grid .db-card { margin-bottom: 0; }
+.db-card-span-2 { grid-column: 1 / -1; }
 
 /* ══ KPI chips ═══════════════════════════════════════════════════════ */
 .kpi-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; }
@@ -174,6 +181,8 @@
 @media (max-width:767px) {
   .week-cal { grid-template-columns:repeat(4,1fr); }
   .my-week-row { grid-template-columns:repeat(4,1fr); }
+  .db-side-grid { grid-template-columns:1fr; }
+  .db-card-span-2 { grid-column:auto; }
 }
 @media (max-width:479px) {
   .week-cal { grid-template-columns:repeat(2,1fr); }
@@ -204,7 +213,7 @@
     <!-- ══════════════════════════════════════════════════════════════════
        CỘT TRÁI — DỮ LIỆU CHUNG
     ══════════════════════════════════════════════════════════════════ -->
-    <div class="col-12 col-xl-8">
+    <div class="{% if user_role == 'executive' %}col-12{% else %}col-12 col-xl-8{% endif %}">
 
       <!-- ── Kế hoạch triển khai ──────────────────────────────────────── -->
       <p class="db-section-title"><i class="fa fa-calendar-check"></i> Kế hoạch triển khai khám đoàn</p>
@@ -254,6 +263,103 @@
         </div>
         {% endif %}
       </div>
+
+      {% if user_role == "executive" %}
+      <p class="db-section-title"><i class="fa fa-chart-pie"></i> Tổng quan hệ thống</p>
+
+      <div class="db-side-grid">
+        <div class="db-card">
+          <div class="db-card-title"><i class="fa fa-file-invoice-dollar"></i> Báo giá</div>
+          <div class="kpi-chips">
+            <div class="kpi-chip"><div class="val">{{ personal_stats.quotation_counts.draft }}</div><div class="lbl">Nháp</div></div>
+            <div class="kpi-chip orange"><div class="val">{{ personal_stats.quotation_counts.submitted }}</div><div class="lbl">Chờ duyệt</div></div>
+            <div class="kpi-chip green"><div class="val">{{ personal_stats.quotation_counts.approved }}</div><div class="lbl">Đã duyệt</div></div>
+            <div class="kpi-chip teal"><div class="val">{{ personal_stats.quotation_counts.total }}</div><div class="lbl">Tổng cộng</div></div>
+          </div>
+          <div class="mt-2">
+            <a href="{% url 'contract:quotation_list' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+              Xem danh sách báo giá →
+            </a>
+          </div>
+        </div>
+
+        <div class="db-card">
+          <div class="db-card-title"><i class="fa fa-calendar-week"></i> Lịch khám tuần này</div>
+          <div class="kpi-chips">
+            <div class="kpi-chip teal"><div class="val">{{ weekly_booking_count }}</div><div class="lbl">Lịch khám</div></div>
+            <div class="kpi-chip"><div class="val">{{ weekly_company_count }}</div><div class="lbl">Công ty</div></div>
+            <div class="kpi-chip green"><div class="val">{{ weekly_booking_pax }}</div><div class="lbl">Người dự kiến</div></div>
+          </div>
+          <div class="mt-2">
+            <a href="{% url 'scheduling:schedule_table' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+              Xem lịch khám đoàn →
+            </a>
+          </div>
+        </div>
+
+        <div class="db-card">
+          <div class="db-card-title"><i class="fa fa-file-signature"></i> Hợp đồng</div>
+          <div class="kpi-chips">
+            <div class="kpi-chip"><div class="val">{{ personal_stats.contract_counts.draft }}</div><div class="lbl">Nháp</div></div>
+            <div class="kpi-chip orange"><div class="val">{{ personal_stats.contract_counts.submitted }}</div><div class="lbl">Chờ duyệt</div></div>
+            <div class="kpi-chip green"><div class="val">{{ personal_stats.contract_counts.approved }}</div><div class="lbl">Đã duyệt</div></div>
+            <div class="kpi-chip teal"><div class="val">{{ personal_stats.contract_counts.active }}</div><div class="lbl">Hiệu lực</div></div>
+            <div class="kpi-chip gray"><div class="val">{{ personal_stats.contract_counts.finished }}</div><div class="lbl">Hoàn tất</div></div>
+          </div>
+          <div class="mt-2">
+            <a href="{% url 'contract:corporate_contract_list' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+              Xem danh sách hợp đồng →
+            </a>
+          </div>
+        </div>
+
+        <div class="db-card">
+          <div class="db-card-title">
+            <i class="fa fa-list-check"></i>
+            Công việc đã giao
+            <span class="badge bg-secondary ms-auto" style="font-size:.68rem">{{ personal_stats.tasks_created_total }}</span>
+          </div>
+          <div class="stage-bar">
+            {% for st in personal_stats.task_stage_counts %}
+            {% if st.count > 0 %}
+            <div class="stage-pill
+              {% if st.stage == 'TODO' %}todo
+              {% elif st.stage == 'IN_PROGRESS' %}in-progress
+              {% elif st.stage == 'IN_REVIEW' %}in-review
+              {% elif st.stage == 'DONE' %}done
+              {% else %}cancelled{% endif %}">
+              <span class="cnt">{{ st.count }}</span>{{ st.label }}
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+          <div class="mt-2">
+            <a href="{% url 'tasks:board' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+              Xem tất cả công việc →
+            </a>
+          </div>
+        </div>
+
+        <div class="db-card db-card-span-2">
+          <div class="db-card-title"><i class="fa fa-clock-rotate-left"></i> Phê duyệt đang chờ</div>
+          <div style="display:flex;align-items:center;gap:12px;padding:8px 4px">
+            <div style="font-size:2.8rem;font-weight:900;color:{% if personal_stats.pending_approvals > 0 %}#a06000{% else %}#0a6e3c{% endif %}">
+              {{ personal_stats.pending_approvals }}
+            </div>
+            <div style="font-size:.82rem;color:#6c757d">
+              yêu cầu đang chờ<br>phê duyệt từ nhân viên
+            </div>
+          </div>
+          <div class="mt-1">
+            <a href="{% url 'approvals:inbox' %}"
+               class="btn btn-sm {% if personal_stats.pending_approvals > 0 %}btn-warning{% else %}btn-outline-secondary{% endif %} w-100"
+               style="font-size:.78rem">
+              Xem inbox phê duyệt →
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
 
       <div style="display: none;">
       <!-- ── Lịch khám doanh nghiệp theo tuần ────────────────────────── -->
@@ -373,6 +479,7 @@
     <!-- ══════════════════════════════════════════════════════════════════
        CỘT PHẢI — DỮ LIỆU CÁ NHÂN
     ══════════════════════════════════════════════════════════════════ -->
+    {% if user_role != "executive" %}
     <div class="col-12 col-xl-4">
 
       <!-- ── Lịch cá nhân tuần này ────────────────────────────────────── -->
@@ -414,10 +521,11 @@
       {% endif %}
       </div>
 
-      {% if user_role == "Executives" %}
+      {% if user_role == "executive" %}
       <!-- ── Executive/Admin: Toàn bộ hệ thống ──────────────────────────── -->
       <p class="db-section-title"><i class="fa fa-chart-pie"></i> Tổng quan hệ thống</p>
 
+      <div class="db-side-grid">
       <div class="db-card">
         <div class="db-card-title"><i class="fa fa-file-invoice-dollar"></i> Báo giá</div>
         <div class="kpi-chips">
@@ -429,6 +537,20 @@
         <div class="mt-2">
           <a href="{% url 'contract:quotation_list' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
             Xem danh sách báo giá →
+          </a>
+        </div>
+      </div>
+
+      <div class="db-card">
+        <div class="db-card-title"><i class="fa fa-calendar-week"></i> Lịch khám tuần này</div>
+        <div class="kpi-chips">
+          <div class="kpi-chip teal"><div class="val">{{ weekly_booking_count }}</div><div class="lbl">Lịch khám</div></div>
+          <div class="kpi-chip"><div class="val">{{ weekly_company_count }}</div><div class="lbl">Công ty</div></div>
+          <div class="kpi-chip green"><div class="val">{{ weekly_booking_pax }}</div><div class="lbl">Người dự kiến</div></div>
+        </div>
+        <div class="mt-2">
+          <a href="{% url 'scheduling:schedule_table' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size:.78rem">
+            Xem lịch khám đoàn →
           </a>
         </div>
       </div>
@@ -479,7 +601,7 @@
       </div>
 
       <!-- ── Executive: Phê duyệt ────────────────────────────────────── -->
-      <div class="db-card">
+      <div class="db-card db-card-span-2">
         <div class="db-card-title"><i class="fa fa-clock-rotate-left"></i> Phê duyệt đang chờ</div>
         <div style="display:flex;align-items:center;gap:12px;padding:8px 4px">
           <div style="font-size:2.8rem;font-weight:900;color:{% if personal_stats.pending_approvals > 0 %}#a06000{% else %}#0a6e3c{% endif %}">
@@ -497,11 +619,13 @@
           </a>
         </div>
       </div>
+      </div>
 
-      {% elif user_role == "Sales Team" %}
+      {% elif user_role == "sales" %}
       <!-- ── Sales Team: Số liệu do user này tạo ─────────────────────── -->
       <p class="db-section-title"><i class="fa fa-chart-pie"></i> Dữ liệu của bạn</p>
 
+      <div class="db-side-grid">
       <div class="db-card">
         <div class="db-card-title"><i class="fa fa-file-invoice-dollar"></i> Báo giá của tôi</div>
         <div class="kpi-chips">
@@ -563,7 +687,8 @@
         </div>
       </div>
 
-      <div class="db-card">
+      {% if show_my_approval_requests %}
+      <div class="db-card db-card-span-2">
         <div class="db-card-title"><i class="fa fa-paper-plane"></i> Yêu cầu phê duyệt của tôi</div>
         <div class="approval-row">
           <div class="approval-chip chip-pending">
@@ -589,6 +714,8 @@
           </a>
         </div>
       </div>
+      {% endif %}
+      </div>
 
       {% else %}
       <!-- ── Staff: Tasks được giao ───────────────────────────────────── -->
@@ -596,6 +723,7 @@
       <p class="db-section-title"><i class="fa fa-user-check"></i> Dữ liệu của bạn</p>
       {% endif %}
 
+      <div class="db-side-grid">
       <div class="db-card">
         <div class="db-card-title">
           <i class="fa fa-list-check"></i>
@@ -627,7 +755,8 @@
       </div>
 
       <!-- ── Staff: Yêu cầu phê duyệt ────────────────────────────────── -->
-      <div class="db-card">
+      {% if show_my_approval_requests %}
+      <div class="db-card db-card-span-2">
         <div class="db-card-title"><i class="fa fa-paper-plane"></i> Yêu cầu phê duyệt của tôi</div>
         <div class="approval-row">
           <div class="approval-chip chip-pending">
@@ -653,11 +782,13 @@
           </a>
         </div>
       </div>
+      {% endif %}
+      </div>
 
       {% endif %}
 
     </div><!-- /col-xl-4 -->
+    {% endif %}
   </div><!-- /row -->
 </div>
 {% endblock %}
-

@@ -53,6 +53,7 @@ def overview(request):
     today = date.today()
     week_start, week_end = get_week_bounds(today)
     week_days = get_week_days(week_start)
+    executive_user = _user_has_group(request.user, {"Executive", "Executives"})
 
     # ── Shared data ───────────────────────────────────────────────────────────
     implementation_plans = get_active_implementation_plans(today)
@@ -90,6 +91,13 @@ def overview(request):
 
     # Tổng working hôm nay
     today_summary = week_schedule_summary.get(today, {})
+    weekly_booking_count = sum(len(day_info.get("companies") or []) for day_info in corporate_bookings)
+    weekly_booking_pax = sum(int(day_info.get("total_pax") or 0) for day_info in corporate_bookings)
+    weekly_booking_companies = {
+        (company.get("contract_id"), company.get("name"))
+        for day_info in corporate_bookings
+        for company in (day_info.get("companies") or [])
+    }
 
     return render(request, "dashboard/staff/overview.html", {
         "today":                  today,
@@ -105,10 +113,14 @@ def overview(request):
         "schedule_date":          schedule_date,
         "today_working_count":    today_summary.get("working", 0),
         "today_total_count":      sum(v for k, v in today_summary.items() if k != "working"),
+        "weekly_booking_count":   weekly_booking_count,
+        "weekly_booking_pax":     weekly_booking_pax,
+        "weekly_company_count":   len(weekly_booking_companies),
         # Lịch cá nhân
         "my_employee":            my_employee,
         "my_week_schedule":       my_week_schedule,
         # Stats
         "personal_stats":         personal_stats,
         "user_role":              user_role,
+        "show_my_approval_requests": not executive_user,
     })
