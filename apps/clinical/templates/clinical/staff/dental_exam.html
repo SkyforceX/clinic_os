@@ -513,9 +513,7 @@
 
           <div class="de-date-picker-row">
             <div class="de-date-field">
-              <input type="text" id="printDate" name="printDate" class="de-date-input"
-                 title="Ngày hiển thị trên phiếu in"
-                     title="Print time" autocomplete="off">
+              <input type="text" id="printDate" name="printDate" class="de-date-input" title="Print time" autocomplete="off">
             </div>
             <button type="button" class="de-btn de-btn-print de-btn-date" id="btnPickPrintDate" title="Pick print time">
               <i class="fa-regular fa-clock"></i>
@@ -528,8 +526,7 @@
           </button>
         </div>
         <div style="margin-top:10px;font-size:12px;color:#94a3b8;">
-          <!-- <i class="fa-solid fa-circle-info"></i> -->
-
+          Có thể chọn lại ngày giờ in khác với mặc định. Thời gian bạn tự chọn chỉ áp dụng cho phiếu in và không được lưu vào dữ liệu phiếu khám
         </div>
       </div>
 
@@ -1050,3 +1047,4 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
 }());
 </script>
 {% endblock %}
+

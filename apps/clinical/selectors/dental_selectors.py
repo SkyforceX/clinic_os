@@ -4,6 +4,7 @@ import re as _re
 import base64
 import mimetypes
 from pathlib import Path
+from django.utils import timezone
 
 from apps.his_integration.selectors import get_active_his_patient_by_id
 
@@ -69,6 +70,14 @@ def _split_note_columns(notations, num_columns=3):
         return [[] for _ in range(num_columns)]
     size = (len(notations) + num_columns - 1) // num_columns
     return [notations[i : i + size] for i in range(0, len(notations), size)]
+
+
+def _localize_datetime(value):
+    if not value:
+        return None
+    if timezone.is_aware(value):
+        return timezone.localtime(value)
+    return value
 
 
 def build_dental_exam_page_context(*, actor):
@@ -153,6 +162,9 @@ def build_dental_result_payload(*, patient_id=None, exam_id=None):
     else:
         raise ValueError("Cần cung cấp exam_id hoặc patient_id.")
 
+    created_at_local = _localize_datetime(dental_exam.created_at) if dental_exam else None
+    updated_at_local = _localize_datetime(dental_exam.updated_at) if dental_exam else None
+
     data = {
         **info,
         "dental_exam_id": dental_exam.id if dental_exam else "",
@@ -167,18 +179,18 @@ def build_dental_result_payload(*, patient_id=None, exam_id=None):
         "health_classification": dental_exam.health_classification if dental_exam else "",
         "conclusion": dental_exam.conclusion if dental_exam else "",
         "exam_date": (
-            dental_exam.created_at.strftime("%Y-%m-%d")
-            if dental_exam and dental_exam.created_at
+            created_at_local.strftime("%Y-%m-%d")
+            if created_at_local
             else ""
         ),
         "created_at_value": (
-            dental_exam.created_at.strftime("%Y-%m-%d %H:%M:%S")
-            if dental_exam and dental_exam.created_at
+            created_at_local.strftime("%Y-%m-%d %H:%M:%S")
+            if created_at_local
             else ""
         ),
         "latest_saved_at": (
-            dental_exam.updated_at.strftime("%Y-%m-%d %H:%M:%S")
-            if dental_exam and dental_exam.updated_at
+            updated_at_local.strftime("%Y-%m-%d %H:%M:%S")
+            if updated_at_local
             else ""
         ),
         "tooth_details": {},
@@ -216,13 +228,14 @@ def get_exam_history_for_patient(*, patient_id):
 
     result = []
     for exam in exams:
+        created_at_local = _localize_datetime(exam.created_at)
         result.append({
             "id": exam.id,
             "created_at_display": (
-                exam.created_at.strftime("%d/%m/%Y %H:%M") if exam.created_at else ""
+                created_at_local.strftime("%d/%m/%Y %H:%M") if created_at_local else ""
             ),
             "exam_date": (
-                exam.created_at.strftime("%Y-%m-%d") if exam.created_at else ""
+                created_at_local.strftime("%Y-%m-%d") if created_at_local else ""
             ),
             "patient_name": his_patient.full_name,
             "patient_code": his_patient.his_patient_code,
