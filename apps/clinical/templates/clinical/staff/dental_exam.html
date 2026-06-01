@@ -197,6 +197,29 @@
       border:1.5px solid #e2e8f0;border-radius:10px;
       font-size:13px;color:#475569;background:#f8fafc;
     }
+    .de-date-field {
+      display:flex;flex-direction:column;gap:5px;
+      min-width:220px;
+    }
+    .de-date-label {
+      font-size:11.5px;font-weight:700;
+      color:#64748b;letter-spacing:.3px;text-transform:uppercase;
+    }
+    .de-date-input-readonly {
+      background:#fff;
+      color:#1e293b;
+    }
+    .de-date-picker-row {
+      display:flex;align-items:flex-end;gap:8px;
+    }
+    .de-date-picker-row .de-date-field {
+      min-width:240px;
+    }
+    .de-btn-date {
+      width:44px;padding:0;
+      justify-content:center;
+      flex-shrink:0;
+    }
 
     /* ── Alerts ──────────────────────────────────────────────── */
     .de-alert {
@@ -488,9 +511,16 @@
             <i class="fa-solid fa-print"></i> In phiếu
           </button>
 
-          <input type="datetime-local" id="printDate" name="printDate" class="de-date-input"
+          <div class="de-date-picker-row">
+            <div class="de-date-field">
+              <input type="text" id="printDate" name="printDate" class="de-date-input"
                  title="Ngày hiển thị trên phiếu in"
-                 step="60">
+                     title="Print time" autocomplete="off">
+            </div>
+            <button type="button" class="de-btn de-btn-print de-btn-date" id="btnPickPrintDate" title="Pick print time">
+              <i class="fa-regular fa-clock"></i>
+            </button>
+          </div>
 
           <button type="button" class="de-btn de-btn-history"
                   id="btnHistory" disabled onclick="openHistoryModal()">
@@ -546,6 +576,7 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
 
   var UPPER_TEETH = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
   var LOWER_TEETH = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+  var printDatePicker = null;
 
   /* ── Track ô răng đang được focus ────────────────────────── */
   var activeToothInput = null;
@@ -666,7 +697,8 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
     var dsa = document.getElementById("dental_exam_saved_at");
     if (dsa) dsa.value = "";
     var pdi = document.getElementById("printDate");
-    if (pdi) pdi.value = "";
+    if (printDatePicker) printDatePicker.clear();
+    else if (pdi) pdi.value = "";
 
     /* Xoá bảng răng */
     clearAllTeeth();
@@ -680,6 +712,7 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
     unlockPatientFields();
     updateHistoryBtn();
     syncPrintButtonState();
+    syncLatestSavedDisplay();
     syncPrintDateInput(true);
   };
 
@@ -808,6 +841,55 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
     return yyyy + "-" + mm + "-" + dd + "T" + hh + ":" + mi;
   }
 
+  function formatDateTimeDisplay(dateObj) {
+    if (!dateObj) return "";
+    var dd = String(dateObj.getDate()).padStart(2, "0");
+    var mm = String(dateObj.getMonth() + 1).padStart(2, "0");
+    var yyyy = dateObj.getFullYear();
+    var hh = String(dateObj.getHours()).padStart(2, "0");
+    var mi = String(dateObj.getMinutes()).padStart(2, "0");
+    return dd + "/" + mm + "/" + yyyy + " " + hh + ":" + mi;
+  }
+
+  function getLatestSavedDate() {
+    var savedAt = parseStoredDateTime((document.getElementById("dental_exam_saved_at") || {}).value || "");
+    var createdAt = parseStoredDateTime((document.getElementById("dental_exam_created_at") || {}).value || "");
+    return savedAt || createdAt || null;
+  }
+
+  function syncLatestSavedDisplay() {
+    var input = document.getElementById("latestSavedDisplay");
+    if (!input) return;
+    var latestSaved = getLatestSavedDate();
+    input.value = latestSaved ? formatDateTimeDisplay(latestSaved) : "";
+  }
+
+  function initPrintDatePicker() {
+    var input = document.getElementById("printDate");
+    if (!input || typeof flatpickr !== "function") return;
+
+    printDatePicker = flatpickr(input, {
+      enableTime: true,
+      time_24hr: true,
+      allowInput: false,
+      minuteIncrement: 1,
+      dateFormat: "Y-m-d H:i",
+      altInput: true,
+      altFormat: "d/m/Y H:i",
+      altInputClass: "de-date-input",
+      locale: (flatpickr.l10ns && (flatpickr.l10ns.vn || flatpickr.l10ns.default)) || undefined,
+    });
+
+    var btn = document.getElementById("btnPickPrintDate");
+    if (btn) {
+      btn.addEventListener("click", function () {
+        if (printDatePicker) {
+          printDatePicker.open();
+        }
+      });
+    }
+  }
+
   function syncPrintDateInput(force) {
     var input = document.getElementById("printDate");
     if (!input) return;
@@ -816,10 +898,12 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
       return;
     }
 
-    var savedAt = parseStoredDateTime((document.getElementById("dental_exam_saved_at") || {}).value || "");
-    var createdAt = parseStoredDateTime((document.getElementById("dental_exam_created_at") || {}).value || "");
-    var source = savedAt || createdAt || new Date();
-    input.value = formatDateTimeLocal(source);
+    var source = getLatestSavedDate() || new Date();
+    if (printDatePicker) {
+      printDatePicker.setDate(source, false, "Y-m-d H:i");
+      return;
+    }
+    input.value = formatDateTimeLocal(source).replace("T", " ");
   }
 
   window.openHistoryModal = function () {
@@ -928,6 +1012,7 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
 
     updateHistoryBtn();
     syncPrintButtonState();
+    syncLatestSavedDisplay();
     syncPrintDateInput(true);
   }
 
@@ -943,9 +1028,11 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
      DOM READY
      ═══════════════════════════════════════════════════════════ */
   document.addEventListener("DOMContentLoaded", function () {
+    initPrintDatePicker();
     applyServerPrefill();
     updateHistoryBtn();
     syncPrintButtonState();
+    syncLatestSavedDisplay();
     syncPrintDateInput(true);
     checkAutoprint();
     bindToothFocus();      
@@ -955,6 +1042,7 @@ window.printDentalForm = typeof in_phieu === "function" ? in_phieu : null;
     document.addEventListener("clinicalPatientDataLoaded", function (event) {
       if (!event.detail || event.detail.formType !== "dental") return;
       syncPrintButtonState();
+      syncLatestSavedDisplay();
       syncPrintDateInput(true);
     });
   });

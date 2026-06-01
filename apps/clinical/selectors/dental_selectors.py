@@ -139,7 +139,7 @@ def build_dental_result_payload(*, patient_id=None, exam_id=None):
 
         dental_exam = (
             DentalExamination.objects.filter(his_patient=his_p)
-            .order_by("-created_at", "-id")
+            .order_by("-updated_at", "-id")
             .first()
         )
         info = {
