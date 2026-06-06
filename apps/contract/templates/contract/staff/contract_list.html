@@ -103,7 +103,12 @@
                 {{ config.quotation.company.name|default:config.quotation.company_name }}
               </div>
               <div class="text-muted small">
-                Sales: {{ config.quotation.created_by.get_full_name|default:config.quotation.created_by.username|default:"-" }}
+                Sales:
+                {% if config.quotation.created_by %}
+                  {{ config.quotation.created_by.get_full_name|default:config.quotation.created_by.username|default:"-" }}
+                {% else %}
+                  -
+                {% endif %}
               </div>
             </td>
 

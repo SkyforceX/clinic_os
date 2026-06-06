@@ -243,7 +243,11 @@
                 {% endif %}
               </td>
               <td class="impl-mobile-hide">
-                {{ c.created_by.get_full_name|default:c.created_by.username|default:"-" }}
+                {% if c.created_by %}
+                  {{ c.created_by.get_full_name|default:c.created_by.username|default:"-" }}
+                {% else %}
+                  -
+                {% endif %}
               </td>
               <td class="text-center impl-mobile-hide">
                 {{ c.employee_count|default:c.corporate_profile.male_count|add:c.corporate_profile.female_single_count|add:c.corporate_profile.female_family_count }}

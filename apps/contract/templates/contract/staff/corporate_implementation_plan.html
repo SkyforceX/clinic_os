@@ -303,7 +303,7 @@
     </div>
     <div class="text-end">
       <div><strong>Số hợp đồng:</strong> {{ contract.contract_number }}</div>
-      <div><strong>Người tạo:</strong> {{ contract.created_by.get_full_name|default:contract.created_by.username|default:"-" }}</div>
+      <div><strong>Người tạo:</strong> {% if contract.created_by %}{{ contract.created_by.get_full_name|default:contract.created_by.username|default:"-" }}{% else %}-{% endif %}</div>
     </div>
   </div>
 
