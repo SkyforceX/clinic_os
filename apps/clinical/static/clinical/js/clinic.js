@@ -344,6 +344,8 @@ function selectPatient(patient_id, form_type) {
             dental_exam_id: data.dental_exam_id,
             dental_exam_created_at: data.created_at_value,
             dental_exam_saved_at: data.latest_saved_at,
+            print_company_name: data.company_name,
+            print_corporate_order_number: data.corporate_order_number,
             other_oral_conditions: data.other_oral_conditions,
             chewing_ability: data.chewing_ability,
             conclusion: data.conclusion,
@@ -718,17 +720,27 @@ function in_phieu() {
     const idEl = printContent.querySelector(".js-print-ID");
     const dobEl = printContent.querySelector(".js-print-dob");
     const genderEl = printContent.querySelector(".js-print-gender");
+    const companyNameEl = printContent.querySelector(".js-print-company-name");
+    const companyRowEl = printContent.querySelector(".print-company-row");
+    const sttBoxEl = printContent.querySelector(".print-stt-box");
+    const corporateOrderNumberEl = printContent.querySelector(".js-print-corporate-order-number");
     const missingTypeEl = printContent.querySelector("#printMissing_type");
     const otherConditionsEl = printContent.querySelector("#printOther_conditions");
     const sucNhaiEl = printContent.querySelector("#printSucNhai");
     const healthClassEl = printContent.querySelector(".js-health-classification");
     const printDateTextEl = printContent.querySelector(".js-print-date");
     const conclusionEl = printContent.querySelector("#printConclusion");
+    const companyName = document.getElementById("print_company_name")?.value || "";
+    const corporateOrderNumber = document.getElementById("print_corporate_order_number")?.value || "";
 
     if (fullNameEl) fullNameEl.textContent = hoTen;
     if (idEl) idEl.textContent = maBN;
     if (dobEl) dobEl.textContent = ngaySinh;
     if (genderEl) genderEl.textContent = gioiTinh;
+    if (companyNameEl) companyNameEl.textContent = companyName;
+    if (companyRowEl) companyRowEl.classList.toggle("hidden", !companyName);
+    if (corporateOrderNumberEl) corporateOrderNumberEl.textContent = corporateOrderNumber;
+    if (sttBoxEl) sttBoxEl.classList.toggle("hidden", !corporateOrderNumber);
     if (missingTypeEl) missingTypeEl.textContent = missing_type;
     if (otherConditionsEl) otherConditionsEl.textContent = other_conditions;
     if (sucNhaiEl) sucNhaiEl.textContent = sucNhai ? `${sucNhai} %` : "";

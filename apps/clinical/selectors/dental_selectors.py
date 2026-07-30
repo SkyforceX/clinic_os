@@ -1,12 +1,14 @@
-from apps.clinical.models import DentalExamination, ToothNotation
-from apps.organizations.selectors.company_selectors import list_companies_for_actor
-import re as _re
 import base64
 import mimetypes
+import re as _re
 from pathlib import Path
+
 from django.utils import timezone
 
+from apps.clinical.models import DentalExamination, ToothNotation
+from apps.his_integration.models import HisExamRecordSync
 from apps.his_integration.selectors import get_active_his_patient_by_id
+from apps.organizations.selectors.company_selectors import list_companies_for_actor
 
 SIGNATURE_DIR = Path(__file__).resolve().parents[1] / "data" / "signature"
 
@@ -129,6 +131,53 @@ def _patient_info_from_exam(dental_exam):
     }
 
 
+def _get_corporate_print_info(*, his_patient=None, company_id=None):
+    if not his_patient:
+        return {
+            "company_name": "",
+            "corporate_order_number": "",
+        }
+
+    qs = (
+        HisExamRecordSync.objects.filter(
+            patient_sync=his_patient,
+            is_active=True,
+            package_sync__isnull=False,
+            package_sync__is_active=True,
+        )
+        .select_related("package_sync")
+        .order_by("-exam_date", "-exam_datetime", "-id")
+    )
+
+    if company_id:
+        qs = qs.filter(package_sync__organization_id=company_id)
+
+    exam_record = qs.first()
+    if not exam_record and company_id:
+        exam_record = (
+            HisExamRecordSync.objects.filter(
+                patient_sync=his_patient,
+                is_active=True,
+                package_sync__isnull=False,
+                package_sync__is_active=True,
+            )
+            .select_related("package_sync")
+            .order_by("-exam_date", "-exam_datetime", "-id")
+            .first()
+        )
+
+    if not exam_record:
+        return {
+            "company_name": "",
+            "corporate_order_number": "",
+        }
+
+    return {
+        "company_name": getattr(exam_record.package_sync, "company_name", "") or "",
+        "corporate_order_number": exam_record.corporate_order_number or "",
+    }
+
+
 def build_dental_result_payload(*, patient_id=None, exam_id=None):
     """
     Trả về dữ liệu để prefill form.
@@ -137,9 +186,13 @@ def build_dental_result_payload(*, patient_id=None, exam_id=None):
     """
     if exam_id:
         dental_exam = DentalExamination.objects.select_related(
-            "his_patient", "patient"
+            "his_patient", "patient", "company"
         ).get(id=exam_id)
         info = _patient_info_from_exam(dental_exam)
+        corporate_info = _get_corporate_print_info(
+            his_patient=dental_exam.his_patient,
+            company_id=dental_exam.company_id,
+        )
 
     elif patient_id:
         his_p = get_active_his_patient_by_id(patient_id=patient_id)
@@ -158,6 +211,7 @@ def build_dental_result_payload(*, patient_id=None, exam_id=None):
             "gender": his_p.gioi_tinh,
             "patient_code": his_p.his_patient_code,
         }
+        corporate_info = _get_corporate_print_info(his_patient=his_p)
 
     else:
         raise ValueError("Cần cung cấp exam_id hoặc patient_id.")
@@ -193,6 +247,8 @@ def build_dental_result_payload(*, patient_id=None, exam_id=None):
             if updated_at_local
             else ""
         ),
+        "company_name": corporate_info["company_name"],
+        "corporate_order_number": corporate_info["corporate_order_number"],
         "tooth_details": {},
     }
 

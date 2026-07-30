@@ -3,6 +3,9 @@
 
 <div id="print-container">
 <div id="printSection">
+  <div class="print-stt-box hidden">
+    <strong>STT: <span class="js-print-corporate-order-number"></span></strong>
+  </div>
 
   <!-- ── HEADER: Logo + Tên phòng khám ──────────────────────── -->
   <div class="print-header">
@@ -27,6 +30,10 @@
       <p>
         <strong>Mã BN <span class="en-label">(ID)</span>:</strong>
         <span class="js-print-ID info-value"></span>
+      </p>
+      <p class="print-company-row hidden">
+        <strong>Công ty:</strong>
+        <span class="js-print-company-name info-value"></span>
       </p>
     </div>
     <div class="info-col right-align">

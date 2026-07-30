@@ -91,6 +91,23 @@ body {
   margin-bottom: 5px;
 }
 
+#printSection {
+  position: relative;
+}
+
+.print-stt-box {
+  position: absolute;
+  top: 6px;
+  right: 0;
+  min-width: 78px;
+  padding: 6px 10px;
+  border: 1.5px solid #000;
+  text-align: center;
+  font-size: 11pt;
+  font-weight: 700;
+  background: #fff;
+}
+
 .print-clinic-info {
   flex: 1;
   text-align: center;
@@ -147,15 +164,15 @@ h3 {
 
 /* ── Thông tin bệnh nhân ─────────────────────────────────────── */
 .info-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
+  position: relative;
+  display: block;
+  padding-right: 150px;
   margin-bottom: 8px;
   font-size: 11pt;
 }
 
 .info-col {
-  width: 48%;
+  width: 100%;
 }
 
 .info-col p {
@@ -164,7 +181,19 @@ h3 {
   padding-bottom: 2px;
 }
 
+.print-company-row {
+  margin-top: 2px;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .right-align {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 140px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -350,6 +379,12 @@ h3 {
 
 .dr-signature.hidden,
 .hidden {
+  visibility: hidden;
+}
+
+.print-stt-box.hidden,
+.print-company-row.hidden {
+  display: none;
   visibility: hidden;
 }
 
